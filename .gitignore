@@ -31,3 +31,9 @@
 *.lss
 **default/
 **dep/
+
+# stupid osx stuff
+*.DS_Store
+
+# stupid windows stuff
+*.db
