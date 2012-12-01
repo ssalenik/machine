@@ -17,3 +17,8 @@ basic repo guidlines
 * Always comment on commits!
 * Please try not to push code that does not compile/run to master
  * if you're doing something experimental, you're better of branching first 
+
+2012 branch
+-----------
+I've created a '2012' branch - its there purely for reference, in case someone wants to check what the code looked like back then.
+Commit all new changes for this year's project to 'master' or other branches.
