@@ -47,6 +47,8 @@ class Settings(QFrame):
         
         # widgets
         self.label = QLabel("Settings")
+        self.hLine = QFrame()
+        self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.portLabel = QLabel("Port: ")
         self.portSelect = QComboBox()
         self.portSelect.addItems(["port a", "port b", "port c"])
@@ -63,13 +65,11 @@ class Settings(QFrame):
         # layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.label, 0, 0)
+        self.layout.addWidget(self.hLine, 1, 0, 1, 5)
         self.layout.addWidget(self.portLabel, 2, 0)
         self.layout.addWidget(self.portSelect, 2, 1)
         self.layout.addWidget(self.connect, 2, 3)
         self.layout.addWidget(self.statusLabel, 2, 4)
-
-        # make row after label stratch
-        self.layout.setRowStretch(1, 1)
 
         # make middle column stretch
         self.layout.setColumnStretch(2, 1)
@@ -86,9 +86,7 @@ class ChassyFrame(QFrame):
         # widgets
         self.label = QLabel("Chassy")
         self.hLine = QFrame()
-        self.hLine.setFrameStyle(QFrame.StyledPanel | QFrame.Sunken)
-        self.hLine.setFrameShape(QFrame.HLine)
-        self.hLine.setLineWidth(1)
+        self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.forward = QPushButton("forward")
         self.forward.setMinimumWidth(110)
         self.back = QPushButton("backward")
@@ -136,10 +134,8 @@ class ChassyFrame(QFrame):
         self.layout.addWidget(self.rEncoderLabel, 12, 0)
         self.layout.addWidget(self.rEncoderValue, 12, 1)
 
-        # make row after label and between sections stratch
-        self.layout.setRowStretch(1, 1)
-        self.layout.setRowStretch(5, 1)
-        self.layout.setRowStretch(10, 1)
+        # make row after label and between sections stretch
+        self.layout.setRowStretch(13, 1)
 
         self.setLayout(self.layout)
 
