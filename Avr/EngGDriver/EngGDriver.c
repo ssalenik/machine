@@ -1,6 +1,8 @@
 
-/* Includes */
+/* VERSION */
+#define VERSION "2.0"
 
+/* Includes */
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
@@ -9,184 +11,66 @@
 #include "uart.h"
 #include "hex.h"
 
-
-/* -------- */
-
-
+#include "EngGDriver.h"
+/* --------------*/
 
 
-/*  Defines  */
+/* ======== Variables ======== */
 
-#define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
-#define cbi(var, mask)   ((var) &= (uint8_t)~(1 << mask))
+/* --- Timers ---*/
+volatile int32_t timer16 = 0; 			// timer in 1/16nd of a millisecond
+volatile uint8_t timerPrescaler = 0; 	// used to increment timer
+volatile int32_t timer = 0; 			// timer in milliseconds
+/* --------------*/
 
-#define MAXTIMER 4000 // 1600 at 8Mhz, 4000 at 20Mhz
-// This is the max value to be placed in the OC1x register
-#define POWERCAP 64 // caps the maximum power in %
-#define MAXPOWER (MAXTIMER / 100 * POWERCAP)
-#define MAXPOW100 POWERCAP
-#define MAXPOW800 (POWERCAP * 8)
+/* --- Speed and Acceleration --- */
+volatile int32_t ticks0 = 0;			// encoder values for motor0 (i.e. tachometer)
+volatile int32_t ticks1 = 0;			// encoder values for motor1 (i.e. tachometer)
+	// Timestamps of previous encoder interrupts:
+volatile int32_t int0Time0 = 0;			// latest timestamp from encoder 0 interrupt
+volatile int32_t int0Time1 = 0;			// previous timestamp from encoder 0 interrupt
+volatile int32_t int1Time0 = 0; 		// latest timestamp from encoder 1 interrupt
+volatile int32_t int1Time1 = 0; 		// previous timestamp from encoder 1 interrupt
+int32_t int0TimeCS = 0, int1TimeCS = 0; // encoder timestamps when last called calculateSpeeds();
+int32_t ticks0CS = 0, ticks1CS = 0; 	// ticks# value when int#TimeCS was recorded
+volatile int8_t int0dir = FORWARD; 		// latest recorded direction of rotation
+volatile int8_t int1dir = FORWARD; 		// latest recorded direction of rotation
+	// Note: Speed is in ticks / sec, where 1 tick = 0.110 mm
+int16_t speed0 = 0, speed1 = 0; 		// speed of motor in ticks / sec
+int16_t accel0 = 0, accel1 = 0; 		// acceleration of motor in ticks / sec^2
+int16_t lastSpeed0[8], lastSpeed1[8]; 	// values used by calculateSpeeds() for acceleration
+int16_t lastSpeedInd = 0; 				// index for the current value in lastSpeed buffer
+int32_t lastSpeedCalc = 0; 				// SpeedCalculation and PID timer
+/* --------------*/
 
-#define RATEPID 5 // Period of PID calculations in ms
+/* --- PID parameters --- */
+uint8_t kP = 32;						// P Constant
+uint8_t kI = 16;						// I Constant
+uint8_t kD = 64;						// D Constant
+uint8_t kX = 64;						// Cross dependency between both motor displacements
+int16_t errIMax = 800;					// Max Integer value
+int16_t errIMin = -800;			
+int16_t adjustMax = 30;					// Max power adjustment factor
+int16_t adjustMin = -20;			
+int16_t adjustXMax = 50;				// Max power adjustment from kX
+int16_t adjustXMin = -50; 			
+uint8_t xCalibration = 128;				// calibrates motor1 to motor0 using ticks. 128 for no calibration
+/* --------------*/
 
-// Thresholds for ADC reads from sensors.
-// Hysterysis implemented to have noise-resistant
-// low-high and high-low transitions
-// Thresholds can be different for channel 0 and 1
-#define A_LOW0 100
-#define A_HIGH0 160
-#define A_LOW1 100
-#define A_HIGH1 160
-// Consecutive reads of same value are required for
-// state change. Implemented for further noise reduction
-#define A_COUNT 3
+/* --- Motor Control and PID variables --- */
+uint8_t pidOn = 0; 						// turns PID on or off
+uint8_t ldir = FORWARD;					// direction in which left Motor is set to rotate
+uint8_t rdir = FORWARD;					// direction in which left Motor is set to rotate
+uint16_t targetSpeed0 = 0;				// target speed of motor 0
+uint16_t targetSpeed1 = 0;				// target speed of motor 1
+int16_t errI0 = 0, errI1 = 0;			// Accumulator for the PID I part
+uint16_t power0 = 0, power1 = 0;		// power (0 to 100 * 256) applied to each motor
+uint8_t adjXOn = 0; 					// enable or disable cross adjustment
+int16_t adjustX = 0;					// current cross adjustment
+/* --------------*/
 
-/* define motor pins here
- for LMOTOR and RMOTOR, values are 
-  - 0 for OC1A
-  - 1 for OC1B
- for M0IN1, M0IN2, M1IN1, M1IN2, pins are:
-  - All on port b
-	- pins 0, 3, 4, 5
-	- M0IN1 & M01N2 are direction pins for motor 0 / OC1A
-	- M1IN1 & M11N2 are direction pins for motor 1 / OC1B
-*/
-
-#define LMOTOR 1
-#define RMOTOR 0
-
-#define LADC 1			// LADC is the ADC channel related to left motor
-#define RADC 0			// RADC is the ADC channel related to right motor
-
-#define M0IN1 3
-#define M0IN2 0
-#define M1IN1 5
-#define M1IN2 4
-
-#define FORWARD 0   // High-Low
-#define BACKWARD 1  // Low-High 
-#define BRAKE 2     // High-High
-#define NEUTRAL 3   // Low-Low
-
-#define ENDCHAR '\r'
-
-// conversions between ticks and distance in mm (value is >> 8)
-// basically, 1 ticks = 0.67 mm
-#define DISTTOTICKS 381
-#define TICKSTODIST 172
-// basically, 1 ticks = 0.64 degrees
-#define ANGLETOTICKS 400
-// Slip adjustment
-#define SLIPADJ0 136
-#define SLIPADJ90 280
-#define SLIPADJ180 120
-#define SLIPADJ270 248
-
-#define ANG_CW 0
-#define ANG_CCW 1
-/* -------- */
-
-
-
-/* Function Prototypes */
-
-void initADC();
-uint8_t readADC(uint8_t channel);
-void initPWM0();
-void initPWM1();
-void setPower(uint8_t motor, uint16_t power);
-void setPowerA(uint8_t motor, uint8_t power100);
-void setPowerB(uint8_t motor, uint16_t power800);
-void setDirection(uint8_t motor, uint8_t direction);
-void setTargetSpeed(uint8_t motor, int16_t speed);
-void initMotorPins();
-void readCommand();
-inline uint8_t readByte(char *buf, uint8_t *valid);
-inline int16_t readInt(char *buf, uint8_t *valid);
-inline uint16_t readUInt(char *buf, uint8_t *valid);
-void runPID();
-void resetPID();
-void printParams();
-void printParams2();
-void navigator();
-void navSync(int16_t speed, uint8_t dirL, uint8_t dirR);
-void navDist(int16_t speed, uint8_t dir, int16_t distance);
-void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR);
-void navRot1(int16_t speed, int16_t angle, uint8_t dir);
-void navRot2(int16_t speed, int16_t tHeading);
-int16_t deltaAng(int16_t startAng, int16_t endAng, uint8_t direction);
-int16_t adjustAng(int16_t angle);
-void sendDone();
-void sendDist();
-void slipAdjust();
-uint8_t angleWithin(int16_t angle1, int16_t angle2, int16_t maxDelta);
-
-
-/* -------- */
-
-
-
-/* Variables */
-
-volatile uint8_t interrupt_prescaler = 0;
-volatile uint8_t chan = 0; //ADC channel to read during iterrupt
-volatile uint8_t ch0, ch1; //ADC reads from interrupt
-
-/* state is the current digital state of the ADC reading
-   if ADC reading falls outside of the analog thresholds
-   A_LOW or A_HIGH of that state, count is increased.
-   Once count reaches A_count, state is changed.
-   For every Low-high transition, ticks is increased. */
-volatile uint8_t state0 = 0, state1 = 0;
-volatile uint8_t count0 = 0, count1 = 0;
-volatile int32_t ticks0 = 0, ticks1 = 0;
-
-volatile int32_t timer8 = 0; // timer in 1/8th of a millisecond
-volatile int32_t timer = 0; // timer in milliseconds
-
-uint8_t ldir = FORWARD;
-uint8_t rdir = FORWARD;
-
-// speed calculations
-volatile int32_t tickTimes0[4], tickTimes1[4]; // timestamps of previous ticks in 1/8th of ms
-volatile uint8_t tickInd0 = 0, tickInd1 = 0;
-volatile uint16_t period0 = 0, period1 = 0; // period between 4 ticks
-
-/* This statement allows printf to work with serial com
-   for every character sent to stream uart_stdout, uart_put is executed
-   later in code, stdout is set to uart_stdout, so that
-   printf writes to the stream uart_stdout automatically */
-static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
-
-// PID parameters
-uint8_t kP = 32; // P Constant
-uint8_t kI = 16;  // I Constant
-uint8_t kD = 64;  // D Constant
-uint8_t kX = 64;  // Cross dependency between both motor displacements
-int16_t errIMax = 80;    // Max Integer value
-int16_t errIMin = -80;
-int16_t adjustMax = 30;  // Max power adjustment factor
-int16_t adjustMin = -20;
-int16_t adjustXMax = 50; // Max power adjustment from kX
-int16_t adjustXMin = -50; 
-uint8_t xCalibration = 128; // calibrates motor1 to motor0 using ticks. 128 for no calibration
-
-// PID variables
-uint8_t adjXOn = 0; // enable or disable cross adjustment (manual)
-//uint8_t useAdjX = 0; // enable or disable cross adjustment (auto)
-uint8_t pidOn = 1;   // turns PID on or off
-int32_t lastPID = 0; // PID timer
-// Note: Speed is in ticks / sec, where 1 tick = 0.6 mm
-//       Speed is only calculated when PID is on
-uint16_t speed0 = 0, speed1 = 0; // speed of motor in ticks / sec
-uint16_t targetSpeed0 = 0, targetSpeed1 = 0; // target speed ofrobot
-uint16_t lastSpeed0[8], lastSpeed1[8]; // values for the D part
-uint16_t lastSpeedInd0 = 0, lastSpeedInd1 = 0; // index for the current value of lastSpeed
-int16_t errI0 = 0, errI1 = 0; // value for the I part
-uint16_t power0 = 0, power1 = 0; // power (0 to 100 * 256) applied to motor
-int16_t adjustX = 0;
-
-// Navigation variables
+// TODO: Change all this navigation stuff
+/* --- Navigation variables --- */
 typedef enum {
 	NAV_NONE = 0,
 	NAV_SYNC = 1,
@@ -197,100 +81,98 @@ typedef enum {
 	NAV_RCHK = 6
 } NavCom;
 NavCom navCom = NAV_NONE;
-int16_t heading = 0; // current heading of the robot as recieved from master
-int16_t n_ticks = 0; // target distance in ticks to travel by navigator when in mode NAV_DIST
-int16_t n_slowTicks = 100; // distance in ticks before slowing down to n_slowSpeed if targetSpeed > n_slowSpeed
-int16_t n_stopTicks = 8; // distance in ticks when to stop if targetSpeed = n_slowSpeed
+int16_t heading = 0; 					// current heading of the robot as recieved from master
+int16_t n_ticks = 0; 					// target distance in ticks to travel by navigator when in mode NAV_DIST
+int16_t n_slowTicks = 100; 				// distance in ticks before slowing down to n_slowSpeed if targetSpeed > n_slowSpeed
+int16_t n_stopTicks = 8; 				// distance in ticks when to stop if targetSpeed = n_slowSpeed
 int16_t n_slowSpeed = 50;
-int16_t n_targetHeading = 0; // target heading to travel by navigator when in mode NAV_ROT
-//int16_t n_angleTarget = 0; // target angle to travel by navigator when in mode NAV_ROT
-//int16_t n_angle = 0; // angle travelled in mode NAV_ROT
-//int16_t n_lastHeading = 0; // last heading reading by navigator
-//int16_t n_slowAngle = 10; // angle from target heading before slowing down if targetSpeed > n_slowASpeed;
-int16_t n_stopAngle = 2; // angle from target heading when to stop if targetSpeed = n_slowASpeed
+int16_t n_targetHeading = 0; 			// target heading to travel by navigator when in mode NAV_ROT
+//int16_t n_angleTarget = 0; 			// target angle to travel by navigator when in mode NAV_ROT
+//int16_t n_angle = 0; 					// angle travelled in mode NAV_ROT
+//int16_t n_lastHeading = 0; 			// last heading reading by navigator
+//int16_t n_slowAngle = 10; 			// angle from target heading before slowing down if targetSpeed > n_slowASpeed;
+int16_t n_stopAngle = 2; 				// angle from target heading when to stop if targetSpeed = n_slowASpeed
 int16_t n_slowATicks = 50;
 int16_t n_stopATicks = 8;
 int16_t n_slowASpeed = 35;
-int16_t n_wait = 500; // wait in ms before checking that heading is same as target
+int16_t n_wait = 500; 					// wait in ms before checking that heading is same as target
 int32_t n_timer = 0;
-uint8_t n_rot_dir = ANG_CW;  // direction of rotation for NAV_ROT
+uint8_t n_rot_dir = ANG_CW;  			// direction of rotation for NAV_ROT
 uint8_t slipAdjFOn = 0;
 uint8_t slipAdjSOn = 0;
 uint8_t rotAdjOn = 1;
 
-// Debug
+/* --- Debug --- */
 uint8_t debug1 = 0;
 uint8_t debug2 = 0;
 uint8_t debug3 = 0;
 uint8_t debug4 = 0;
 uint8_t debug5 = 0;
-uint8_t debug6 = 0;
+uint8_t debug6 = 1;
 uint8_t debug7 = 0;
 uint16_t d_count1 = 0;
 void debugF1();
+/* --------------*/
 
-/* -------- */
+/* This statement allows printf to work with serial com
+   for every character sent to stream uart_stdout, uart_put is executed
+   later in code, stdout is set to uart_stdout, so that
+   printf writes to the stream uart_stdout automatically */
+static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
+
+/* ======================== */
 
 
 int main(void) {
-	//uint32_t power;
 	int32_t lastTime = 0;
-	uint8_t i = 0;
 
-	//OSCCAL = 0x58; // internal oscillator frequency calibration
-	//debugF1();
-	//slipAdjOn = 1;
-	//heading = -176;
-	//navDist(50, 0, 1000);
-	//heading = -2;
-	//navDist(50, 0, 1000);
-	//heading = 88;
-	//navDist(50, 0, 1000);
-	//heading = -93;
-	//navDist(50, 0, 1000);
-
+	// redirect printf output to serial port
 	stdout = &uart_stdout;
 
-	for (i=0; i<4;i++) {
-		tickTimes0[i] = 0;
-		tickTimes1[i] = 0;
-	}
-
+	initVariables();
+	
+	// *** TEMP DEBUG ***
+	//calculateSpeeds();
+	// /DEBUG
+	
 	resetPID();
 
 	uart_init();
 
+	initTimer0();
 	initPWM1();
 	initADC();
 	initMotorPins();
 	sbi(DDRC, 3);
 	sbi(DDRC, 4);
+	
+	EICRA = 0x0f;
+	EIMSK = 0x03;
 
 	setDirection(LMOTOR, FORWARD);
 	setDirection(RMOTOR, FORWARD);
-	setPowerA(LMOTOR, 0);
-	setPowerA(RMOTOR, 0);
+	setPowerA(LMOTOR, 20);
+	setPowerA(RMOTOR, 20);
 
 	sei(); // enable interrupts
-
+ 
 	while(1) {
 		readCommand();
-		if (pidOn) {
-			if (timer - lastPID >= RATEPID) {
-				lastPID = timer;
-				navigator();
+		
+		if (timer - lastSpeedCalc >= SPEED_CALC_PERIOD) {
+			lastSpeedCalc = timer;
+			calculateSpeeds();
+			if (pidOn) {	
+				//navigator();
 				runPID();
 			}
-			
 		}
-		if (timer - lastTime >= 100L) {
+			
+		if (timer >= (lastTime + 100)) {
 			lastTime += 100;
-			//printf("%lu\t%lu\r\n", ticks0, ticks1);
 			if (debug7) printf("%u\t%u\r\n", power0, power1);
-			if (debug6) printf("%u\t%u\r\n", speed0, speed1);
-			if (debug5) printf ("%lu\t%lu\r\n", ticks0, ticks1);
-			if (debug3) printf ("%d\t%d\r\n", heading, n_targetHeading);
-			//printf("%u\t%u\r\n", period0, period1);
+			if (debug6) printf("%d\t%d\t%d\t%d\r\n", speed0, speed1, accel0, accel1);
+			if (debug5) printf ("%ld\t%ld\r\n", ticks0, ticks1);
 		}
 	}
 	
@@ -355,38 +237,38 @@ void setDirection(uint8_t motor, uint8_t direction) {
 	if (motor) {
 		switch(direction) {
 		case FORWARD:
-			sbi(PORTB, M1IN1);
-			cbi(PORTB, M1IN2);
+			sbi(PORTM1IN1, M1IN1);
+			cbi(PORTM1IN2, M1IN2);
 			break;
 		case BACKWARD:
-			cbi(PORTB, M1IN1);
-			sbi(PORTB, M1IN2);
+			cbi(PORTM1IN1, M1IN1);
+			sbi(PORTM1IN2, M1IN2);
 			break;
 		case BRAKE:
-			sbi(PORTB, M1IN1);
-			sbi(PORTB, M1IN2);
+			sbi(PORTM1IN1, M1IN1);
+			sbi(PORTM1IN2, M1IN2);
 			break;
 		default:
-			cbi(PORTB, M1IN1);
-			cbi(PORTB, M1IN2);
+			cbi(PORTM1IN1, M1IN1);
+			cbi(PORTM1IN2, M1IN2);
 		}
 	} else {
 		switch(direction) {
 		case FORWARD:
-			sbi(PORTB, M0IN1);
-			cbi(PORTB, M0IN2);
+			sbi(PORTM0IN1, M0IN1);
+			cbi(PORTM0IN2, M0IN2);
 			break;
 		case BACKWARD:
-			cbi(PORTB, M0IN1);
-			sbi(PORTB, M0IN2);
+			cbi(PORTM0IN1, M0IN1);
+			sbi(PORTM0IN2, M0IN2);
 			break;
 		case BRAKE:
-			sbi(PORTB, M0IN1);
-			sbi(PORTB, M0IN2);
+			sbi(PORTM0IN1, M0IN1);
+			sbi(PORTM0IN2, M0IN2);
 			break;
 		default:
-			cbi(PORTB, M0IN1);
-			cbi(PORTB, M0IN2);
+			cbi(PORTM0IN1, M0IN1);
+			cbi(PORTM0IN2, M0IN2);
 		}
 	}
 }
@@ -399,14 +281,13 @@ void setTargetSpeed(uint8_t motor, int16_t speed) {
 	}
 }
 
-// Inits PWM on timer 0
-// NOTE: NOT USED
-void initPWM0() {
-	TCCR0A = 0b10100001; 	// enable PWM0A, PWM0B
-	TCCR0B = 0b00000010; 	// 1.95kHz at 8Mhz clock
-	OCR0A = 64;
-	OCR0B = 192;
-	//DDRD =   0b01100000; 	// set PWM0A, PWM0B pins as output pins
+// Configure timer0 to generate interrupts at 16KHz
+void initTimer0() {
+	TCCR0A = 0b00000010;	// set timer to CTC mode	
+	TCCR0B = 0b00000001;	// set clock prescaler to 8
+	OCR0A = 124;			// set to 124 + 1 timer ticks per interrupt
+	// total frequency is 8kHz at 20Mhz clock (20M / 125 / 8 = 16k)
+	TIMSK0 |= 1 << OCIE0A;	// enable compare A interupt
 }
 
 // Inits PWM on timer 1
@@ -423,28 +304,26 @@ void initPWM1() {
 
 // Inits params for ADC functioning, including timer0
 void initADC() {
-
-	// configure timer0 interrupt for polling
-	TCCR0A = 0b00000010;	// set timer to CTC mode	
-	TCCR0B = 0b00000001;	// set clock prescaler to 8
-	OCR0A = 249;			// set to 124 + 1 timer ticks per interrupt
-	// total frequency is 8kHz at 8Mhz clock (8M / 8 / 125 = 8k)
-
-	TIMSK0 |= 1 << OCIE0A;// enable compare A interupt
-
 	// configure ADC module
-	ADMUX |= 1 << REFS0; 	// set ref. voltage to AVcc
+	ADMUX |= 1 << REFS0;  // set ref. voltage to AVcc
 	ADMUX |= 1 << ADLAR;  // left justify output	
 	
 	// Note: ADC channel is set in bits 3..0 of ADMUX. 0000 for chan0
-
 	ADCSRA |= 7;		  // set ADC clock prescaler to 64
 	ADCSRA |= 1 << ADEN;  // enable ADC
 }
 
 void initMotorPins() {
-	DDRB |=  0b00111001;	// set pins 0, 3, 4, 5 as output in PORT B
-	PORTB &= 0b11000110;	// set the values of those pins to 0
+	//DDRB |=  0b00111001;	// set pins 0, 3, 4, 5 as output in PORT B
+	sbi(DDRM0IN1, M0IN1);
+	sbi(DDRM0IN2, M0IN2);
+	sbi(DDRM1IN1, M1IN1);
+	sbi(DDRM1IN2, M1IN2);
+	/*cbi(M0IN1);
+	cbi(M0IN2);
+	cbi(M1IN1);
+	cbi(M1IN2);*/
+	//PORTB &= 0b11000110;	// set the values of those pins to 0
 }
 
 uint8_t readADC(uint8_t channel) {
@@ -456,150 +335,51 @@ uint8_t readADC(uint8_t channel) {
 	return ADCH;
 }
 
-// Timer0 COMPARE A interrupt used for the ADC
-ISR(TIMER0_COMPA_vect) {
-	// the interrupt assumes the ADC read was started before and has completed
-	// the result of the read is stored in the register ADCH
-	// channel 0 and 1 are read alternatingly
-	int32_t tmp;
-	char deb[2]; // *** debug ***
-
-	interrupt_prescaler++;
-	if (interrupt_prescaler == 10) {
-		interrupt_prescaler = 0;
+// Interrupt for Motor 0 encoder
+ISR(INT0_vect) {
+	uint8_t dir;
+	// check direction of rotation
+	dir = PIND & (1 << 4);
+	// TODO: confirm which direction is which
+	if (dir) {
+		int0dir = FORWARD;
+		ticks0++;
 	} else {
-		return;
-	}
-
-	if (chan) {
-		ch1 = ADCH; 			// fill ch1 with value from previous ADC read
-		ADMUX &= 0xf0;  	// select channel 0 for next read
-		chan = 0;
-		
-		/*if (debug3) {
-			if (++d_count1 >= 2500) {
-				d_count1 = 0;
-				debug3 = 0;
-			}
-			//printf("%d\r\n", ch1);
-			if (d_count1 & 1) {
-				atoh(ch1, deb);
-				uart_put(deb[0], NULL);
-				uart_put(deb[1], NULL);
-				uart_put('\n', NULL);
-				uart_put('\r', NULL);
-			}
-		} */
-
-		if (state1) {
-			// check for high to low tranistion
-			if (ch1 < A_LOW1) {
-				count1++;
-				if (count1 >= A_COUNT) {
-					state1 = 0;
-					count1 = 0;
-				}
-			} else {
-				count1 = 0;
-			}
-		} else {
-			// check for low to high tranistion
-			if (ch1 > A_HIGH1) {
-				count1++;
-				if (count1 >= A_COUNT) {
-					state1 = 1;
-					count1 = 0;
-					ticks1++; // increase ticks on every low-high transition
-					// calculate speed (or period to be more precise)
-					tmp = timer8 - tickTimes1[tickInd1];
-					tickTimes1[tickInd1] = timer8;
-					if (tmp < 1600) {
-						period1 = tmp;
-						if (debug1) printf("%d\r\n", period1);
-					} else {
-						period1 = 0;
-					}
-					tickInd1++;
-					tickInd1 &= 0x03; // circular buffer
-				}
-			} else {
-				count1 = 0;
-			}
-		}
-	} else {
-		ch0 = ADCH; 			// fill ch0 with value from previous ADC read
-		ADMUX &= 0xf0;  
-		ADMUX |= 0x01;		// select channel 1 for next read
-		chan = 1;
-
-		if (debug4) {
-			if (++d_count1 >= 2500) {
-				d_count1 = 0;
-				debug4 = 0;
-			}
-			if (d_count1 & 1) {
-				atoh(ch0, deb);
-				uart_put(deb[0], NULL);
-				uart_put(deb[1], NULL);
-				uart_put('\n', NULL);
-				uart_put('\r', NULL);
-			}
-		} 
-
-		if (state0) {
-			// check for high to low tranistion
-			if (ch0 < A_LOW0) {
-				count0++;
-				if (count0 >= A_COUNT) {
-					state0 = 0;
-					cbi(PORTC, 3);
-					count0 = 0;
-				}
-			} else {
-				count0 = 0;
-			}
-		} else {
-			// check for low to high tranistion
-			if (ch0 > A_HIGH0) {
-				count0++;
-				if (count0 >= A_COUNT) {
-					state0 = 1;
-					sbi(PORTC, 3);
-					count0 = 0;
-					ticks0++; // increase ticks on every low-high transition
-					// calculate speed (or period to be more precise)
-					tmp = timer8 - tickTimes0[tickInd0];
-					tickTimes0[tickInd0] = timer8;
-					if (tmp < 1600) {
-						period0 = tmp;
-						if (debug2) printf("%d\r\n", period0);
-					} else {
-						period0 = 0;
-					}
-					tickInd0++;
-					tickInd0 &= 0x03; // circular buffer
-				}
-			} else {
-				count0 = 0;
-			}
-		}
-	}
-
-	// every 128 ms, check if wheels are still truning to adjust period
-	if ((timer & 0x7f) == 0) {
-		tmp = timer8 - tickTimes0[tickInd0];
-		if (tmp > 1600) {
-			period0 = 0;
-		}
-		tmp = timer8 - tickTimes1[tickInd1];
-		if (tmp > 1600) {
-			period1 = 0;
-		}
+		int0dir = BACKWARD;
+		ticks0--;
 	}
 	
-	sbi(ADCSRA, ADSC);	// start ADC read
-	timer8++;
-	timer = timer8 >> 3;
+	// update the timestamp of the latest tick and the one before
+	int0Time1 = int0Time0;
+	int0Time0 = timer16;
+	
+}
+
+// Interrupt for Motor 1 encoder
+ISR(INT1_vect) {
+	uint8_t dir;
+	// check direction of rotation
+	dir = PINB & (1 << 7);
+	// TODO: confirm which direction is which
+	if (dir) {
+		int1dir = FORWARD;
+		ticks1++;
+	} else {
+		int1dir = BACKWARD;
+		ticks1--;
+	}
+	
+	// update the timestamp of the latest tick and the one before
+	int1Time1 = int1Time0;
+	int1Time0 = timer16;
+}
+
+
+// Timer0 COMPARE A interrupt used for timer
+ISR(TIMER0_COMPA_vect) {	
+	timer16++;
+	timerPrescaler++;
+	if (!(timerPrescaler & 0x0f)) timer ++;
 }
 
 void readCommand() {
@@ -883,24 +663,25 @@ inline uint8_t readByte(char *buf, uint8_t *valid) {
 
 // Return 16-bit unsigned int. See readByte for more info.
 inline uint16_t readUInt(char *buf, uint8_t *valid) {
-	*valid = *valid & isHex(buf[0]) & isHex(buf[1]) & isHex(buf[2]) & isHex(buf[3]);
+	*valid = *valid & isHex(buf[0]) & isHex(buf[1]) & 
+		isHex(buf[2]) & isHex(buf[3]);
 	return htoi(buf[0], buf[1]) << 8 | htoi(buf[2], buf[3]);
 }
 
 // Return 16-bit signed int. See readByte for more info.
 inline int16_t readInt(char *buf, uint8_t *valid) {
-	*valid = *valid & isHex(buf[0]) & isHex(buf[1]) & isHex(buf[2]) & isHex(buf[3]);
+	*valid = *valid & isHex(buf[0]) & isHex(buf[1])	& 
+		isHex(buf[2]) & isHex(buf[3]);
 	return htoi(buf[0], buf[1]) << 8 | htoi(buf[2], buf[3]);
 }
 
 void runPID() {
 	int16_t adjust, pwr;
 	int16_t errD, errP;
-	uint16_t tmp;
-	int32_t errX;
+	//int32_t errX;
 		
-	// Cross adjustment calculation
-	if (adjXOn) {
+	/* CROSS ADJUSTMENT CALCULATIONS: Makes sure both motors travel same dist */
+	/*if (adjXOn) {
 		cli();
 		errX = ( (ticks1 * (xCalibration - 128)) >> 10 ) + ticks1 - ticks0;
 		if (rdir) errX = -errX; // reverse correction when going backwards
@@ -910,36 +691,37 @@ void runPID() {
 		if (adjustX < adjustXMin) adjustX = adjustXMin;
 	} else {
 		adjustX = 0;
-	}
+	}*/
 
-	// motor0 calculations
-	tmp = speed0;
-	if (period0) {
-		speed0 = 32000 / period0; // speed in ticks/second
-	} else {
-		speed0 = 0;
-	}
+	/* --- Motor0 CALCULATIONS --- */
 	if (targetSpeed0 == 0) {
 		power0 = 0;
 	} else {
+		// The P parameter is the error of current speed vs target speed
 		errP = targetSpeed0 - speed0;
+		// The I parameter is the intergral of P errors. 
+		// It must be capped to reduce oscillations
 		errI0 += errP;
 		if (errI0 > errIMax) errI0 = errIMax;
 		if (errI0 < errIMin) errI0 = errIMin;
-		// calculate derivative of speed
-		errD = speed0 - lastSpeed0[lastSpeedInd0];
-		// update last speed
-		lastSpeed0[lastSpeedInd0] = tmp;
-		lastSpeedInd0++;
-		lastSpeedInd0 &= 0x07;
+		// The D parameter is equal to the acceleration
+		errD = accel0;
 
-		adjust = (errP * kP) >> 8;
+		// Perform a weighted addition of errors to calculate power adjustment
+		adjust = ((int32_t)errP * kP) >> 8;
 		adjust += ((int32_t)errI0 * kI) >> 10;
-		adjust -= (errD * kD) >> 6;
-		adjust += adjustX;
+		adjust -= ((int32_t)errD * kD) >> 8;
+		//adjust += adjustX;
 
+		// Since power is unsigned, and 'adjust' sees power as signed,
+		// we must correct its sign
+		if (targetSpeed0 < 0) adjust =-adjust;
+		
+		// Cap the power adjustment to reduce oscillations
 		if (adjust > adjustMax) adjust = adjustMax;
 		if (adjust < adjustMin) adjust = adjustMin;
+		
+		// Adjust power and cap it to avoid burning motors or overflowing PWM
 		pwr = power0 + adjust;
 		if (pwr < 0) {
 			power0 = 0;
@@ -953,13 +735,7 @@ void runPID() {
 	setPowerB(0, power0);
 
 
-	// motor1 calculations
-	tmp = speed1;
-	if (period1) {
-		speed1 = 32000 / period1; // speed in ticks/second
-	} else {
-		speed1 = 0;
-	}
+	/* --- Motor1 CALCULATIONS: Identical to Motor0 --- */
 	if (targetSpeed1 == 0) {
 		power1 = 0;
 	} else {
@@ -967,19 +743,17 @@ void runPID() {
 		errI1 += errP;
 		if (errI1 > errIMax) errI1 = errIMax;
 		if (errI1 < errIMin) errI1 = errIMin;
-		errD = speed1 - lastSpeed1[lastSpeedInd1];
-		// update last speed
-		lastSpeed1[lastSpeedInd1] = tmp;
-		lastSpeedInd1++;
-		lastSpeedInd1 &= 0x07;
+		errD = accel1;
 
-		adjust = (errP * kP) >> 8;
+		adjust = ((int32_t)errP * kP) >> 8;
 		adjust += ((int32_t)errI1 * kI) >> 10;
-		adjust -= (errD * kD) >> 6;
-		adjust -= adjustX;
-
+		adjust -= ((int32_t)errD * kD) >> 8;
+		//adjust += adjustX;
+		
+		if (targetSpeed1 < 0) adjust =-adjust;
 		if (adjust > adjustMax) adjust = adjustMax;
 		if (adjust < adjustMin) adjust = adjustMin;
+		
 		pwr = power1 + adjust;
 		if (pwr < 0) {
 			power1 = 0;
@@ -991,7 +765,6 @@ void runPID() {
 	}
 
 	setPowerB(1, power1);
-
 }
 
 /* function that decides where the robot goes by setting target speed of motors
@@ -1255,44 +1028,130 @@ void sendDist() {
 }
 
 void resetPID () {
-	uint8_t i;
-	uint16_t period0_cached, period1_cached;
 	
-	cli();
-
 	errI0 = 0;
 	errI1 = 0;
-	ticks0 = 0;
-	ticks1 = 0;
 	
-	period0_cached = period0;
-	period1_cached = period1;
-	
-	sei();
-	
-	if (period0_cached) {
-		speed0 = 32000 / period0_cached;
-	} else {
-		speed0 = 0;
-	}
-	
-	if (period1_cached) {
-		speed1 = 32000 / period1_cached;
-	} else {
-		speed1 = 0;
-	}
-
-	for (i=0; i<8;i++) {
-		lastSpeed0[i] = speed0;
-		lastSpeed1[i] = speed1;
-	}
 }
 
 void printParams() {
 	printf_P(PSTR("PIDX:\t%u\t%u\t%u\t%u\r\n"), kP, kI, kD, kX);
-	printf_P(PSTR("errI, adj, adjX, xCal:\t%d\t%d\t%d\t%u\r\n"), errIMax, adjustMax, adjustXMax, xCalibration);
+	printf_P(PSTR("errI, adj, adjX, xCal:\t%d\t%d\t%d\t%u\r\n"), 
+		errIMax, adjustMax, adjustXMax, xCalibration);
 }
 
 void printParams2() {
-	printf_P(PSTR("slipAdjF, slipAdjS, adjXOn, adjustX:\t%d\t%d\t%d\r\n"), slipAdjFOn, slipAdjSOn, adjXOn, adjustX);
+	printf_P(PSTR("slipAdjF, slipAdjS, adjXOn, adjustX:\t%d\t%d\t%d\r\n"), 
+		slipAdjFOn, slipAdjSOn, adjXOn, adjustX);
+}
+
+void calculateSpeeds() {
+	int32_t int0Time0_cached, int0Time1_cached;
+	int32_t int1Time0_cached, int1Time1_cached;
+	int32_t ticks0_cached, ticks1_cached;
+	int8_t int0dir_cached, int1dir_cached;
+	int32_t timer16_cached;
+	
+	
+	// cache volatile variables
+	cli();
+	int0Time0_cached = int0Time0;
+	int0Time1_cached = int0Time1;
+	int1Time0_cached = int1Time0;
+	int1Time1_cached = int1Time1;
+	ticks0_cached = ticks0;
+	ticks1_cached = ticks1;
+	int0dir_cached = int0dir;
+	int1dir_cached = int1dir;
+	timer16_cached = timer16;
+	sei();
+	
+	/* CALCULATE SPEED
+	 * There are 3 cases:
+	 * if speed is slow, ticks# == ticks#CS, thus
+	 *   simply use the timestamps of the last 2 crosses.
+	 * if speed is very slow or null, ticks# == ticks#CS
+	 *   and (timer16 - int#Time0) > NULL_PERIOD_THRESHOLD,
+	 *   then just set speed to 0.
+	 * if speed is fast enough, then ticks# != ticks#CS
+	 */
+	
+	if (ticks0_cached == ticks0CS) {
+		// speed is slow
+		if ((timer16_cached - int0Time0_cached) > NULL_PERIOD_THRESHOLD) {
+			// speed is very slow or null
+			speed0 = 0;
+		} else {
+			// calculate slow speed using last 2 ticks' timestamps
+			speed0 = TIMER16_FREQ / (int0Time0_cached - int0Time1_cached);
+			if (int0dir_cached == BACKWARD) speed0 = -speed0;
+		}
+	} else {
+		// speed is faster
+		speed0 = ((long)TIMER16_FREQ * (ticks0_cached - ticks0CS)) /
+			(int0Time0_cached - int0TimeCS);
+	}
+	
+	if (ticks1_cached == ticks1CS) {
+		// speed is slow
+		if ((timer16_cached - int1Time0_cached) > NULL_PERIOD_THRESHOLD) {
+			// speed is very slow or null
+			speed1 = 0;
+		} else {
+			// calculate slow speed using last 2 ticks' timestamps
+			speed1 = TIMER16_FREQ / (int1Time0_cached - int1Time1_cached);
+			if (int1dir_cached == BACKWARD) speed1 = -speed1;
+		}
+	} else {
+		// speed is faster
+		speed1 = ((long)TIMER16_FREQ * (ticks1_cached - ticks1CS)) /
+			(int1Time0_cached - int1TimeCS);
+	}
+	
+	// TODO: cap speeds
+	
+	/* CALCULATE ACCELERATION
+	 * Since the acceleration is in ticks / s ^ 2 and is calculated 
+	 *   from variations in speed in a timelapse, in order to obtain
+	 *   a better resolution for the value, we must increase the timelapse
+	 *   by latching 8 previous values of speed. This comes at the cost
+	 *   of temporal resolution. (Heisenberg here... well not really but :) )
+	 */
+	
+	accel0 = ((long)(speed0 - lastSpeed0[lastSpeedInd]) * 1000) / 
+		(8 * SPEED_CALC_PERIOD);
+	accel1 = ((long)(speed1 - lastSpeed1[lastSpeedInd]) * 1000) / 
+		(8 * SPEED_CALC_PERIOD);
+	// update previous speeds
+	lastSpeed0[lastSpeedInd] = speed0;
+	lastSpeed1[lastSpeedInd] = speed1;
+	lastSpeedInd++;
+	lastSpeedInd &= (8 - 1);
+	 
+	// update latest tick timestamps recorded in calculateSpeeds()
+	int0TimeCS = int0Time0_cached;
+	int1TimeCS = int1Time0_cached;
+	ticks0CS = ticks0_cached;
+	ticks1CS = ticks1_cached;
+}
+
+// initialize misc variables
+void initVariables() {
+	uint8_t i = 0;
+	for (i=0; i<8;i++) {
+		lastSpeed0[i] = 0;
+		lastSpeed1[i] = 0;
+	}
+	
+	// *** TEMP DEBUG ***
+	/*int0Time0 = 168;
+	int1Time0 = 167;
+	timer16 = 170;
+	ticks0 = 20;
+	ticks1 = 25;
+	ticks0CS = 10;
+	ticks1CS = 15;
+	int0TimeCS = 6;
+	int1TimeCS = 9;*/
+	// /DEBUG
 }
