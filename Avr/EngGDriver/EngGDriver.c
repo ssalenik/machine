@@ -1144,14 +1144,14 @@ void initVariables() {
 	}
 	
 	// *** TEMP DEBUG ***
-	int0Time0 = 168;
-	int1Time0 = 167;
-	timer16 = 170;
+	/*int0Time0 = 50168;
+	int1Time0 = 50167;
+	timer16 = 50170;
 	ticks0 = 40;
 	ticks1 = 44;
 	ticks0CS = 10;
-	ticks1CS = 15;
-	int0TimeCS = 6;
-	int1TimeCS = 9;
+	ticks1CS = 44;
+	int0TimeCS = 50006;
+	int1TimeCS = 50009;*/
 	// /DEBUG
 }
