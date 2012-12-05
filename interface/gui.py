@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import serial
+from threading import Thread
 from PySide.QtCore import *
 from PySide.QtGui import *
 
@@ -11,8 +13,8 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle("Command Centre - McGill - Eng Games 2013")
 
-        centre = CentralWidget() 
-        self.setCentralWidget(centre)
+        self.centre = CentralWidget() 
+        self.setCentralWidget(self.centre)
 
 class CentralWidget(QWidget):
 
@@ -35,7 +37,44 @@ class CentralWidget(QWidget):
         self.layout.addWidget(self.command)
 
         self.setLayout(self.layout)
-        
+
+        # second window
+        self.outputWindow = QMainWindow()
+        self.outputWindow.setWindowTitle("output")
+        self.outputText = QTextEdit("<b>output shoul go here</b>")
+        self.outputWindow.setCentralWidget(self.outputText)
+        self.outputWindow.resize(350, 400)
+
+        # signals
+        self.settings.connectButton.clicked.connect(self.connect)
+
+
+    def connect(self):
+        if self.connected == True :
+            self.connected = False
+            while self.serialThread.isAlive() :
+                None
+            self.serial.close()
+            self.settings.connectButton.setText("connect")
+
+        else :
+            self.port = self.settings.portSelect.text()
+            try:
+                self.serial = serial.Serial(port=self.port)
+                self.connected = True
+                self.serialThread = Thread(target=self.pollSerial)
+                self.serialThread.daemon = True
+                self.serialhread.start()
+                self.settings.connectButton.setText("disconnect")
+            except serial.SerialException:
+                self.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
+
+    def pollSerial(self):
+        self.outputText.append("<font color=green>listening to serial port </font>")
+        while(self.connected):
+            self.outputText.append("<font color=black>%s</font>" % self.serial.read())
+        self.outputText.append("<font color=green>stopping listening to serial port</font>")
+
 
 class Settings(QFrame):
 
@@ -52,8 +91,10 @@ class Settings(QFrame):
         self.hLine = QFrame()
         self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.portLabel = QLabel("Port: ")
-        self.portSelect = QComboBox()
-        self.portSelect.addItems(["port a", "port b", "port c"])
+        self.portSelect = QLineEdit()
+        self.portSelect.setPlaceholderText("enter serial port")
+        self.portSelect.setMinimumWidth(200)
+        self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
         self.connectButton = QPushButton("connect")
         
         # flashing connection status button
@@ -330,5 +371,9 @@ if __name__ == '__main__':
     main = MainWindow()
     main.show()
     main.raise_()
+    main.move(main.x() - 200, main.y())
+    main.centre.outputWindow.show()
+    #main.centre.outputWindow.raise_()
+    main.centre.outputWindow.move(main.centre.outputWindow.x() + 600, main.centre.outputWindow.y())
     # run the main loop
     sys.exit(app.exec_())
