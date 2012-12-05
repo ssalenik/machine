@@ -3,6 +3,7 @@
 
 import sys
 import serial
+import time
 from threading import Thread
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -39,9 +40,9 @@ class CentralWidget(QWidget):
         self.setLayout(self.layout)
 
         # second window
-        self.outputWindow = QMainWindow()
+        self.outputWindow = QMainWindow(parent=self)
         self.outputWindow.setWindowTitle("output")
-        self.outputText = QTextEdit("<b>output shoul go here</b>")
+        self.outputText = QTextEdit("<b>output should go here</b>")
         self.outputWindow.setCentralWidget(self.outputText)
         self.outputWindow.resize(350, 400)
 
@@ -73,6 +74,7 @@ class CentralWidget(QWidget):
         self.outputText.append("<font color=green>listening to serial port </font>")
         while(self.connected):
             self.outputText.append("<font color=black>%s</font>" % self.serial.read())
+            time.sleep(0.1)
         self.outputText.append("<font color=green>stopping listening to serial port</font>")
 
 
