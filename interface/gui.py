@@ -60,21 +60,32 @@ class CentralWidget(QWidget):
 
         else :
             self.port = self.settings.portSelect.text()
-            try:
-                self.serial = serial.Serial(port=self.port)
+            # try to connect a few times
+            for i in range(20):
+                try:
+                    self.serial = serial.Serial(port=self.port, timeout=1)
+                except serial.SerialException:
+                    self.outputText.append("<font color=red>could not open connection, trying again</font>")
+            if self.serial.isOpen():
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
                 self.serialThread.daemon = True
                 self.serialThread.start()
                 self.settings.connectButton.setText("disconnect")
-            except serial.SerialException:
+            else:
                 self.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
 
     def pollSerial(self):
         self.outputText.append("<font color=green>listening to serial port </font>")
         while(self.connected):
-            self.outputText.append("<font color=black>%s</font>" % self.serial.read())
-            time.sleep(0.1)
+            if self.serial.isOpen():
+                self.outputText.append("<font color=black>%s</font>" % self.serial.read())
+                time.sleep(0.1)
+            else:
+                self.outputText.append("<font color=red>connect terminated unexpectedly</font>")
+                self.connected = False
+                self.settings.connectButton.setText("connect")
+
         self.outputText.append("<font color=green>stopping listening to serial port</font>")
 
 
