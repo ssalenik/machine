@@ -19,6 +19,34 @@ class MainWindow(QMainWindow):
         self.centre = CentralWidget() 
         self.setCentralWidget(self.centre)
 
+    def closeEvent(self, event):
+        self.centre.closeAll()
+
+        event.accept() # let the window close
+
+class OutputWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super(OutputWindow, self).__init__(parent)
+        self.setWindowTitle("output")
+
+        self.outputText = QTextEdit("<b>output should go here</b>")
+        self.setCentralWidget(self.outputText)
+        self.resize(350, 400)
+
+        self.closing = False
+
+    def closeEvent(self, event):
+        # don't close it
+        if self.closing == True:
+            event.accept() # let the window close
+        else:
+            event.ignore()
+
+    def hideEvent(self, event):
+        # don't hide it
+        #event.accept()
+        event.ignore()
+
 class CentralWidget(QWidget):
 
     def __init__(self, parent=None):
@@ -42,11 +70,7 @@ class CentralWidget(QWidget):
         self.setLayout(self.layout)
 
         # second window
-        self.outputWindow = QMainWindow(parent=self)
-        self.outputWindow.setWindowTitle("output")
-        self.outputText = QTextEdit("<b>output should go here</b>")
-        self.outputWindow.setCentralWidget(self.outputText)
-        self.outputWindow.resize(350, 400)
+        self.outputWindow = OutputWindow(parent=self)
 
         # signals
         self.settings.connectButton.clicked.connect(self.connect)
@@ -92,6 +116,9 @@ class CentralWidget(QWidget):
 
     def disconnected(self):
             self.settings.statusLabel.setPixmap(self.settings.redFill)
+
+    def closeAll(self):
+        self.outputWindow.closing = True
  
 
 # class Controller(QObjcet):
@@ -411,8 +438,8 @@ if __name__ == '__main__':
     main = MainWindow()
     
     main.centre.outputWindow.show()
-    #main.centre.outputWindow.raise_()
     main.centre.outputWindow.move(main.centre.outputWindow.x() + 600, main.centre.outputWindow.y())
+    main.centre.outputWindow.raise_()
     main.show()
     main.move(main.x() - 200, main.y())
     main.raise_()
