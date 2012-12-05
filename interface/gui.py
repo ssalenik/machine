@@ -86,21 +86,26 @@ class CentralWidget(QWidget):
             while self.serialThread.isAlive() :
                 None
             self.serial.close()
+            self.outputWindow.outputText.append("<font color=green>closed serial port</font>")
             self.settings.connectButton.setText("connect")
 
         else :
             self.port = self.settings.portSelect.currentText()
             self.outputWindow.outputText.append("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
+            self.serial.port =self.port
+            self.serial.timeout = 1
             # try to connect a few times
             i = 0
-            while not self.serial.isOpen or i < 20 :
+            while not self.serial.isOpen() and (i < 20) :
                 i += 1
                 try:
-                    self.serial.port =self.port
-                    self.serial.timeout = 1
                     self.serial.open()
                 except serial.SerialException:
+                    None
+                    
+                if not self.serial.isOpen():
                     self.outputWindow.outputText.append("<font color=red>could not open connection, trying again</font>")
+
             if self.serial.isOpen():
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
@@ -114,8 +119,10 @@ class CentralWidget(QWidget):
         self.outputWindow.outputText.append("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                sself.outputWindow.outputText.append("<font color=black>%X</font>" % self.serial.read())
-                time.sleep(0.1)
+                data = self.serial.read()
+                if data :
+                    self.outputWindow.outputText.append("<font color=black>%s</font>" % data.encode('us-ascii','xmlcharrefreplace') )#.encode("hex"))
+                    time.sleep(0.1)
             else:
                 self.outputWindow.outputText.append("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
