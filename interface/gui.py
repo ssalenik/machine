@@ -79,6 +79,9 @@ class CentralWidget(QWidget):
         #serial
         self.serial = serial.Serial()
 
+        #controller
+        #self.control = Controller(serial=self.serial)
+
         # layout
         self.layout = QVBoxLayout()
         self.layout.setSpacing(1)
@@ -471,9 +474,9 @@ if __name__ == '__main__':
     # show the form
     main = MainWindow()
     
-    main.centre.outputWindow.show()
-    main.centre.outputWindow.move(main.centre.outputWindow.x() + 600, main.centre.outputWindow.y())
-    main.centre.outputWindow.raise_()
+    main.outputWindow.show()
+    main.outputWindow.move(main.outputWindow.x() + 600, main.outputWindow.y())
+    main.outputWindow.raise_()
     main.show()
     main.move(main.x() - 200, main.y() + 50)
     main.raise_()
