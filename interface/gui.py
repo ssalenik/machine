@@ -10,6 +10,10 @@ from threading import Thread
 from PySide.QtCore import *
 from PySide.QtGui import *
 
+POLL_RATE = 20        # default serial poll rate
+MAX_POLL_RATE = 100   # max serial poll rate
+MAX_REFRESH_RATE = 30 # max gui refresh rate
+
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
@@ -32,7 +36,7 @@ class OutputWindow(QMainWindow):
         self.outputText = QTextEdit("<b>output should go here</b>")
         self.outputText.setReadOnly(True)
         self.setCentralWidget(self.outputText)
-        self.resize(350, 400)
+        self.resize(350, 550)
 
         self.closing = False
 
@@ -174,10 +178,15 @@ class Settings(QFrame):
         self.serialPorts = serial.tools.list_ports.comports()
         for port in self.serialPorts:
             self.portSelect.addItem(port[0])
-
         self.portSelect.setMinimumWidth(200)
         self.portSelect.setEditable(True)
         self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
+        self.rateLabel = QLabel("poll rate:")
+        self.rateInput = QSpinBox()
+        self.rateInput.setValue(POLL_RATE)
+        self.rateInput.setMinimum(1)
+        self.rateInput.setMaximum(MAX_POLL_RATE)
+        #self.rateInput.setMaximumWidth(50)
         self.connectButton = QPushButton("connect")
         
         # flashing connection status button
@@ -191,14 +200,16 @@ class Settings(QFrame):
         # layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.label, 0, 0)
-        self.layout.addWidget(self.hLine, 1, 0, 1, 5)
+        self.layout.addWidget(self.hLine, 1, 0, 1, 7)
         self.layout.addWidget(self.portLabel, 2, 0)
         self.layout.addWidget(self.portSelect, 2, 1)
-        self.layout.addWidget(self.connectButton, 2, 3)
-        self.layout.addWidget(self.statusLabel, 2, 4)
+        self.layout.addWidget(self.rateLabel, 2, 2)
+        self.layout.addWidget(self.rateInput, 2, 3)
+        self.layout.addWidget(self.connectButton, 2, 5)
+        self.layout.addWidget(self.statusLabel, 2, 6)
 
         # make middle column stretch
-        self.layout.setColumnStretch(2, 1)
+        self.layout.setColumnStretch(4, 1)
 
         self.setLayout(self.layout)
 
@@ -457,7 +468,7 @@ if __name__ == '__main__':
     main.centre.outputWindow.move(main.centre.outputWindow.x() + 600, main.centre.outputWindow.y())
     main.centre.outputWindow.raise_()
     main.show()
-    main.move(main.x() - 200, main.y())
+    main.move(main.x() - 200, main.y() + 50)
     main.raise_()
     # run the main loop
     sys.exit(app.exec_())
