@@ -3,6 +3,8 @@
 
 import sys
 import serial
+import serial.tools
+import serial.tools.list_ports
 import time
 from threading import Thread
 from PySide.QtCore import *
@@ -123,9 +125,15 @@ class Settings(QFrame):
         self.hLine = QFrame()
         self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.portLabel = QLabel("Port: ")
-        self.portSelect = QLineEdit()
-        self.portSelect.setPlaceholderText("enter serial port")
+        self.portSelect = QComboBox()
+        self.portSelect.addItem("select or enter port")
+        #get all serial ports
+        self.serialPorts = serial.tools.list_ports.comports()
+        for port in self.serialPorts:
+            self.portSelect.addItem(port[0])
+
         self.portSelect.setMinimumWidth(200)
+        self.portSelect.setEditable(True)
         self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
         self.connectButton = QPushButton("connect")
         
@@ -401,11 +409,12 @@ if __name__ == '__main__':
     
     # show the form
     main = MainWindow()
-    main.show()
-    main.raise_()
-    main.move(main.x() - 200, main.y())
+    
     main.centre.outputWindow.show()
     #main.centre.outputWindow.raise_()
     main.centre.outputWindow.move(main.centre.outputWindow.x() + 600, main.centre.outputWindow.y())
+    main.show()
+    main.move(main.x() - 200, main.y())
+    main.raise_()
     # run the main loop
     sys.exit(app.exec_())
