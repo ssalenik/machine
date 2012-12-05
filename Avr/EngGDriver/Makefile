@@ -6,7 +6,7 @@
 PROJECT = EngGDriver
 MCU = atmega168
 TARGET = EngGDriver.elf
-CC = 
+CC = avr-gcc
 
 CPP = avr-g++
 
@@ -15,7 +15,7 @@ COMMON = -mmcu=$(MCU)
 
 ## Compile options common for all C compilation units.
 CFLAGS = $(COMMON)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99       -DF_CPU=20000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+CFLAGS += -Wall -gdwarf-2 -std=gnu99                 -DF_CPU=20000000UL -Os -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
 CFLAGS += -MD -MP -MT $(*F).o -MF dep/$(@F).d 
 
 ## Assembly specific flags
@@ -44,13 +44,13 @@ LINKONLYOBJECTS =
 
 ## Build
 all: $(TARGET) EngGDriver.hex EngGDriver.eep EngGDriver.lss## Compile
-EngGDriver.o: ../EngGDriver.c
+EngGDriver.o: EngGDriver.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-uart.o: ../uart.c
+uart.o: uart.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-hex.o: ../hex.c
+hex.o: hex.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
@@ -69,7 +69,7 @@ $(TARGET): $(OBJECTS)
 ## Clean target
 .PHONY: clean
 clean:
-	-rm -rf $(OBJECTS) EngGDriver.elf dep/* EngGDriver.hex EngGDriver.eep EngGDriver.lss EngGDriver.map
+	-rm -rf $(OBJECTS) EngGDriver.elf dep/* ./dep EngGDriver.hex EngGDriver.eep EngGDriver.lss EngGDriver.map
 
 
 ## Other dependencies
