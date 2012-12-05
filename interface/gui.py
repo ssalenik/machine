@@ -133,8 +133,9 @@ class Controller(QObject):
         self.serial = serial
         self.connected = False
 
-    def connect(self, port):
+    def connect(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
+            self.rate = rate
             self.port = port
             self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
             self.serial.port =self.port
@@ -181,7 +182,7 @@ class Controller(QObject):
         self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                data = self.serial.readLine()
+                data = self.serial.read()
                 if data :
                     self.out("<font color=black>%s</font>" % data.encode("hex"))
                     time.sleep(1/float(self.rate))
