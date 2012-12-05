@@ -65,7 +65,7 @@ class CentralWidget(QWidget):
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
                 self.serialThread.daemon = True
-                self.serialhread.start()
+                self.serialThread.start()
                 self.settings.connectButton.setText("disconnect")
             except serial.SerialException:
                 self.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
