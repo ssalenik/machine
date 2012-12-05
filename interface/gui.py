@@ -88,6 +88,25 @@ class CentralWidget(QWidget):
 
         self.outputText.append("<font color=green>stopping listening to serial port</font>")
 
+    def disconnected(self):
+            self.settings.statusLabel.setPixmap(self.settings.redFill)
+ 
+
+# class Controller(QObjcet):
+
+#     # define slots
+#     disconnected = Signal()
+
+#     def __init__(self, logger, parent=None):
+#         super(Controller, self).__init__(parent)
+
+#         self.log = logger
+
+#     def connect(self, port):
+
+#     def disconnect(self):
+
+
 
 class Settings(QFrame):
 
