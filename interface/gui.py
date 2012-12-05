@@ -79,7 +79,7 @@ class CentralWidget(QWidget):
         self.outputText.append("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                self.outputText.append("<font color=black>%s</font>" % self.serial.read())
+                self.outputText.append("<font color=black>%X</font>" % self.serial.read())
                 time.sleep(0.1)
             else:
                 self.outputText.append("<font color=red>connect terminated unexpectedly</font>")
