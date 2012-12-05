@@ -14,6 +14,9 @@ POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100   # max serial poll rate
 MAX_REFRESH_RATE = 30 # max gui refresh rate
 
+# slot defines
+@Slot(bool)
+
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
@@ -80,7 +83,7 @@ class CentralWidget(QWidget):
         self.serial = serial.Serial()
 
         #controller
-        #self.control = Controller(serial=self.serial)
+        self.control = Controller(serial=self.serial, output=self.out)
 
         # layout
         self.layout = QVBoxLayout()
@@ -93,19 +96,46 @@ class CentralWidget(QWidget):
 
         # signals
         self.settings.connectButton.clicked.connect(self.connect)
+        self.settings.rateInput.valueChanged.connect(self.control.changePollRate)
+        #self.control.disconnected.connect(receiver=self.disconnected)
 
 
     def connect(self):
         if self.connected == True :
+            self.control.disconnect()
+            self.settings.connectButton.setText("connect")
+            self.settings.statusLabel.setPixmap(self.settings.redFill)
+        else :
+            if self.control.connect(port=self.settings.portSelect.currentText()):
+                self.connected = True
+                self.settings.connectButton.setText("disconnect")
+                self.settings.statusLabel.setPixmap(self.settings.greenFill)
+    
+
+    @Slot(bool)
+    def disconnected(self, disc):
+            self.settings.statusLabel.setPixmap(self.settings.redFill)
             self.connected = False
-            while self.serialThread.isAlive() :
-                None
-            self.serial.close()
-            self.out("<font color=green>closed serial port</font>")
             self.settings.connectButton.setText("connect")
 
-        else :
-            self.port = self.settings.portSelect.currentText()
+    def closeAll(self):
+        None 
+
+class Controller(QObject):
+
+    # define slots
+    disconnected = Signal(bool)
+
+    def __init__(self, output, serial, parent=None):
+        super(Controller, self).__init__(parent)
+
+        self.out = output
+        self.serial = serial
+        self.connected = False
+
+    def connect(self, port):
+        if not self.serial.isOpen() :
+            self.port = port
             self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
             self.serial.port =self.port
             self.serial.timeout = 1
@@ -124,48 +154,43 @@ class CentralWidget(QWidget):
             if self.serial.isOpen():
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
-                self.serialThread.daemon = True
+                #self.serialThread.daemon = True
                 self.serialThread.start()
-                self.settings.connectButton.setText("disconnect")
+                return True
             else:
                 self.out("<font color=red>could not open connection, check if the port is correct</font>")
+                self.connected = False
+                return False
+        else:
+            self.out("<font color=red>already connected</font>")
+            return True
+
+
+    def disconnect(self):
+        if self.serial.isOpen() :
+            self.connected = False
+            self.serialThread.join()    #wait for threads to end
+            self.serial.close()
+            self.out("<font color=green>closed serial port</font>")
+
+    def changePollRate(self, rate):
+        self.out("<font color=blue>changing poll rate to %i</font>" % rate)
+        self.rate = rate
 
     def pollSerial(self):
         self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                data = self.serial.read()
+                data = self.serial.readLine()
                 if data :
-                    self.out("<font color=black>%s</font>" % data.encode('us-ascii','xmlcharrefreplace') )#.encode("hex"))
-                    time.sleep(0.1)
+                    self.out("<font color=black>%s</font>" % data.encode("hex"))
+                    time.sleep(1/float(self.rate))
             else:
                 self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
-                self.settings.connectButton.setText("connect")
+                self.disconnected.emit(True)
 
         self.out("<font color=green>stopping listening to serial port</font>")
-
-    def disconnected(self):
-            self.settings.statusLabel.setPixmap(self.settings.redFill)
-
-    def closeAll(self):
-        None 
-
-# class Controller(QObjcet):
-
-#     # define slots
-#     disconnected = Signal()
-
-#     def __init__(self, logger, parent=None):
-#         super(Controller, self).__init__(parent)
-
-#         self.log = logger
-
-#     def connect(self, port):
-
-#     def disconnect(self):
-
-
 
 class Settings(QFrame):
 

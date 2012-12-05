@@ -44,13 +44,13 @@ LINKONLYOBJECTS =
 
 ## Build
 all: $(TARGET) EngGDriver.hex EngGDriver.eep EngGDriver.lss## Compile
-EngGDriver.o: ../EngGDriver.c
+EngGDriver.o: EngGDriver.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-uart.o: ../uart.c
+uart.o: uart.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
-hex.o: ../hex.c
+hex.o: hex.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
