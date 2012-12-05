@@ -20,10 +20,15 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.setWindowTitle("Command Centre - McGill - Eng Games 2013")
 
-        self.centre = CentralWidget() 
+        # second window
+        self.outputWindow = OutputWindow(parent=self)
+
+        # main layout
+        self.centre = CentralWidget(output=self.outputWindow.output, parent=self) 
         self.setCentralWidget(self.centre)
 
     def closeEvent(self, event):
+        self.outputWindow.closing = True
         self.centre.closeAll()
 
         event.accept() # let the window close
@@ -40,6 +45,9 @@ class OutputWindow(QMainWindow):
 
         self.closing = False
 
+    def output(self, text):
+        self.outputText.append(text)
+
     def closeEvent(self, event):
         # don't close it
         if self.closing == True:
@@ -54,8 +62,11 @@ class OutputWindow(QMainWindow):
 
 class CentralWidget(QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, output, parent=None):
         super(CentralWidget, self).__init__(parent)
+
+        # output
+        self.out = output
 
         # status
         self.connected = False
@@ -77,9 +88,6 @@ class CentralWidget(QWidget):
 
         self.setLayout(self.layout)
 
-        # second window
-        self.outputWindow = OutputWindow(parent=self)
-
         # signals
         self.settings.connectButton.clicked.connect(self.connect)
 
@@ -90,12 +98,12 @@ class CentralWidget(QWidget):
             while self.serialThread.isAlive() :
                 None
             self.serial.close()
-            self.outputWindow.outputText.append("<font color=green>closed serial port</font>")
+            self.out("<font color=green>closed serial port</font>")
             self.settings.connectButton.setText("connect")
 
         else :
             self.port = self.settings.portSelect.currentText()
-            self.outputWindow.outputText.append("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
+            self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
             self.serial.port =self.port
             self.serial.timeout = 1
             # try to connect a few times
@@ -108,7 +116,7 @@ class CentralWidget(QWidget):
                     None
                     
                 if not self.serial.isOpen():
-                    self.outputWindow.outputText.append("<font color=red>could not open connection, trying again</font>")
+                    self.out("<font color=red>could not open connection, trying again</font>")
 
             if self.serial.isOpen():
                 self.connected = True
@@ -117,29 +125,28 @@ class CentralWidget(QWidget):
                 self.serialThread.start()
                 self.settings.connectButton.setText("disconnect")
             else:
-                self.outputWindow.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
+                self.out("<font color=red>could not open connection, check if the port is correct</font>")
 
     def pollSerial(self):
-        self.outputWindow.outputText.append("<font color=green>listening to serial port </font>")
+        self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
                 data = self.serial.read()
                 if data :
-                    self.outputWindow.outputText.append("<font color=black>%s</font>" % data.encode('us-ascii','xmlcharrefreplace') )#.encode("hex"))
+                    self.out("<font color=black>%s</font>" % data.encode('us-ascii','xmlcharrefreplace') )#.encode("hex"))
                     time.sleep(0.1)
             else:
-                self.outputWindow.outputText.append("<font color=red>connect terminated unexpectedly</font>")
+                self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
                 self.settings.connectButton.setText("connect")
 
-        self.outputWindow.outputText.append("<font color=green>stopping listening to serial port</font>")
+        self.out("<font color=green>stopping listening to serial port</font>")
 
     def disconnected(self):
             self.settings.statusLabel.setPixmap(self.settings.redFill)
 
     def closeAll(self):
-        self.outputWindow.closing = True
- 
+        None 
 
 # class Controller(QObjcet):
 
