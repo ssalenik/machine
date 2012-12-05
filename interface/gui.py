@@ -30,6 +30,7 @@ class OutputWindow(QMainWindow):
         self.setWindowTitle("output")
 
         self.outputText = QTextEdit("<b>output should go here</b>")
+        self.outputText.setReadOnly(True)
         self.setCentralWidget(self.outputText)
         self.resize(350, 400)
 
@@ -60,6 +61,9 @@ class CentralWidget(QWidget):
         self.controls = ControlsFrame()
         self.command = Commands()
 
+        #serial
+        self.serial = serial.Serial()
+
         # layout
         self.layout = QVBoxLayout()
         self.layout.setSpacing(1)
@@ -85,13 +89,18 @@ class CentralWidget(QWidget):
             self.settings.connectButton.setText("connect")
 
         else :
-            self.port = self.settings.portSelect.text()
+            self.port = self.settings.portSelect.currentText()
+            self.outputWindow.outputText.append("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
             # try to connect a few times
-            for i in range(20):
+            i = 0
+            while not self.serial.isOpen or i < 20 :
+                i += 1
                 try:
-                    self.serial = serial.Serial(port=self.port, timeout=1)
+                    self.serial.port =self.port
+                    self.serial.timeout = 1
+                    self.serial.open()
                 except serial.SerialException:
-                    self.outputText.append("<font color=red>could not open connection, trying again</font>")
+                    self.outputWindow.outputText.append("<font color=red>could not open connection, trying again</font>")
             if self.serial.isOpen():
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
@@ -99,20 +108,20 @@ class CentralWidget(QWidget):
                 self.serialThread.start()
                 self.settings.connectButton.setText("disconnect")
             else:
-                self.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
+                self.outputWindow.outputText.append("<font color=red>could not open connection, check if the port is correct</font>")
 
     def pollSerial(self):
-        self.outputText.append("<font color=green>listening to serial port </font>")
+        self.outputWindow.outputText.append("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                self.outputText.append("<font color=black>%X</font>" % self.serial.read())
+                sself.outputWindow.outputText.append("<font color=black>%X</font>" % self.serial.read())
                 time.sleep(0.1)
             else:
-                self.outputText.append("<font color=red>connect terminated unexpectedly</font>")
+                self.outputWindow.outputText.append("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
                 self.settings.connectButton.setText("connect")
 
-        self.outputText.append("<font color=green>stopping listening to serial port</font>")
+        self.outputWindow.outputText.append("<font color=green>stopping listening to serial port</font>")
 
     def disconnected(self):
             self.settings.statusLabel.setPixmap(self.settings.redFill)
