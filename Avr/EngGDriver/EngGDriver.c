@@ -132,7 +132,7 @@ int main(void) {
 	initVariables();
 	
 	// *** TEMP DEBUG ***
-	//calculateSpeeds();
+	calculateSpeeds();
 	// /DEBUG
 	
 	resetPID();
@@ -159,7 +159,7 @@ int main(void) {
 	while(1) {
 		readCommand();
 		
-		if (timer - lastSpeedCalc >= SPEED_CALC_PERIOD) {
+		if (timer >= lastSpeedCalc + SPEED_CALC_PERIOD) {
 			lastSpeedCalc = timer;
 			calculateSpeeds();
 			if (pidOn) {	
@@ -1144,14 +1144,14 @@ void initVariables() {
 	}
 	
 	// *** TEMP DEBUG ***
-	/*int0Time0 = 168;
+	int0Time0 = 168;
 	int1Time0 = 167;
 	timer16 = 170;
-	ticks0 = 20;
-	ticks1 = 25;
+	ticks0 = 40;
+	ticks1 = 44;
 	ticks0CS = 10;
 	ticks1CS = 15;
 	int0TimeCS = 6;
-	int1TimeCS = 9;*/
+	int1TimeCS = 9;
 	// /DEBUG
 }
