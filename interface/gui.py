@@ -21,55 +21,16 @@ class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.setWindowTitle("Command Centre - McGill - Eng Games 2013")
-
-        # second window
-        self.outputWindow = OutputWindow(parent=self)
+        self.setWindowTitle("Command Centre - McGill - Eng Games 2013")        
 
         # main layout
-        self.centre = CentralWidget(output=self.outputWindow.output, parent=self) 
+        self.centre = CentralWidget(parent=self) 
         self.setCentralWidget(self.centre)
-
-    def closeEvent(self, event):
-        self.outputWindow.closing = True
-        self.centre.closeAll()
-
-        event.accept() # let the window close
-
-class OutputWindow(QMainWindow):
-    def __init__(self, parent=None):
-        super(OutputWindow, self).__init__(parent)
-        self.setWindowTitle("output")
-
-        self.outputText = QTextEdit("<b>output should go here</b>")
-        self.outputText.setReadOnly(True)
-        self.setCentralWidget(self.outputText)
-        self.resize(350, 550)
-
-        self.closing = False
-
-    def output(self, text):
-        self.outputText.append(text)
-
-    def closeEvent(self, event):
-        # don't close it
-        if self.closing == True:
-            event.accept() # let the window close
-        else:
-            event.ignore()
-
-    def hideEvent(self, event):
-        # don't hide it
-        #event.accept()
-        event.ignore()
 
 class CentralWidget(QWidget):
 
-    def __init__(self, output, parent=None):
+    def __init__(self, parent=None):
         super(CentralWidget, self).__init__(parent)
-
-        # output
-        self.out = output
 
         # status
         self.connected = False
@@ -79,18 +40,26 @@ class CentralWidget(QWidget):
         self.controls = ControlsFrame()
         self.command = Commands()
 
-        #serial
+        # output
+        self.output = Output()
+        self.out = self.output.output
+
+        # serial
         self.serial = serial.Serial()
 
-        #controller
+        # controller
         self.control = Controller(serial=self.serial, output=self.out)
 
         # layout
-        self.layout = QVBoxLayout()
-        self.layout.setSpacing(1)
-        self.layout.addWidget(self.settings)
-        self.layout.addWidget(self.controls)
-        self.layout.addWidget(self.command)
+        self.layout = QGridLayout()
+        self.layout.setVerticalSpacing(1)
+        self.layout.setHorizontalSpacing(12)
+        self.layout.addWidget(self.settings, 0, 0)
+        self.layout.addWidget(self.controls, 1, 0)
+        self.layout.addWidget(self.command, 2, 0)
+        self.layout.addWidget(self.output, 0, 1, 3, 1)
+
+        self.layout.setColumnStretch(1, 1)
 
         self.setLayout(self.layout)
 
@@ -99,13 +68,13 @@ class CentralWidget(QWidget):
         self.settings.rateInput.valueChanged.connect(self.control.changePollRate)
         self.control.connectionLost.connect(self.disconnected)
 
-
     def connect(self):
         if self.connected == True :
             self.control.disconnect()
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
             self.settings.portSelect.setEnabled(True)
+            self.connected == False
         else :
             if self.control.connectToPort(port=self.settings.portSelect.currentText()):
                 self.connected = True
@@ -193,6 +162,16 @@ class Controller(QObject):
                 self.connectionLost.emit()
 
         self.out("<font color=green>stopping listening to serial port</font>")
+
+class Output(QTextEdit):
+    def __init__(self, parent=None):
+        QTextEdit.__init__(self, "<b>output should go here</b>")
+        
+        self.setReadOnly(True)
+        self.setMinimumWidth(350)
+
+    def output(self, text):
+        self.append(text)
 
 class Settings(QFrame):
 
@@ -548,12 +527,7 @@ if __name__ == '__main__':
     
     # show the form
     main = MainWindow()
-    
-    main.outputWindow.show()
-    main.outputWindow.move(main.outputWindow.x() + 600, main.outputWindow.y())
-    main.outputWindow.raise_()
     main.show()
-    main.move(main.x() - 200, main.y() + 50)
     main.raise_()
     # run the main loop
     sys.exit(app.exec_())
