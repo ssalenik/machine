@@ -106,11 +106,13 @@ class CentralWidget(QWidget):
             self.control.disconnect()
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
+            self.settings.portSelect.setEnabled(True)
         else :
             if self.control.connectToPort(port=self.settings.portSelect.currentText()):
                 self.connected = True
                 self.settings.connectButton.setText("disconnect")
                 self.settings.statusLabel.setPixmap(self.settings.greenFill)
+                self.settings.portSelect.setEnabled(False)
     
 
     #@Slot(bool)
@@ -118,6 +120,7 @@ class CentralWidget(QWidget):
         self.settings.statusLabel.setPixmap(self.settings.redFill)
         self.connected = False
         self.settings.connectButton.setText("connect")
+        self.settings.portSelect.setEnabled(True)
 
     def closeAll(self):
         None 
@@ -208,7 +211,7 @@ class Settings(QFrame):
         self.label = QLabel("Settings")
         self.hLine = QFrame()
         self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
-        self.portLabel = QLabel("Port: ")
+        self.portLabel = QLabel("port: ")
         self.portSelect = QComboBox()
         self.portSelect.addItem("select or enter port")
         #get all serial ports
@@ -224,7 +227,14 @@ class Settings(QFrame):
         self.rateInput.setMinimum(1)
         self.rateInput.setMaximum(MAX_POLL_RATE)
         #self.rateInput.setMaximumWidth(50)
+        self.mcuLabel = QLabel("send to:")
+        self.mcuSelect = QComboBox()
+        self.mcuSelect.setMaximumWidth(75)
+        self.mcuSelect.addItem("1284P")
+        self.mcuSelect.addItem("168")
         self.connectButton = QPushButton("connect")
+        self.debugSelect = QCheckBox("debug")
+        self.printSelect = QCheckBox("print all")
         
         # flashing connection status button
         self.statusLabel = QLabel(self)
@@ -236,17 +246,22 @@ class Settings(QFrame):
 
         # layout
         self.layout = QGridLayout()
+        self.layout.setSpacing(15)
         self.layout.addWidget(self.label, 0, 0)
-        self.layout.addWidget(self.hLine, 1, 0, 1, 7)
+        self.layout.addWidget(self.hLine, 1, 0, 1, 10)
         self.layout.addWidget(self.portLabel, 2, 0)
-        self.layout.addWidget(self.portSelect, 2, 1)
-        self.layout.addWidget(self.rateLabel, 2, 2)
-        self.layout.addWidget(self.rateInput, 2, 3)
-        self.layout.addWidget(self.connectButton, 2, 5)
-        self.layout.addWidget(self.statusLabel, 2, 6)
+        self.layout.addWidget(self.portSelect, 2, 1, 1, 4)
+        self.layout.addWidget(self.connectButton, 2, 8)
+        self.layout.addWidget(self.statusLabel, 2, 9)
+        self.layout.addWidget(self.rateLabel, 3, 0, Qt.AlignRight)
+        self.layout.addWidget(self.rateInput, 3, 1, Qt.AlignLeft)
+        self.layout.addWidget(self.mcuLabel, 3, 2, Qt.AlignRight)
+        self.layout.addWidget(self.mcuSelect, 3, 3, Qt.AlignLeft)
+        self.layout.addWidget(self.debugSelect, 3, 5, Qt.AlignLeft)
+        self.layout.addWidget(self.printSelect, 3, 7, Qt.AlignLeft)
 
         # make middle column stretch
-        self.layout.setColumnStretch(4, 1)
+        self.layout.setColumnStretch(7, 1)
 
         self.setLayout(self.layout)
 
