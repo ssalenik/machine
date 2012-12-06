@@ -13,9 +13,10 @@ from PySide.QtGui import *
 POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100   # max serial poll rate
 MAX_REFRESH_RATE = 30 # max gui refresh rate
+MAX_LINES = 1000      # max lines in output window
 
 # slot defines
-@Slot(bool)
+
 
 class MainWindow(QMainWindow):
 
@@ -97,7 +98,7 @@ class CentralWidget(QWidget):
         # signals
         self.settings.connectButton.clicked.connect(self.connect)
         self.settings.rateInput.valueChanged.connect(self.control.changePollRate)
-        #self.control.disconnected.connect(receiver=self.disconnected)
+        self.control.connectionLost.connect(self.disconnected)
 
 
     def connect(self):
@@ -106,17 +107,17 @@ class CentralWidget(QWidget):
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
         else :
-            if self.control.connect(port=self.settings.portSelect.currentText()):
+            if self.control.connectToPort(port=self.settings.portSelect.currentText()):
                 self.connected = True
                 self.settings.connectButton.setText("disconnect")
                 self.settings.statusLabel.setPixmap(self.settings.greenFill)
     
 
-    @Slot(bool)
-    def disconnected(self, disc):
-            self.settings.statusLabel.setPixmap(self.settings.redFill)
-            self.connected = False
-            self.settings.connectButton.setText("connect")
+    #@Slot(bool)
+    def disconnected(self):
+        self.settings.statusLabel.setPixmap(self.settings.redFill)
+        self.connected = False
+        self.settings.connectButton.setText("connect")
 
     def closeAll(self):
         None 
@@ -124,7 +125,7 @@ class CentralWidget(QWidget):
 class Controller(QObject):
 
     # define slots
-    disconnected = Signal(bool)
+    connectionLost = Signal()
 
     def __init__(self, output, serial, parent=None):
         super(Controller, self).__init__(parent)
@@ -133,7 +134,7 @@ class Controller(QObject):
         self.serial = serial
         self.connected = False
 
-    def connect(self, port, rate=POLL_RATE):
+    def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
             self.rate = rate
             self.port = port
@@ -189,7 +190,7 @@ class Controller(QObject):
             else:
                 self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
-                self.disconnected.emit(True)
+                self.connectionLost.emit()
 
         self.out("<font color=green>stopping listening to serial port</font>")
 
