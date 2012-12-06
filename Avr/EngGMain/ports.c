@@ -1,144 +1,82 @@
 /** -----------------------------------------------------------------
  *      PORT CONNECTIONS
  *  -----------------------------------------------------------------
- *   #	NAME	ALT	I/O	PU	DEFS	FUNCTION
+ *   #	NAME	ALT FUNCTIONS	I/O	P/U	DEFS	DEVICE
  *  -----------------------------------------------------------------
- *  37	PA0	ADC0	I	N	DL_S	DIGITAL LEFT   SENS
- *  36	PA1	ADC1	I	N	DR_S	DIGITAL RIGHT  SENS
- *  35	PA2	ADC2	I	N	DA_S	DIGITAL AUX    SENS
- *  34	PA3	ADC3	I	N	DF_S	DIGITAL FRONT  SENS
- *  33	PA4	ADC4	I	N	M2_S	MOTOR 2        SENS
- *  32	PA5	ADC5	I	N	M1_S	MOTOR 1        SENS
- *  31	PA6	ADC6	I	N	AS_S	ANALOG SHORT   SENS
- *  30	PA7	ADC7	I	N	AM_S	ANALOG MIDDLE  SENS
+ *  40	PA0	ADC0		I	N	SENS1	SENS1/RESERVED
+ *  39	PA1	ADC1		I	N	SENS2	SENS2/RESERVED
+ *  38	PA2	ADC2		I	N	SENS3	SENS3/RESERVED
+ *  37	PA3	ADC3		I	N	SENS4	SENS4/RESERVED
+ *  36	PA4	ADC4		I	N	LIFT_FB	LIFT_FEEDBACK
+ *  35	PA5	ADC5		I	N	VSENS	BATT_LEVEL
+ *  34	PA6	ADC6		O	N	FET1	MOSFET1
+ *  33	PA7	ADC7		O	N	FET2	MOSFET2
  *  -----------------------------------------------------------------
- *  40	PB0		O	N	DL_C	DIGITAL LEFT   CTRL
- *  41	PB1		O	N	DR_C	DIGITAL RIGHT  CTRL
- *  42	PB2		O	N	DA_C	DIGITAL AUX    CTRL
- *  43	PB3		O	N	DF_C	DIGITAL FRONT  CTRL
- *  44	PB4	PCINT12	I	Y	BLD_SW	BOOTLOADER SWITCH
- *   1	PB5	MOSI	O	N	EM	FOR PROGRAMMING, EM
- *   2	PB6	MISO	I	N		FOR PROGRAMMING
- *   3	PB7	SCK	I	N		FOR PROGRAMMING
+ *   1	PB0	T0		I	Y	BLD_SW	BOOTLOADER_SW
+ *   2	PB1	T1		I	N	Q3_IO	TURN_QIO
+ *   3	PB2	AIN0	INT2	I	N	Q3_INT	TURN_QINT
+ *   4	PB3	AIN1	OC0A	O	N	PWM5	SERVO5
+ *   5	PB4	SS	OC0B	O	N	PWM6	SERVO6
+ *   6	PB5	MOSI	ICP3	I	N		PROG
+ *   7	PB6	MISO	OC3A	I	N		PROG
+ *   8	PB7	SCK	OC3B	I	N		PROG
  *  -----------------------------------------------------------------
- *  19	PC0	SCL	O/C	Y	ACC_C	ACCELEROMETER SCL
- *  20	PC1	SDA	O/C	Y	ACC_D	ACCELEROMETER SDA
- *  25	PC6		O	N	AS_P	ANALOG SHORT  POWER
- *  26	PC7		O	N	AM_P	ANALOG MIDDLE POWER
+ *  22	PC0	SCL		I	N		RESERVED
+ *  23	PC1	SDA		I	N		RESERVED
+ *  24  PC2			O	N	LED1	BATT_LED
+ *  25  PC3			O	N	SPWR	SERVO_PWR
+ *  26  PC4			O	N	DIR3A	TURN_DIR_A
+ *  27  PC5			O	N	DIR3B	TURN_DIR_B
+ *  28	PC6			O	N	DIR4A	LIFT_DIR_A
+ *  29	PC7			O	N	DIR4B	LIFT_DIR_B
  *  -----------------------------------------------------------------
- *   9	PD0	RXD0	I	Y	DRV_RX	SERIAL RX DRIVE MCU
- *  10	PD1	TXD0	O	N	DRV_TX	SERIAL TX DRIVE MCU
- *  11	PD2	RXD1	I	Y	DBG_RX	SERIAL RX DEBUG
- *  12	PD3	TXD1	O	N	DBG_TX	SERIAL TX DEBUG
- *  13	PD4	OC1B	O	N	M2_C	MOTOR 2        CTRL
- *  14	PD5	OC1A	O	N	M1_C	MOTOR 1        CTRL
- *  15	PD6	OC2B	O	N	AS_C	ANALOG SHORT   CTRL
- *  16	PD7	OC2A	O	N	AM_C	ANALOG MIDDLE  CTRL
+ *  14	PD0	RXD0	T3	I	Y	DRV_RX	COMM/PROG
+ *  15	PD1	TXD0		O	N	DRV_TX	COMM/PROG
+ *  16	PD2	RXD1	INT0	I	Y	DBG_RX	COMM
+ *  17	PD3	TXD1	INT1	O	N	DBG_TX	COMM
+ *  18	PD4	OC1B		O	N	PWM4	LIFT_PWM
+ *  19	PD5	OC1A		O	N	PWM3	TURN_PWM
+ *  20	PD6	OC2B	ICP1	O	N	PWM8	SERVO8
+ *  21	PD7	OC2A		O	N	PWM7	SERVO7
  *  -----------------------------------------------------------------
  */
 
-/** -------------------------------------------------------------------------
- *      SIGNAL PIN POSITIONS
- *  -------------------------------------------------------------------------
- *  ANALOG             MOTORS             DIGITAL            DIGITAL
- *  -------------------------------------------------------------------------
- *  PD6 PC6     PA6    PD4         PA4    PA2         PB2    PA0         PB0
- *  S_C S_P GND S_S    2_C 5V4 GND 2_S    A_S GND 5V0 A_C    L_S GND 5V0 L_C
- *  M_C M_P GND M_S    1_C 5V4 GND 1_S    F_S GND 5V0 F_C    R_S GND 5V0 R_C
- *  PD7 PC7     PA7    PD5         PA5    PA3         PB3    PA1         PB1
- *  -------------------------------------------------------------------------
- */
+#define SENS1	   0
+#define SENS2	   1
+#define SENS3	   2
+#define SENS4	   3
+#define LIFT_FB	   4
+#define VSENS	   5
+#define FET1	A, 6
+#define FET2	A, 7
 
-#define DL 0
-#define DR 1
-#define DA 2
-#define DF 3
-#define M2 4
-#define M1 5
-#define AS 6
-#define AM 7
+#define BLD_SW	B, 0
+#define Q3_IO	B, 1
+#define Q3_INT	B, 2
 
-#define DL_S PORTA
-#define DR_S PORTA
-#define DA_S PORTA
-#define DF_S PORTA
-#define M2_S PORTA
-#define M1_S PORTA
-#define AS_S PORTA
-#define AM_S PORTA
+#define LED1	C, 2
+#define SPWR	C, 3
+#define DIR3A	C, 4
+#define DIR3B	C, 5
+#define DIR4A	C, 6
+#define DIR4B	C, 7
 
-#define DL_C PORTB
-#define DR_C PORTB
-#define DA_C PORTB
-#define DF_C PORTB
-
-#define AS_P PORTC
-#define AM_P PORTC
-
-#define M2_C PORTD
-#define M1_C PORTD
-#define AS_C PORTD
-#define AM_C PORTD
-
-#define BLD_PORT PORTB
-#define BLD_SW   4
-
-#define ACC_PORT PORTC
-#define ACC_C    0
-#define ACC_D    1
-
-#define DRV_PORT PORTD
-#define DRV_RX   0
-#define DRV_TX   1
-
-#define DBG_PORT PORTD
-#define DBG_RX   2
-#define DBG_TX   3
-
-#define EM_PORT  PORTB
-#define EM       5
-
-#define REG  0
-#define DIR -1
-#define PIN -2
-
-#define PR(reg, port) (&port + reg)
-
-inline void    set_port (volatile uint8_t *port, uint8_t data) { *port  =  data; }
-inline void    set_bit  (volatile uint8_t *port, uint8_t bit)  { *port |=  _BV(bit); }
-inline void    clr_bit  (volatile uint8_t *port, uint8_t bit)  { *port &= ~_BV(bit); }
-inline uint8_t read_bit (volatile uint8_t *port, uint8_t bit)  { return (*port & _BV(bit)) ? 1 : 0; }
+#define set_bit(x) __set_b(x)
+#define clr_bit(x) __clr_b(x)
+#define bit_set(x) __b_set(x)
+#define bit_clr(x) __b_clr(x)
+#define __set_b(port, bit) ( _SFR_BYTE(PORT##port) |=  _BV(bit))
+#define __clr_b(port, bit) ( _SFR_BYTE(PORT##port) &= ~_BV(bit))
+#define __b_set(port, bit) ( _SFR_BYTE(PIN##port) & _BV(bit))
+#define __b_clr(port, bit) (~_SFR_BYTE(PIN##port) & _BV(bit))
 
 void init_ports(void) {
-	// PORTA and DDRA do not require initialization (all inputs w/o pullups)
-	DIDR0 = 1 << AS | 1 << AM; // disable digital input buffers for analog inputs
-	PORTB = 1 << BLD_SW; // for debug
-	DDRB  = 1 << DL | 1 << DR | 1 << DA | 1 << DF | 1 << EM;
-	PORTC = 1 << ACC_C | 1 << ACC_D;
-	DDRC  = 1 << AS | 1 << AM;
-	PORTD = 1 << DRV_RX | 1 << DRV_TX | 1 << DBG_RX | 1 << DBG_TX;
-	DDRD  = 1 << DRV_TX | 1 << DBG_TX | 1 << M2 | 1 << M1 | 1 << AS | 1 << AM;
+	DIDR0 = 0b00111111; // disable digital input buffers for analog inputs
+	DDRA  = 0b11000000; // for all DDR see I/O column in the table above
+	PORTB = 0b00000001; // for all PORTs see P/U column in the table above
+	DDRB  = 0b00011000;
+	DDRC  = 0b11111100;
+	PORTD = 0b00000101;
+	DDRD  = 0b11111010;
 }
-
-inline uint8_t IR_hole_L(void) { return read_bit(PR(PIN, DL_S), DL); }
-inline uint8_t IR_hole_R(void) { return read_bit(PR(PIN, DR_S), DR); }
-inline uint8_t IR_hole_F(void) { return read_bit(PR(PIN, DF_S), DF); }
-
-inline void IR_enable_L(void)  { set_bit(PR(REG, DL_C), DL); }
-inline void IR_enable_R(void)  { set_bit(PR(REG, DR_C), DR); }
-inline void IR_enable_F(void)  { set_bit(PR(REG, DF_C), DF); }
-
-inline void IR_disable_L(void) { clr_bit(PR(REG, DL_C), DL); }
-inline void IR_disable_R(void) { clr_bit(PR(REG, DR_C), DR); }
-inline void IR_disable_F(void) { clr_bit(PR(REG, DF_C), DF); }
-
-inline void IR_enable_dist(void)  { set_bit(PR(REG, AM_P), AM); }
-inline void IR_disable_dist(void) { clr_bit(PR(REG, AM_P), AM); }
-
-inline void enable_descend(void)  { set_bit(PR(REG, AS_P), AS); }
-inline void disable_descend(void) { clr_bit(PR(REG, AS_P), AS); }
-
-inline void EM_enable(void)    { set_bit(PR(REG, EM_PORT), EM); }
-inline void EM_disable(void)   { clr_bit(PR(REG, EM_PORT), EM); }
-inline uint8_t EM_status(void) { return read_bit(PR(REG, EM_PORT), EM); }
 

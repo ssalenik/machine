@@ -2,7 +2,7 @@
 #include <avr/pgmspace.h>
 #include <avr/interrupt.h>
 #include <stdio.h>
-#include <stdlib.h>
+//#include <stdlib.h>
 #include <math.h>
 
 #define F_CPU 20000000
@@ -22,80 +22,79 @@ uint8_t isHex(uint8_t ascii);
 
 // "public" functions of "ports.c"
 void init_ports(void);
-inline uint8_t IR_hole_L(void);
-inline uint8_t IR_hole_R(void);
-inline uint8_t IR_hole_F(void);
-void IR_enable_L(void);
-void IR_enable_R(void);
-void IR_enable_F(void);
-void IR_enable_dist(void);
-void IR_disable_L(void);
-void IR_disable_R(void);
-void IR_disable_F(void);
-void IR_disable_dist(void);
 
 // "public" functions of "uart.c"
 void init_uart(void);
-// NOTE: to print via uart, use: fprintf_P(&{drive|debug}, PSTR("format_string"), vars...);
-
-// "public" functions of "acc.c"
-void init_acc(void);
-void read_acc_values(float *values);
-void read_acc_angles(float *angles);
+uint8_t uart_available(uint8_t port);
+uint8_t uart_get(uint8_t port);
+void uart_put(uint8_t port, uint8_t c);
+// NOTE: port is defined as DRIVE (0) or DEBUG (1)
+// to print via uart, use: fprintf_P(&{drive|debug}, PSTR("format_string"), vars...);
 
 // "public" functions of "adc.c"
 void init_adc(void);
-uint16_t IR_read_dist(void);
+uint16_t read_adc(uint8_t channel);
 
 // "public" functions of "timer.c"
 void init_timer(void);
 uint32_t uptime(void);
-void sleep(uint16_t seconds);
+void set_speed_3(uint16_t speed);
+void set_speed_4(uint16_t speed);
+void servo5(uint8_t degrees);
+void servo6(uint8_t degrees);
+void servo7(uint8_t degrees);
+void servo8(uint8_t degrees);
 
 /*! END FUNCTION PROTOTYPES OF INCLUDED FILES */
 
+
+#include "pt.h"
 
 #include "delay.c"
 #include "hex.c"
 #include "ports.c"
 #include "uart.c"
-#include "acc.c"
 #include "adc.c"
 #include "timer.c"
 
+// for use in "immediate-return" tasks:
+#define set_interval(milliseconds) \
+	static uint32_t next_call = (milliseconds); \
+	if(uptime() < next_call) return; \
+	next_call += (milliseconds)
 
-#define fast 10
-#define slow 5
-#define stop 0
-#define IR_DIST 100 //hardcoded value... distance from the front IR when we must stop.
-#define fall_treshhold 30 //in degrees
+// for use in the "main_flow" thread:
+#define sleep(milliseconds) \
+	pt_target = uptime() + (milliseconds); \
+	PT_WAIT_WHILE(pt, uptime() < pt_target)
 
-float before_fall[3];
+#define RX_LINE_SIZE FIFO_LENGTH
+#define VBAT_FACTOR	0.0044336
+#define VBAT_LOW	767
+#define VBAT_NORM	789
 
-void init();
-float InvSqrt(float x);
-//int get_speed_left();
-//int get_speed_right();
-int is_falling();
-void fall_ledge();
-double get_heading();
-void orient_self_0();
-void orient_self_90();
-void orient_self_180();
-void orient_self_270();
-void navigate_lab();
-int COMPUTATION = 0;
+static struct pt pt1; // thread 1: pt_main_flow
+static struct pt pt2; // thread 2: test
 
-int main()
-{
-    init();
-    fall_ledge();
-//    orient_self_180();
-//    navigate_lab();
-//    bridge();
-    
-    return 0;
-}
+// thread/task list:
+static int pt_main_flow(struct pt *pt);
+static int pt_test(struct pt *pt); // test
+void check_drive_uart(void);
+void check_debug_uart(void);
+void check_print_stat(void);
+
+// function prototypes:
+void stop();
+void forward(uint8_t speed);
+void backwards(uint8_t speed);
+void freedrive(uint8_t speedL, uint8_t speedR, uint8_t dir);
+void forward_dist(uint8_t speed, uint16_t dist);
+void backwards_dist(uint8_t speed, uint16_t dist);
+
+uint8_t run = 0;
+uint8_t run_test = 0; // test
+uint8_t drive_complete = 1;
+uint8_t rev_passthru = 1;
 
 void init(void) {
 	init_ports();
@@ -103,164 +102,239 @@ void init(void) {
 	delay_ms(T_MS * 200); // wait for capacitors to charge
 	
 	init_uart();
-	init_acc();
 	init_adc();
 	init_timer();
 	
 	sei(); // enable interrupts
 }
 
-float InvSqrt(float x) {
-	union { float f32; long s32; } i;
-	float xhalf = 0.5f * x;
-	// int i = *(int*)&x;
-	i.f32 = x;
-	i.s32 = 0x5f3759d5 - (i.s32 >> 1); // initial guess for Newton's method
-	//x = *(float*)&i;
-	x = i.f32 * (1.5f - xhalf * i.f32 * i.f32); // One round of Newton's method
-	return x;
-}
-
-/*
-int get_speed_left()
-{
-    return 0;
-}
-
-int get_speed_right()
-{
-    return 0;
-}*/
-
-int is_falling()
-{
-    //we're only looking at the Z-angle to determine fall
-    float during_fall[3];
-    read_acc(NULL, during_fall); // read angles only
-    if ( (before_fall[2] - during_fall[2]) > fall_treshhold )
-	return 1;
-    else 
+int main(void) {
+	init();
+	
+	PT_INIT(&pt1); // required to initialize a thread
+	PT_INIT(&pt2); // test
+	
+	// cycling through threads/tasks
+	while(1) {
+		if(run) pt_main_flow(&pt1);
+		if(run_test) pt_test(&pt2);
+		check_drive_uart();
+		check_debug_uart();
+		check_print_stat();
+	}
+	
 	return 0;
-    
-}
-void fall_ledge()
-{
-    go_backwards(slow); //millimeters
-    COMPUTATION = 1;
-    sleep(3);
-    stop();
-    //sleep(3); //5 seconds should be enough to cover that dist. given the immediate return...
-    //stop(); //just in case.
-    //set values before the fall to be compared with to determine start of fall.
-    read_acc(NULL, before_fall); // read angles only
-    go_forward(slow);
-    //now the robot moves forward. we need to cut the motors when it starts falling down, so it doesn't roll off the floor after landing
-    while(!is_falling())
-    {
-	;
-    }
-    //it is falling. we stop the motors, and wait for it to land
-    stop();
-//    COMPUTATION = 0;
-    sleep(3);
-
 }
 
-double get_heading()
-{
-    double val=atan2(accelerometer_angles[0], accelerometer_angles[1]);
-    return val*180.0/(M_PI);
-}
-
-void orient_self_0()
-{
-    double curr_heading = get_heading();
-    if (curr_heading > 180)
-	turn_left_angle( int(curr_heading)); //10th of an angle...
-    else
-	turn_right_angle( int(curr_heading ) ); //10th of an angle...
-    sleep(10);
-    stop();
-}
-void orient_self_90()
-{
-    double curr_heading = get_heading();
-    if (curr_heading > 90 && curr_heading<270)
-	turn_right_angle( int(curr_heading - 89.5)); //10th of an angle...
-    else if (curr_heading <= 90)
-	turn_left_angle( int(90 - curr_heading ) ); //10th of an angle...
-    else
-	turn_left_angle(int ( 90 + (360-curr_heading) );
-    sleep(10);
-    stop();
-}
-void orient_self_180()
-{
-    double curr_heading = get_heading();
-    if (curr_heading > 180.0)
-	turn_right_angle( int(curr_heading - 179.5)); //10th of an angle...
-    else
-	turn_left_angle( int(179.5 - curr_heading ) ); //10th of an angle...
-    sleep(10);
-    stop();
-}
-void orient_self_270()
-{
-    double curr_heading = get_heading();
-    if (curr_heading > 90 && curr_heading<270)
-	turn_left_angle( int(270 - curr_heading)); //10th of an angle...
-    else if (curr_heading <= 90)
-	turn_right_angle( int(90 + curr_heading ) ); //10th of an angle...
-    else
-	turn_right_angle(int (curr_heading - 270) );
-    sleep(10);
-    stop();
-}
-
-
-void navigate_lab() {
-
-    //we start oriented in the 180 degree direction. 
-    //step 1: move until we reach the wall
-    
-    COMPUTATION = 1;
-    go_forward(fast);
-    while ( IR_read_dist() > IR_DIST)
-    {
-	//advance 
-	if ( IR_hole_R() )
-	{
-	    //if there's a hole on the right (close), we move to the left
-	    stop();
-	    turn_left_angle(15);
-	    sleep(3); //wait for operation to complete
-	    go_forward(fast);
-	    sleep(1);
+static int pt_test(struct pt *pt) {
+	PT_BEGIN(pt); // required to denote the beginning of a thread
+	
+	static uint32_t pt_target; // for delays
+	
+	if(run_test == 1) {
+		freedrive(0, 0, 0); sleep(100);
+		stop(); sleep(100);
 	}
-    }
-    stop();
-    
-    //step 2: rotate to look north.
-    orient_self_90();
-    go_forward(fast);
-    
-    while ( !IR_hole_F() )
-    {
-	if ( IR_hole_R() )
-	{
-	    //if there's a hole on the right (close), we move to the left
-	    stop();
-	    turn_left_angle(15);
-	    sleep(3); //wait for operation to complete
-	    go_forward(fast);
-	    sleep(1);
+	else if(run_test == 2) {
+		freedrive(0, 0, 0); sleep(100);
+		stop(); sleep(100);
 	}
-    }
+	
+	run_test = 0; // stop test thread after execution
+	//PT_WAIT_WHILE(pt, 1); // halt the thread to prevent restart
+	PT_END(pt); // required to denote the beginning of a thread
+}
 
-    //reached target. now move right... until when?
-    orient_self_180();
-    //move backwards, while looking at all 3 sensors - 2 sides to avoid  falling (NOTE: REVERSED) and the front so that we know how far we are
+static int pt_main_flow(struct pt *pt) {
+	PT_BEGIN(pt); // required to denote the beginning of a thread
+	
+	static uint32_t pt_target; // for delays
+	
+	fprintf_P(&drive, PSTR("1001\r")); // PID ON
+	sleep(3000); // startup delay
+	
+	servo5(0);
+	
+	backwards_dist(25, 50); PT_WAIT_UNTIL(pt, drive_complete); // push the hook
+	stop(); sleep(200);
+	
+	//stop EVERYTHING. END OF EXECUTION
+	run = 0;
+	//PT_WAIT_WHILE(pt, 1); // halt the thread to prevent restart
+	PT_END(pt); // required as a denote the end of a thread
+}
 
-    COMPUTATION = 0;
+void stop()                                        { fprintf_P(&drive, PSTR("30\r"));              }
+void forward(uint8_t speed)                        { fprintf_P(&drive, PSTR("31%02x00\r"), speed); }
+void backwards(uint8_t speed)                      { fprintf_P(&drive, PSTR("31%02x11\r"), speed); }
+void freedrive(uint8_t speedL, uint8_t speedR, uint8_t dir) { fprintf_P(&drive, PSTR("34%02x%02x%02x\r"), speedL, speedR, dir); }
+// commands below return acknowledgement: "D\r"
+void forward_dist(uint8_t speed, uint16_t dist)    { drive_complete = 0; fprintf_P(&drive, PSTR("32%02x%04x\r"), speed, dist); }
+void backwards_dist(uint8_t speed, uint16_t dist)  { drive_complete = 0; fprintf_P(&drive, PSTR("33%02x%04x\r"), speed, dist); }
+
+void check_drive_uart(void) {
+	static uint8_t inputbuf[RX_LINE_SIZE], inputptr = 0;
+	uint8_t i, recv;
+	
+	while(uart_available(DRIVE)) {
+		recv = uart_get(DRIVE);
+		
+		if(recv == '\r') {
+			if(inputptr) {
+				if(inputbuf[0] == '@') {
+					// reverse command to MAIN MCU
+					// TODO
+				}
+				else if(rev_passthru) {
+					for(i = 0; i < inputptr; i++) { uart_put(DEBUG, inputbuf[i]); }
+					fprintf(&debug, "\r\n");
+				}
+				
+				inputptr = 0;
+			}
+		}
+		else if(recv == '\n') {
+			;
+		}
+		else {
+			if(inputptr != RX_LINE_SIZE) {
+				inputbuf[inputptr] = recv;
+				inputptr++;
+			}
+		}
+	}
+}
+
+void check_debug_uart(void) {
+	static uint8_t inputbuf[RX_LINE_SIZE], inputptr = 0;
+	uint8_t i, recv;
+	
+	while(uart_available(DEBUG)) {
+		recv = uart_get(DEBUG);
+		
+		if(recv == '\r') {
+			fprintf(&debug, "\r\n");
+			
+			if(inputptr) {
+				switch(inputbuf[0]) {
+					case '?': // print drive command list
+					fprintf_P(&debug, PSTR("stop() ......................... | p30\r\n"));
+					fprintf_P(&debug, PSTR("forward(speed) ................. | p31%%02x00\r\n"));
+					fprintf_P(&debug, PSTR("backwards(speed) ............... | p31%%02x11\r\n"));
+					fprintf_P(&debug, PSTR("forward_dist(speed, dist) ...... | p32%%02x%%04x\r\n"));
+					fprintf_P(&debug, PSTR("backwards_dist(speed, dist) .... | p33%%02x%%04x\r\n"));
+					fprintf_P(&debug, PSTR("freedrive(speedL, speedR, dir) . | p34%%02x%%02x%%02x\r\n"));
+					break;
+					
+					case 'p': // passthrough to DRIVE MCU
+					for(i = 1; i < inputptr; i++) { uart_put(DRIVE, inputbuf[i]); }
+					uart_put(DRIVE, '\r');
+					break;
+					
+					case '0': // reverse passthrough OFF
+					rev_passthru = 0;
+					break;
+					
+					case '1': // reverse passthrough ON
+					rev_passthru = 1;
+					break;
+					
+					case 's': // start/stop main thread
+					run ^= 1;
+					if(run) { fprintf_P(&debug, PSTR("Main thread started!\r\n")); }
+					else    { fprintf_P(&debug, PSTR("Main thread stopped!\r\n")); stop(); }
+					break;
+					
+					case 't': // start/stop test thread
+					if(inputptr == 2) {
+						run_test = htoa(0, inputbuf[1]);
+						if(!run_test) { fprintf_P(&debug, PSTR("All test sequences stopped!\r\n")); stop(); }
+						else { fprintf_P(&debug, PSTR("Started test sequence %u!\r\n"), run_test); }
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					case ' ':
+					stop();
+					break;
+					
+					case 'u':
+					fprintf_P(&debug, PSTR("%lu\r\n"), uptime());
+					break;
+					
+					case 'b':
+					fprintf_P(&debug, PSTR("4 x %1.2fV\r\n"), (float)read_adc(VSENS) * VBAT_FACTOR);
+					break;
+					
+					case 'm': // servo power
+					if(inputptr >= 2 && (inputbuf[1] == '0' || inputbuf[1] == '1')) {
+						inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					case '5': // servo5 commands
+					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
+						servo5(htoa(inputbuf[1], inputbuf[2]));
+						//OCR0A = htoa(inputbuf[1], inputbuf[2]);
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					case '6': // servo6 commands
+					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
+						servo6(htoa(inputbuf[1], inputbuf[2]));
+						//OCR0B = htoa(inputbuf[1], inputbuf[2]);
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					case '7': // servo7 commands
+					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
+						servo7(htoa(inputbuf[1], inputbuf[2]));
+						//OCR2A = htoa(inputbuf[1], inputbuf[2]);
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					case '8': // servo8 commands
+					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
+						servo8(htoa(inputbuf[1], inputbuf[2]));
+						//OCR2B = htoa(inputbuf[1], inputbuf[2]);
+					}
+					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					break;
+					
+					default:
+					fprintf_P(&debug, PSTR("Command error\r\n"));
+				}
+				
+				inputptr = 0;
+			}
+		}
+		else if(recv == 0x7f) {
+			if(!inputptr) { uart_put(DEBUG, '\a'); }
+			else {
+				fprintf(&debug, "\b\e[K");
+				inputptr--;
+			}
+		}
+		else {
+			if(inputptr == RX_LINE_SIZE) { uart_put(DEBUG, '\a'); }
+			else {
+				uart_put(DEBUG, recv);
+				inputbuf[inputptr] = recv;
+				inputptr++;
+			}
+		}
+	}
+}
+
+void check_print_stat(void) {
+	set_interval(100);
+	
+	uint16_t vbat = read_adc(VSENS);
+	if(vbat < VBAT_LOW) set_bit(LED1);
+	else if(vbat > VBAT_NORM) clr_bit(LED1);
 }
 
