@@ -169,7 +169,7 @@ class Output(QTextEdit):
         
         self.setReadOnly(True)
         self.setMinimumWidth(350)
-        
+
         # set the maximum paragraph count
         # will delete paragraphs from the beginging once the limit is reached
         self.document().setMaximumBlockCount(MAX_LINES)
@@ -211,11 +211,11 @@ class Settings(QFrame):
         self.rateInput.setMaximum(MAX_POLL_RATE)
         #self.rateInput.setFixedWidth(50)
         self.rateUnits = QLabel("Hz")
-        self.mcuLabel = QLabel("send to:")
+        self.mcuLabel = QLabel("connected to:")
         self.mcuSelect = QComboBox()
-        self.mcuSelect.setFixedWidth(75)
-        self.mcuSelect.addItem("1284P")
-        self.mcuSelect.addItem("168")
+        self.mcuSelect.setFixedWidth(100)
+        self.mcuSelect.addItem("main CPU")
+        self.mcuSelect.addItem("driver")
         self.connectButton = QPushButton("connect")
         self.connectButton.setFixedWidth(110)
         self.debugSelect = QCheckBox("debug")
@@ -248,6 +248,16 @@ class Settings(QFrame):
         self.layout.addWidget(self.printSelect, 3, 12, 1, 2, Qt.AlignHCenter)
 
         self.setLayout(self.layout)
+
+        # signals
+        self.rateSwitch.stateChanged.connect(self.enableAutoRefresh)
+
+    def enableAutoRefresh(self, state):
+        if state == Qt.CheckState.Checked:
+            self.rateInput.setEnabled(True)
+        else:
+            self.rateInput.setEnabled(False)
+
 
 class ControlsFrame(QFrame):
     
