@@ -104,13 +104,17 @@ uint8_t rotAdjOn = 1;
 
 /* --- Debug --- */
 uint8_t debug1 = 0;
-uint8_t debug2 = 0;
+uint8_t debug2 = 2;
 uint8_t debug3 = 0;
 uint8_t debug4 = 0;
 uint8_t debug5 = 0;
-uint8_t debug6 = 1;
+uint8_t debug6 = 0;
 uint8_t debug7 = 0;
+uint16_t debugPeriod = 1000;
 uint16_t d_count1 = 0;
+uint16_t d_time0diff = 0;
+int16_t d_ticks0diff = 0;
+int32_t d_ticks0CSold = 0;
 void debugF1();
 /* --------------*/
 
@@ -168,11 +172,15 @@ int main(void) {
 			}
 		}
 			
-		if (timer >= (lastTime + 100)) {
-			lastTime += 100;
+		if ((debugPeriod) && timer >= (lastTime + debugPeriod)) {
+			lastTime += debugPeriod;
+			if (debug1) printf("%lu\t%lu\t%lu\r\n", d_ticks0CSold, ticks0CS, ticks0);
+			if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
+			if (debug3) printf("%d\t%u\r\n", d_ticks0diff, d_time0diff);
+			if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);
+			if (debug5) printf("%d\t%d\r\n", speed0, speed1);
+			if (debug6) printf("%d\t%d\r\n", accel0, accel1);
 			if (debug7) printf("%u\t%u\r\n", power0, power1);
-			if (debug6) printf("%d\t%d\t%d\t%d\r\n", speed0, speed1, accel0, accel1);
-			if (debug5) printf ("%ld\t%ld\r\n", ticks0, ticks1);
 		}
 	}
 	
@@ -284,7 +292,7 @@ void setTargetSpeed(uint8_t motor, int16_t speed) {
 // Configure timer0 to generate interrupts at 16KHz
 void initTimer0() {
 	TCCR0A = 0b00000010;	// set timer to CTC mode	
-	TCCR0B = 0b00000001;	// set clock prescaler to 8
+	TCCR0B = 0b00000010;	// set clock prescaler to 8
 	OCR0A = 124;			// set to 124 + 1 timer ticks per interrupt
 	// total frequency is 8kHz at 20Mhz clock (20M / 125 / 8 = 16k)
 	TIMSK0 |= 1 << OCIE0A;	// enable compare A interupt
@@ -314,16 +322,11 @@ void initADC() {
 }
 
 void initMotorPins() {
-	//DDRB |=  0b00111001;	// set pins 0, 3, 4, 5 as output in PORT B
+	// set motor pins as output
 	sbi(DDRM0IN1, M0IN1);
 	sbi(DDRM0IN2, M0IN2);
 	sbi(DDRM1IN1, M1IN1);
 	sbi(DDRM1IN2, M1IN2);
-	/*cbi(M0IN1);
-	cbi(M0IN2);
-	cbi(M1IN1);
-	cbi(M1IN2);*/
-	//PORTB &= 0b11000110;	// set the values of those pins to 0
 }
 
 uint8_t readADC(uint8_t channel) {
@@ -361,7 +364,7 @@ ISR(INT1_vect) {
 	// check direction of rotation
 	dir = PINB & (1 << 7);
 	// TODO: confirm which direction is which
-	if (dir) {
+	if (!dir) {
 		int1dir = FORWARD;
 		ticks1++;
 	} else {
@@ -639,6 +642,14 @@ void readCommand() {
 					break;
 				case 0x79:
 					printParams2();
+					break;
+				case 0x7f:
+					// set debug period
+					arg1i = readInt(&buf[2], &valid);
+					if (valid) {
+						if (arg1i && (uint16_t)arg1i < 100) arg1i = 100;
+						debugPeriod = arg1i;
+					}
 					break;
 				}
 				// if command doesn't exist, do nothing
@@ -1129,6 +1140,9 @@ void calculateSpeeds() {
 	lastSpeedInd &= (8 - 1);
 	 
 	// update latest tick timestamps recorded in calculateSpeeds()
+	d_time0diff = int0Time0_cached - int0TimeCS;  //*** debug
+	d_ticks0diff = (long)ticks0_cached - ticks0CS;  //*** debug
+	d_ticks0CSold = ticks0CS; //*** debug
 	int0TimeCS = int0Time0_cached;
 	int1TimeCS = int1Time0_cached;
 	ticks0CS = ticks0_cached;
