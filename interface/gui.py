@@ -5,14 +5,17 @@ import sys
 import serial
 import serial.tools
 import serial.tools.list_ports
+#import io
 import time
 from threading import Thread
 from PySide.QtCore import *
 from PySide.QtGui import *
 
+#from serialComm import *
+
 POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100   # max serial poll rate
-MAX_REFRESH_RATE = 30 # max gui refresh rate
+MAX_REFRESH_RATE = 25 # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
 # slot defines
@@ -126,6 +129,11 @@ class Controller(QObject):
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
                 #self.serialThread.daemon = True
+
+                # create text wrapper
+                # when line_bufferin=True a call to write implies a flush() if it contains a newline char
+                #self.sio = io.TextIOWrapper(io.BufferedRWPair(self.serial, self.serial), encoding='ascii', line_buffering=True)
+
                 self.serialThread.start()
                 return True
             else:
@@ -141,6 +149,7 @@ class Controller(QObject):
         if self.serial.isOpen() :
             self.connected = False
             self.serialThread.join()    #wait for threads to end
+            self.sio.close()
             self.serial.close()
             self.out("<font color=green>closed serial port</font>")
 
@@ -149,13 +158,17 @@ class Controller(QObject):
         self.rate = rate
 
     def pollSerial(self):
+        """loop which continously checks the serial port for a new line"""
+
         self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                data = self.serial.read()
+                #read
+                data = self.serial.read(1)
+                #data = self.sio.readline()
                 if data :
+                    # no need to sleep, the out function will ensure stuff doesn't get printed too fast
                     self.out("<font color=black>%s</font>" % data.encode("hex"))
-                    time.sleep(1/float(self.rate))
             else:
                 self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
@@ -163,6 +176,33 @@ class Controller(QObject):
 
         self.out("<font color=green>stopping listening to serial port</font>")
 
+    def parseInput(self):
+        """returns True if a message was receive, False if it was empty"""
+
+        message = []
+
+        #read the one by prefix
+        prefix = self.serial.read(1)
+
+        if not prefix :
+            # empty
+            return False
+        
+        if prefix == FEEDBACK :
+            #means we're getting some feedback
+            message.append(prefix)
+
+            #read the 2 byte code
+            code = self.serial.read(2)
+
+
+
+        else:
+            #must be debug or something else, push to output
+            None
+
+
+        
 class Output(QTextEdit):
     def __init__(self, parent=None):
         QTextEdit.__init__(self, "<b>output should go here</b>")
