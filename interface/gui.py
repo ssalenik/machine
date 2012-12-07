@@ -305,6 +305,7 @@ class ChassyFrame(QFrame):
         self.rMotorInput = QLineEdit()
         self.rMotorInput.setFixedWidth(75)
         self.motorInputSet = QPushButton("set")
+        self.motorInputSet.setFixedWidth(50)
         self.lEncoderLabel = QLabel("left encoder:")
         self.lEncoderLabel.setAlignment(Qt.AlignHCenter)
         self.lEncoderValue = QLineEdit()
