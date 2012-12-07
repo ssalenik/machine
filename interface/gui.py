@@ -169,6 +169,10 @@ class Output(QTextEdit):
         
         self.setReadOnly(True)
         self.setMinimumWidth(350)
+        
+        # set the maximum paragraph count
+        # will delete paragraphs from the beginging once the limit is reached
+        self.document().setMaximumBlockCount(MAX_LINES)
 
     def output(self, text):
         self.append(text)
