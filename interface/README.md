@@ -2,6 +2,7 @@ interface
 =======
 
 This is an interface to send remote commands to the machine via Bluetooth
+
 Simply pair with the machine via BT, then run 'python gui.py', select the correct serial port and connect.
 
 requirements
