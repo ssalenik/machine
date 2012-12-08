@@ -752,12 +752,15 @@ class Commands(QFrame):
         self.commandInput = QLineEdit()
         self.commandInput.setMinimumWidth(200)
         self.sendButton = QPushButton("send")
+        self.stopAllButton = QPushButton("STOP ALL MOTORS")
+        self.stopAllButton.setStyleSheet("background-color: red; color: white")
 
         # layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.label, 0, 0)
         self.layout.addWidget(self.commandInput, 0, 1)
         self.layout.addWidget(self.sendButton, 0, 2)
+        self.layout.addWidget(self.stopAllButton, 0, 4)
 
         # make middle column stretch
         self.layout.setColumnStretch(3, 1)
