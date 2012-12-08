@@ -16,7 +16,7 @@ from PySide.QtGui import *
 from serialComm import *
 
 POLL_RATE = 20        # default serial poll rate
-MAX_POLL_RATE = 30    # max serial poll rate
+MAX_POLL_RATE = 100    # max serial poll rate
 GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
@@ -177,13 +177,29 @@ class Controller(QObject):
                     'sensor_base', 'encoder_arm', 'encoder_claw', 'encoder_claw_height']
         
         for r in requests :
-            sendMessage(feedback[r], sendToDriver=True)
+            self.sendMessage(feedback[r], sendToDriver=True)
+
+    def pollFeedback(self):
+        """
+        loop which polls for feedback updates at the set rate
+        """
+        self.out("<font color=green>starting to poll for feedback </font>")
+        while(self.connected):
+                self.requestFeedback()
+                Thread.sleep(1.0/float(self.rate))
+
+        self.out("<font color=green>stoped polling for feedback</font>")
 
     def sendMessage(self, code, sendToDriver=False, data=None):
         """
         sends message
         if there is data to send, assumes its only 8 bits for now
         """
+        if not self.serial.isOpen:
+            # make sure connection is open
+            self.out("<font color=red>send error : no connection</font>")
+            return
+
         message = ""
         if self.connectedToMainCPU and sendToDriver :
             # if command to driver and we're not direclty connected to it
@@ -207,6 +223,11 @@ class Controller(QObject):
         sends message; assumes its already in hex
         appends EOL char to the end
         """
+        if not self.serial.isOpen:
+            # make sure connection is open
+            self.out("<font color=red>send error : no connection</font>")
+            return
+
         message += EOL
 
         self.sendLock.aquire()
