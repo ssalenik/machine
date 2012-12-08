@@ -172,7 +172,12 @@ class Controller(QObject):
         """
         requests for feedback for all the gui items
         """
-        None
+        #list of all the feedback requests to send
+        requests = ['encoder_both', 'speed_both', 'position_both', 'sensor_both', 'encoder_base',
+                    'sensor_base', 'encoder_arm', 'encoder_claw', 'encoder_claw_height']
+        
+        for r in requests :
+            sendMessage(feedback[r], sendToDriver=True)
 
     def sendMessage(self, code, sendToDriver=False, data=None):
         """
