@@ -5,17 +5,19 @@ import sys
 import serial
 import serial.tools
 import serial.tools.list_ports
+from struct import *
 #import io
 import time
 from threading import Thread
+from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
 
-#from serialComm import *
+from serialComm import *
 
 POLL_RATE = 20        # default serial poll rate
-MAX_POLL_RATE = 100   # max serial poll rate
-MAX_REFRESH_RATE = 25 # max gui refresh rate
+MAX_POLL_RATE = 30    # max serial poll rate
+GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
 # slot defines
@@ -106,6 +108,8 @@ class Controller(QObject):
         self.serial = serial
         self.connected = False
 
+        self.sendLock = Lock()
+
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
             self.rate = rate
@@ -149,7 +153,6 @@ class Controller(QObject):
         if self.serial.isOpen() :
             self.connected = False
             self.serialThread.join()    #wait for threads to end
-            self.sio.close()
             self.serial.close()
             self.out("<font color=green>closed serial port</font>")
 
@@ -157,18 +160,51 @@ class Controller(QObject):
         self.out("<font color=blue>changing poll rate to %i</font>" % rate)
         self.rate = rate
 
+    def sendMessage(self, code, data=None):
+        None
+
+    def sendCustomMessage(self, messageStr):
+        """
+        this takes str as input and parses it into hex for sending
+        tries first to interpret every two chars of the string as hex
+        if that fails, just assumes its a char
+        """
+        # split the input str
+        data = list(messageStr)
+        message = ''
+
+        i = 0
+        while i < len(data) :
+            # try to concert every two chars into hex
+            # if it fails send each as a char
+            try :
+                char = ("".join(data[i:i + 2])).decode('hex')
+                message  += char
+                # success so increment i
+                i = i + 2
+            except :
+                # didn't work to convert to hex, so assume its just a char
+                message += data[i]
+                i += 1
+
+        self.sendLock.aquire()
+        self.serial.write(message)
+        self.sendLock.release()
+
     def pollSerial(self):
-        """loop which continously checks the serial port for a new line"""
+        """
+        loop which continously gets the message at the serial in buffer
+        delimited by newlines
+        runs at full speed currently, no sleep
+        """
 
         self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
             if self.serial.isOpen():
-                #read
-                data = self.serial.read(1)
-                #data = self.sio.readline()
-                if data :
-                    # no need to sleep, the out function will ensure stuff doesn't get printed too fast
-                    self.out("<font color=black>%s</font>" % data.encode("hex"))
+                #keep getting messages while there is something to read
+                #if performance gets bad, slow this guy down with a sleep
+                self.parseMessage(self.receiveMessage())
+                
             else:
                 self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
@@ -176,32 +212,136 @@ class Controller(QObject):
 
         self.out("<font color=green>stopping listening to serial port</font>")
 
-    def parseInput(self):
-        """returns True if a message was receive, False if it was empty"""
-
+    def receiveMessage(self):
+        """
+        returns the message if there was one
+        message will be empty if nothing was received, or only newline was received
+        """
         message = []
+        byte = self.serial.read(1)
+        if byte :
+            while byte != '\n' :
+                message.append(byte)
 
-        #read the one by prefix
-        prefix = self.serial.read(1)
-
-        if not prefix :
-            # empty
-            return False
-        
-        if prefix == FEEDBACK :
-            #means we're getting some feedback
-            message.append(prefix)
-
-            #read the 2 byte code
-            code = self.serial.read(2)
+        return message    
 
 
+    # not the most clever implementation, but should be more readable/maintainable
+    def parseMessage(self, message):
+        """returns True if a message was receive, False if it was empty"""
+        # check for empty message
+        if not message :
+            return
+
+        parseError = False # if there was an error during parsing
+
+        # message must start with a feedback indicator and be long enough
+        if message[0] == NL and len(message) > 2 :
+            #feedback message, check if its one the gui 
+            code = message[1]
+            if code in feedback :
+                #try unpacking the data in different ways:
+                data = message[2:]
+
+                try :
+                    if len(data == 1) :
+                        # one byte
+                        data_int = unpack('!b', ''.join(data))[0]
+                        data_uint = unpack('!B', ''.join(data))[0]
+                    elif len(data == 2) :
+                        # two bytes
+                        data_int = unpack('!h', ''.join(data))[0]
+                        data_uint = unpack('H', ''.join(data))[0]
+                    elif len(data == 4) :
+                        # four bytes
+                        data_int = unpack('!i', ''.join(data))[0]
+                        data_uint = unpack('!I', ''.join(data))[0]
+
+                        # maybe 2 ints?
+                        data_2_int = unpack('!hh', ''.join(data))
+                        data_2_uint = unpack('!HH', ''.join(data))
+                    elif len(data == 8) :
+                        # 8 bytes
+                        # should be 2 (32 bit) ints
+                        data_2_int = unpack('!ii', ''.join(data))
+                        data_2_uint = unpack('!II', ''.join(data))
+                    else :
+                        # does not match expected data format
+                        parseError = True
+                except error:
+                    # some error trying to unpack
+                    parseError = True
+
+                # now match the data to the value
+                if not parseError :
+
+                    if code == feedback['encoder_left'] :
+                        self.encoder_left = data_int
+
+                    elif code == feedback['encoder_right'] :
+                        self.encoder_right = data_int
+
+                    elif code == feedback['encoder_both'] :
+                        self.encoder_left = data_2_int[0]
+                        self.encoder_right = data_2_int[1]
+
+                    elif code == feedback['speed_left'] :
+                        self.speed_left = data_int
+
+                    elif code == feedback['speed_right'] :
+                        self.speed_right = data_int
+
+                    elif code == feedback['speed_both'] :
+                        self.speed_left = data_2_int[0]
+                        self.speed_right = data_2_int[1]
+
+                    elif code == feedback['position_left'] :
+                        self.position_left = data_int
+
+                    elif code == feedback['position_right'] :
+                        self.position_right = data_int
+
+                    elif code == feedback['position_both'] :
+                        self.position_left = data_2_int[0]
+                        self.position_right = data_2_int[1]
+
+                    elif code == feedback['sensor_left'] :
+                        self.sensor_left = data_int
+
+                    elif code == feedback['sensor_right'] :
+                        self.sensor_right = data_int
+
+                    elif code == feedback['sensor_both'] :
+                        self.sensor_left = data_2_int[0]
+                        self.sensor_right = data_2_int[1]
+
+                    elif code == feedback['encoder_base'] :
+                        self.encoder_base = data_int
+
+                    elif code == feedback['encoder_arm'] :
+                        self.encoder_arm = data_int
+
+                    elif code == feedback['encoder_claw'] :
+                        self.encoder_claw = data_int
+
+                    elif code == feedback['encoder_claw_height'] :
+                        self.encoder_claw_height = data_int
+
+                    else :
+                        # should not happed, but just in case
+                        parseError = True
+
+            # print the message if print all is enabled
+            # or if there was a parsing error
+            if self.printAll or parseError :
+                # else just print it in hex
+                hexString = "< " + "".join(["%02X" % ord(x) for x in message[1:]])
+                self.out("<font color=black><b>%s</b></font>" % hexString)
 
         else:
-            #must be debug or something else, push to output
-            None
-
-
+            #unknown message, push to output as hex string in red
+            hexString = "0x" + "".join(["%02X" % ord(x) for x in message])
+            self.out("<font color=red><b>%s</b></font>" % hexString)
         
 class Output(QTextEdit):
     def __init__(self, parent=None):
