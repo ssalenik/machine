@@ -113,8 +113,7 @@ class Controller(QObject):
         # init controlled values
         self.power_left = 0
         self.power_right = 0
-        self.dir_left = 
-
+        self.dir_left = 0
 
         # init feedback values
 
@@ -175,32 +174,35 @@ class Controller(QObject):
         """
         None
 
-    def sendMessage(self, code, data=None):
-        None
-
-    def sendCustomMessage(self, messageStr):
+    def sendMessage(self, code, sendToDriver=False, data=None):
         """
-        this takes str as input and parses it into hex for sending
-        tries first to interpret every two chars of the string as hex
-        if that fails, just assumes its a char
+        sends message
+        if there is data to send, assumes its only 8 bits for now
         """
-        # split the input str
-        data = list(messageStr)
-        message = ''
+        message = ""
+        if self.connectedToMainCPU and sendToDriver :
+            # if command to driver and we're not direclty connected to it
+            message += commands['driver']
 
-        i = 0
-        while i < len(data) :
-            # try to concert every two chars into hex
-            # if it fails send each as a char
-            try :
-                char = ("".join(data[i:i + 2])).decode('hex')
-                message  += char
-                # success so increment i
-                i = i + 2
-            except :
-                # didn't work to convert to hex, so assume its just a char
-                message += data[i]
-                i += 1
+        message += "%02X" % code
+
+        # right now I assume we're just sending an 8 bit signed int
+        # insert if/else statements here if otherwise
+        message += "%02X" % ord(pack('!b', data&0xFF))
+
+        # add EOL
+        message += EOL
+
+        self.sendLock.aquire()
+        self.serial.write(message)
+        self.sendLock.release()
+
+    def sendCustomMessage(self, message):
+        """
+        sends message; assumes its already in hex
+        appends EOL char to the end
+        """
+        message += EOL
 
         self.sendLock.aquire()
         self.serial.write(message)
@@ -235,7 +237,7 @@ class Controller(QObject):
         message = []
         byte = self.serial.read(1)
         if byte :
-            while byte != '\n' :
+            while byte != serialComm.EOL :
                 message.append(byte)
 
         return message    
@@ -251,31 +253,35 @@ class Controller(QObject):
         parseError = False # if there was an error during parsing
 
         # message must start with a feedback indicator and be long enough
-        if message[0] == NL and len(message) > 2 :
+        # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
+        if message[0] == feedback['delim'] and len(message) > 4 :
             #feedback message, check if its one the gui 
-            code = message[1]
+            code = ord(("".join(message[1:3]).decode('hex'))) #converts to int
             if code in feedback :
                 #try unpacking the data in different ways:
                 data = message[2:]
 
                 try :
-                    if len(data == 1) :
+                    # expecting hex values
+                    hexValue = ("".join(data)).decode('hex')
+
+                    if len(hexValue == 1) :
                         # one byte
-                        data_int = unpack('!b', ''.join(data))[0]
-                        data_uint = unpack('!B', ''.join(data))[0]
-                    elif len(data == 2) :
+                        data_int = unpack('!b', char)[0]
+                        data_uint = unpack('!B', char)[0]
+                    elif len(hexValue == 2) :
                         # two bytes
                         data_int = unpack('!h', ''.join(data))[0]
                         data_uint = unpack('H', ''.join(data))[0]
-                    elif len(data == 4) :
+                    elif len(hexValue == 4) :
                         # four bytes
                         data_int = unpack('!i', ''.join(data))[0]
                         data_uint = unpack('!I', ''.join(data))[0]
 
-                        # maybe 2 ints?
+                        # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', ''.join(data))
                         data_2_uint = unpack('!HH', ''.join(data))
-                    elif len(data == 8) :
+                    elif len(hexValue == 8) :
                         # 8 bytes
                         # should be 2 (32 bit) ints
                         data_2_int = unpack('!ii', ''.join(data))
@@ -350,13 +356,13 @@ class Controller(QObject):
             # or if there was a parsing error
             if self.printAll or parseError :
                 # else just print it in hex
-                hexString = "< " + "".join(["%02X" % ord(x) for x in message[1:]])
-                self.out("<font color=black><b>%s</b></font>" % hexString)
+                hexString = "< " + "".join(message[1:])
+                self.out("<font color=black><b>%s</b></font>" % hexString.upper())
 
         else:
             #unknown message, push to output as hex string in red
-            hexString = "0x" + "".join(["%02X" % ord(x) for x in message])
-            self.out("<font color=red><b>%s</b></font>" % hexString)
+            hexString = "".join(message)
+            self.out("<font color=red><b>%s</b></font>" % hexString.upper())
         
 class Output(QTextEdit):
     def __init__(self, parent=None):

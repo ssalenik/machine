@@ -19,45 +19,48 @@ class TwoWayDict(dict):
 		dict.__setitem__(self, value, key)
 
 # new line, always ends all commands and requests
-NL = '\n'
-FEEDBACK = '>'
-DRIVER = 'p'
+EOL = '\r'
 
-commands = {
-	'power_left' 	: chr(0x01),
-	'power_right' 	: chr(0x02),
-	'power_both' 	: chr(0x05),
-	'dir_left' 		: chr(0x03),
-	'dir_right' 	: chr(0x04),
-	'pid_toggle' 	: chr(0x10),
-	'speed_left' 	: chr(0x11),
-	'speed_right' 	: chr(0x12),
-	'speed_both'	: chr(0x15)
-	# there are more...
-}
+commands = TwoWayDict()
+feedback = TwoWayDict()
+
+commands['driver']		= 'p'
+commands['stop_all']	= ' '
+commands['power_left']	= 0x01
+commands['power_right']	= 0x02
+commands['power_both']	= 0x05
+commands['dir_left']	= 0x03
+commands['dir_right']	= 0x04
+commands['pid_toggle']	= 0x10
+commands['speed_left']	= 0x11
+commands['speed_right']	= 0x12
+commands['speed_both']	= 0x15
+
+# there are more...
+
 
 # feedback
-feedback = {
-	'refresh_all' 			: chr(0x00),
-	'encoder_left' 			: chr(0x01),
-	'encoder_right'			: chr(0x02),
-	'encoder_both'			: chr(0x03),
-	'speed_left'			: chr(0x04),
-	'speed_right'			: chr(0x05),
-	'speed_both'			: chr(0x06),
-	'position_left'			: chr(0x07),
-	'position_right'		: chr(0x08),
-	'position_both'			: chr(0x09),
-	'sensor_left' 			: chr(0x10),
-	'sensor_right' 			: chr(0x11),
-	'sensor_both'			: chr(0x12),
-	'encoder_base' 			: chr(0x20),
-	'sensor_base' 			: chr(0x21),
-	'encoder_arm' 			: chr(0x22),
-	'encoder_claw' 			: chr(0x30),
-	'encoder_claw_height' 	: chr(0x31)
-	# add more as needed
-}
+feedback['delim']				= '>'
+feedback['refresh_all']			= 0x00
+feedback['encoder_left']		= 0x01
+feedback['encoder_right']		= 0x02
+feedback['encoder_both']		= 0x03
+feedback['speed_left']			= 0x04
+feedback['speed_right']			= 0x05
+feedback['speed_both']			= 0x06
+feedback['position_left']		= 0x07
+feedback['position_right']		= 0x08
+feedback['position_both']		= 0x09
+feedback['sensor_left']			= 0x10
+feedback['sensor_right']		= 0x11
+feedback['sensor_both']			= 0x12
+feedback['encoder_base']		= 0x20
+feedback['sensor_base']			= 0x21
+feedback['encoder_arm']			= 0x22
+feedback['encoder_claw']		= 0x30
+feedback['encoder_claw_height']	= 0x31
+
+# add more as needed
 
 
 # class SerialComm:
