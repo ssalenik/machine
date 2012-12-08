@@ -1,7 +1,4 @@
 
-/* VERSION */
-#define VERSION "2.0"
-
 /* Includes */
 #include <avr/io.h>
 #include <util/delay.h>
@@ -18,7 +15,7 @@
 /* ======== Variables ======== */
 
 /* --- Timers ---*/
-volatile int32_t timer16 = 0; 			// timer in 1/16nd of a millisecond
+volatile int32_t timer16 = 0; 			// timer in 1/16th of a millisecond
 volatile uint8_t timerPrescaler = 0; 	// used to increment timer
 volatile int32_t timer = 0; 			// timer in milliseconds
 /* --------------*/
@@ -41,6 +38,22 @@ int16_t accel0 = 0, accel1 = 0; 		// acceleration of motor in ticks / sec^2
 int16_t lastSpeed0[8], lastSpeed1[8]; 	// values used by calculateSpeeds() for acceleration
 int16_t lastSpeedInd = 0; 				// index for the current value in lastSpeed buffer
 int32_t lastSpeedCalc = 0; 				// SpeedCalculation and PID timer
+/* --------------*/
+
+/* --- Odometry and position correction --- */
+	// Legend: L - Left motor, R - Right motor
+int32_t p_Lfull = 0, p_Rfull = 0;		// position, full precision (mm / 1024) 
+int16_t p_L = 0, p_R = 0;				// position, in mm
+int8_t p_Lsection = 0, p_Rsection = 0;	// Which section we are located in
+int16_t p_Lrel = 0, p_Rrel = 0;			// position, relative to section
+	// List of absolute positions for each track sensor transition
+int16_t p_transLlist[TRANSITIONS] = TRANS_L_LIST;	
+int16_t p_transRlist[TRANSITIONS] = TRANS_R_LIST;
+	// position correction
+uint8_t p_LsensVal = 0, p_RsensVal = 0;	// last track sensor value (0 | 1)
+//int16_t p_LsensPos = 0, p_RsensPos = 0;	// ticks at last sensor poll
+int8_t p_Lerr = 0, p_Rerr = 0;			// last track sensor position correction error
+ 
 /* --------------*/
 
 /* --- PID parameters --- */
@@ -87,10 +100,6 @@ int16_t n_slowTicks = 100; 				// distance in ticks before slowing down to n_slo
 int16_t n_stopTicks = 8; 				// distance in ticks when to stop if targetSpeed = n_slowSpeed
 int16_t n_slowSpeed = 50;
 int16_t n_targetHeading = 0; 			// target heading to travel by navigator when in mode NAV_ROT
-//int16_t n_angleTarget = 0; 			// target angle to travel by navigator when in mode NAV_ROT
-//int16_t n_angle = 0; 					// angle travelled in mode NAV_ROT
-//int16_t n_lastHeading = 0; 			// last heading reading by navigator
-//int16_t n_slowAngle = 10; 			// angle from target heading before slowing down if targetSpeed > n_slowASpeed;
 int16_t n_stopAngle = 2; 				// angle from target heading when to stop if targetSpeed = n_slowASpeed
 int16_t n_slowATicks = 50;
 int16_t n_stopATicks = 8;
@@ -112,16 +121,14 @@ uint8_t debug6 = 0;
 uint8_t debug7 = 0;
 uint16_t debugPeriod = 1000;
 uint16_t d_count1 = 0;
-uint16_t d_time0diff = 0;
-int16_t d_ticks0diff = 0;
-int32_t d_ticks0CSold = 0;
 void debugF1();
 /* --------------*/
 
 /* This statement allows printf to work with serial com
-   for every character sent to stream uart_stdout, uart_put is executed
-   later in code, stdout is set to uart_stdout, so that
-   printf writes to the stream uart_stdout automatically */
+ * for every character sent to stream uart_stdout, uart_put is executed
+ * later in code, stdout is set to uart_stdout, so that
+ * printf writes to the stream uart_stdout automatically 
+ */
 static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
 
 /* ======================== */
@@ -134,10 +141,6 @@ int main(void) {
 	stdout = &uart_stdout;
 
 	initVariables();
-	
-	// *** TEMP DEBUG ***
-	calculateSpeeds();
-	// /DEBUG
 	
 	resetPID();
 
@@ -174,9 +177,7 @@ int main(void) {
 			
 		if ((debugPeriod) && timer >= (lastTime + debugPeriod)) {
 			lastTime += debugPeriod;
-			if (debug1) printf("%lu\t%lu\t%lu\r\n", d_ticks0CSold, ticks0CS, ticks0);
 			if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
-			if (debug3) printf("%d\t%u\r\n", d_ticks0diff, d_time0diff);
 			if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);
 			if (debug5) printf("%d\t%d\r\n", speed0, speed1);
 			if (debug6) printf("%d\t%d\r\n", accel0, accel1);
@@ -779,11 +780,11 @@ void runPID() {
 }
 
 /* function that decides where the robot goes by setting target speed of motors
-   Possible commands:
-    - go straight continuously - NAV_SYNC
-	- travel a given distance - NAV_DIST
-	- free mode on each motor (includes free rotation) - NAV_FREE
-	- rotate to angle - NAV_ROT;
+ * Possible commands:
+ *  - go straight continuously - NAV_SYNC
+ *  - travel a given distance - NAV_DIST
+ *  - free mode on each motor (includes free rotation) - NAV_FREE
+ *  - rotate to angle - NAV_ROT;
 */
 
 void navigator() {
@@ -953,9 +954,11 @@ void navRot2(int16_t speed, int16_t tHeading) {
 	navCom = NAV_ROT;
 }
 
-// returns angle between endAng and startAng when rotating in a given direction
-// return value from -179 to 180
-// direction: ANG_CW or ANG_CCW
+/** 
+ *returns angle between endAng and startAng when rotating in a given direction
+ * return value from -179 to 180
+ * direction: ANG_CW or ANG_CCW
+ */
 int16_t deltaAng(int16_t startAng, int16_t endAng, uint8_t direction) {
 	int16_t angle;
 	if (direction == ANG_CCW) {
@@ -1039,10 +1042,8 @@ void sendDist() {
 }
 
 void resetPID () {
-	
 	errI0 = 0;
 	errI1 = 0;
-	
 }
 
 void printParams() {
@@ -1140,9 +1141,6 @@ void calculateSpeeds() {
 	lastSpeedInd &= (8 - 1);
 	 
 	// update latest tick timestamps recorded in calculateSpeeds()
-	d_time0diff = int0Time0_cached - int0TimeCS;  //*** debug
-	d_ticks0diff = (long)ticks0_cached - ticks0CS;  //*** debug
-	d_ticks0CSold = ticks0CS; //*** debug
 	int0TimeCS = int0Time0_cached;
 	int1TimeCS = int1Time0_cached;
 	ticks0CS = ticks0_cached;
@@ -1156,16 +1154,4 @@ void initVariables() {
 		lastSpeed0[i] = 0;
 		lastSpeed1[i] = 0;
 	}
-	
-	// *** TEMP DEBUG ***
-	/*int0Time0 = 50168;
-	int1Time0 = 50167;
-	timer16 = 50170;
-	ticks0 = 40;
-	ticks1 = 44;
-	ticks0CS = 10;
-	ticks1CS = 44;
-	int0TimeCS = 50006;
-	int1TimeCS = 50009;*/
-	// /DEBUG
 }
