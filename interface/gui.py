@@ -110,6 +110,15 @@ class Controller(QObject):
 
         self.sendLock = Lock()
 
+        # init controlled values
+        self.power_left = 0
+        self.power_right = 0
+        self.dir_left = 
+
+
+        # init feedback values
+
+
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
             self.rate = rate
@@ -159,6 +168,12 @@ class Controller(QObject):
     def changePollRate(self, rate):
         self.out("<font color=blue>changing poll rate to %i</font>" % rate)
         self.rate = rate
+
+    def requestFeedback(self):
+        """
+        requests for feedback for all the gui items
+        """
+        None
 
     def sendMessage(self, code, data=None):
         None
