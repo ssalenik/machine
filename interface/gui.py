@@ -93,8 +93,14 @@ class CentralWidget(QWidget):
         self.settings.connectButton.setText("connect")
         self.settings.portSelect.setEnabled(True)
 
-    def closeAll(self):
-        None 
+    def enableButtons(self):
+        None
+
+    def disableButtons(self):
+        None
+
+    def refreshGUI(self):
+        None
 
 class Controller(QObject):
 
@@ -193,7 +199,7 @@ class Controller(QObject):
     def sendMessage(self, code, sendToDriver=False, data=None):
         """
         sends message
-        if there is data to send, assumes its only 8 bits for now
+        if there is data to send, assumes its only u8 bits for now
         """
         if not self.serial.isOpen:
             # make sure connection is open
@@ -209,7 +215,7 @@ class Controller(QObject):
 
         # right now I assume we're just sending an 8 bit signed int
         # insert if/else statements here if otherwise
-        message += "%02X" % ord(pack('!b', data&0xFF))
+        message += "%02X" % ord(pack('!B', data&0xFF))
 
         # add EOL
         message += EOL
@@ -753,7 +759,7 @@ class Commands(QFrame):
         self.commandInput.setMinimumWidth(200)
         self.sendButton = QPushButton("send")
         self.stopAllButton = QPushButton("STOP ALL MOTORS")
-        self.stopAllButton.setStyleSheet("background-color: red; color: white")
+        self.stopAllButton.setStyleSheet("background-color: red; color: yellow")
 
         # layout
         self.layout = QGridLayout()
