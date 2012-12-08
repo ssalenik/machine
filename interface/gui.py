@@ -53,7 +53,7 @@ class CentralWidget(QWidget):
         self.serial = serial.Serial()
 
         # controller
-        self.control = Controller(serial=self.serial, output=self.out)
+        self.controller = Controller(serial=self.serial, output=self.out)
 
         # layout
         self.layout = QGridLayout()
@@ -65,39 +65,48 @@ class CentralWidget(QWidget):
         self.layout.addWidget(self.output, 0, 1, 3, 1)
 
         self.layout.setColumnStretch(1, 1)
-
         self.setLayout(self.layout)
+
+        # disable stuff untill connected
+        self.disableButtons()
 
         # signals
         self.settings.connectButton.clicked.connect(self.connect)
-        self.settings.rateInput.valueChanged.connect(self.control.changePollRate)
-        self.control.connectionLost.connect(self.disconnected)
+        self.settings.rateInput.valueChanged.connect(self.controller.changePollRate)
+        self.controller.connectionLost.connect(self.disconnected)
 
     def connect(self):
         if self.connected == True :
-            self.control.disconnect()
+            self.controller.disconnect()
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
             self.settings.portSelect.setEnabled(True)
             self.connected = False
+            self.disableButtons()
         else :
-            if self.control.connectToPort(port=self.settings.portSelect.currentText()):
+            if self.controller.connectToPort(port=self.settings.portSelect.currentText()):
                 self.connected = True
                 self.settings.connectButton.setText("disconnect")
                 self.settings.statusLabel.setPixmap(self.settings.greenFill)
                 self.settings.portSelect.setEnabled(False)
+                self.enableButtons()
     
     def disconnected(self):
         self.settings.statusLabel.setPixmap(self.settings.redFill)
         self.connected = False
         self.settings.connectButton.setText("connect")
         self.settings.portSelect.setEnabled(True)
+        self.disableButtons()
 
     def enableButtons(self):
-        None
+        self.settings.enableButtons()
+        self.controls.enableButtons()
+        self.command.enableButtons()
 
     def disableButtons(self):
-        None
+        self.settings.disableButtons()
+        self.controls.disableButtons()
+        self.command.disableButtons()
 
     def refreshGUI(self):
         None
@@ -239,6 +248,9 @@ class Controller(QObject):
         self.sendLock.aquire()
         self.serial.write(message)
         self.sendLock.release()
+
+        if self.printAll :
+            self.out("<font color=green>sending: </font><font color=blue>%s</font>" % message)
 
     def pollSerial(self):
         """
@@ -491,6 +503,12 @@ class Settings(QFrame):
         else:
             self.rateInput.setEnabled(False)
 
+    def enableButtons(self):
+        None
+
+    def disableButtons(self):
+        None
+
 
 class ControlsFrame(QFrame):
     
@@ -521,6 +539,12 @@ class ControlsFrame(QFrame):
         self.layout.addWidget(self.claw)
 
         self.setLayout(self.layout)
+
+    def enableButtons(self):
+        self.setEnabled(True)
+
+    def disableButtons(self):
+        self.setEnabled(False)
 
 
 class ChassyFrame(QFrame):
@@ -617,6 +641,12 @@ class ChassyFrame(QFrame):
 
         self.setLayout(self.layout)
 
+    def enableButtons(self):
+        None
+
+    def disableButtons(self):
+        None
+
 class ArmFrame(QFrame):
 
     def __init__(self, parent=None):
@@ -689,6 +719,12 @@ class ArmFrame(QFrame):
 
         self.setLayout(self.layout)
 
+    def enableButtons(self):
+        None
+
+    def disableButtons(self):
+        None
+
 class ClawFrame(QFrame):
 
     def __init__(self, parent=None):
@@ -755,6 +791,12 @@ class ClawFrame(QFrame):
 
         self.setLayout(self.layout)
 
+    def enableButtons(self):
+        None
+
+    def disableButtons(self):
+        None
+
 class Commands(QFrame):
 
     def __init__(self, parent=None):
@@ -786,6 +828,12 @@ class Commands(QFrame):
         self.layout.setRowStretch(1, 1)
 
         self.setLayout(self.layout)
+
+    def enableButtons(self):
+        self.setEnabled(True)
+
+    def disableButtons(self):
+        self.setEnabled(False)
 
 if __name__ == '__main__':
     # create the app
