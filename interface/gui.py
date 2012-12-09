@@ -348,6 +348,8 @@ class CentralWidget(QWidget):
                 chassy.rEncoderValue.setText("%i" % c.encoder_right)
                 chassy.lSensorValue.setText("%i" % c.sensor_left)
                 chassy.rSensorValue.setText("%i" % c.sensor_right)
+                chassy.lPositionValue.setText("%i" % c.position_left)
+                chassy.rPositionValue.setText("%i" % c.position_right)
                 # arm
                 arm = self.controls.arm
                 arm.baseEncoderValue.setText("%i" % c.encoder_base)
@@ -457,8 +459,15 @@ class Controller(QObject):
         requests for feedback for all the gui items
         """
         #list of all the feedback requests to send
-        requests = ['encoder_both', 'speed_both', 'position_both', 'sensor_both', 'encoder_base',
-                    'sensor_base', 'encoder_arm', 'encoder_claw', 'encoder_claw_height']
+        requests = ['encoder_left',
+                    'encoder_right',
+                    'speed_act_left',
+                    'speed_act_right',
+                    'position_left', 
+                    'position_right',
+                    'sensor_left',
+                    'sensor_right'
+                    ]
         
         for r in requests :
             self.sendMessage(feedback[r], sendToDriver=True)
@@ -621,19 +630,19 @@ class Controller(QObject):
                     elif code == feedback['encoder_right'] :
                         self.encoder_right = data_int
 
-                    elif code == feedback['encoder_both'] :
-                        self.encoder_left = data_2_int[0]
-                        self.encoder_right = data_2_int[1]
+                    # elif code == feedback['encoder_both'] :
+                    #     self.encoder_left = data_2_int[0]
+                    #     self.encoder_right = data_2_int[1]
 
-                    elif code == feedback['speed_left'] :
+                    elif code == feedback['speed_act_left'] :
                         self.speed_left = data_int
 
-                    elif code == feedback['speed_right'] :
+                    elif code == feedback['speed_act_right'] :
                         self.speed_right = data_int
 
-                    elif code == feedback['speed_both'] :
-                        self.speed_left = data_2_int[0]
-                        self.speed_right = data_2_int[1]
+                    # elif code == feedback['speed_both'] :
+                    #     self.speed_left = data_2_int[0]
+                    #     self.speed_right = data_2_int[1]
 
                     elif code == feedback['position_left'] :
                         self.position_left = data_int
@@ -641,31 +650,31 @@ class Controller(QObject):
                     elif code == feedback['position_right'] :
                         self.position_right = data_int
 
-                    elif code == feedback['position_both'] :
-                        self.position_left = data_2_int[0]
-                        self.position_right = data_2_int[1]
+                    # elif code == feedback['position_both'] :
+                    #     self.position_left = data_2_int[0]
+                    #     self.position_right = data_2_int[1]
 
-                    elif code == feedback['sensor_act_left'] :
-                        self.sensor_left = data_int
+                    elif code == feedback['sensor_left'] :
+                        self.sensor_left = data_uint
 
-                    elif code == feedback['sensor_act_right'] :
-                        self.sensor_right = data_int
+                    elif code == feedback['sensor_right'] :
+                        self.sensor_right = data_uint
 
-                    elif code == feedback['sensor_both'] :
-                        self.sensor_left = data_2_int[0]
-                        self.sensor_right = data_2_int[1]
+                    # elif code == feedback['sensor_both'] :
+                    #     self.sensor_left = data_2_int[0]
+                    #     self.sensor_right = data_2_int[1]
 
-                    elif code == feedback['encoder_base'] :
-                        self.encoder_base = data_int
+                    # elif code == feedback['encoder_base'] :
+                    #     self.encoder_base = data_int
 
-                    elif code == feedback['encoder_arm'] :
-                        self.encoder_arm = data_int
+                    # elif code == feedback['encoder_arm'] :
+                    #     self.encoder_arm = data_int
 
-                    elif code == feedback['encoder_claw'] :
-                        self.encoder_claw = data_int
+                    # elif code == feedback['encoder_claw'] :
+                    #     self.encoder_claw = data_int
 
-                    elif code == feedback['encoder_claw_height'] :
-                        self.encoder_claw_height = data_int
+                    # elif code == feedback['encoder_claw_height'] :
+                    #     self.encoder_claw_height = data_int
 
                     else :
                         # should not happed, but just in case
@@ -916,6 +925,16 @@ class ChassyFrame(QFrame):
         self.rSensorValue = QLineEdit()
         self.rSensorValue.setReadOnly(True)
         self.rSensorValue.setFixedWidth(75)
+        self.lPositionLabel = QLabel("left position:")
+        self.lPositionLabel.setAlignment(Qt.AlignHCenter)
+        self.lPositionValue = QLineEdit()
+        self.lPositionValue.setReadOnly(True)
+        self.lPositionValue.setFixedWidth(75)
+        self.rPositionLabel = QLabel("right position:")
+        self.rPositionLabel.setAlignment(Qt.AlignHCenter)
+        self.rPositionValue = QLineEdit()
+        self.rPositionValue.setReadOnly(True)
+        self.rPositionValue.setFixedWidth(75)
 
         # layout
         self.layout = QGridLayout()
@@ -934,17 +953,21 @@ class ChassyFrame(QFrame):
         self.layout.addWidget(self.lSpeedValue, 10, 0, Qt.AlignHCenter)
         self.layout.addWidget(self.rSpeedLabel, 9, 1)
         self.layout.addWidget(self.rSpeedValue, 10, 1, Qt.AlignHCenter)
-        self.layout.addWidget(self.lEncoderLabel, 11, 0)
-        self.layout.addWidget(self.lEncoderValue, 12, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rEncoderLabel, 11, 1)
-        self.layout.addWidget(self.rEncoderValue, 12, 1, Qt.AlignHCenter)
+        self.layout.addWidget(self.lPositionLabel, 11, 0)
+        self.layout.addWidget(self.lPositionValue, 12, 0, Qt.AlignHCenter)
+        self.layout.addWidget(self.rPositionLabel, 11, 1)
+        self.layout.addWidget(self.rPositionValue, 12, 1, Qt.AlignHCenter)
         self.layout.addWidget(self.lSensorLabel, 13, 0)
         self.layout.addWidget(self.lSensorValue, 14, 0, Qt.AlignHCenter)
         self.layout.addWidget(self.rSensorLabel, 13, 1)
         self.layout.addWidget(self.rSensorValue, 14, 1, Qt.AlignHCenter)
+        self.layout.addWidget(self.lEncoderLabel, 15, 0)
+        self.layout.addWidget(self.lEncoderValue, 16, 0, Qt.AlignHCenter)
+        self.layout.addWidget(self.rEncoderLabel, 15, 1)
+        self.layout.addWidget(self.rEncoderValue, 16, 1, Qt.AlignHCenter)
 
         # make row at the end stretch
-        self.layout.setRowStretch(15, 1)
+        self.layout.setRowStretch(17, 1)
 
         self.setLayout(self.layout)
 

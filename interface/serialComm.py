@@ -18,6 +18,7 @@ class TwoWayDict(dict):
 		dict.__setitem__(self, key, value)
 		dict.__setitem__(self, value, key)
 
+
 # new line, always ends all commands and requests
 EOL = '\r'
 FORWARD = 0
@@ -54,81 +55,23 @@ commands['debug_7']		= 0x77
 
 # feedback
 feedback['delim']				= '>'
-feedback['refresh_all']			= 0x00
-feedback['encoder_left']		= 0x01
-feedback['encoder_right']		= 0x02
-feedback['encoder_both']		= 0x03
-feedback['speed_act_left']		= 0x04
-feedback['speed_act_right']		= 0x05
-feedback['speed_both']			= 0x06
-feedback['position_left']		= 0x07
-feedback['position_right']		= 0x08
-feedback['position_both']		= 0x09
-feedback['sensor_left']			= 0x10
-feedback['sensor_right']		= 0x11
-feedback['sensor_both']			= 0x12
-feedback['encoder_base']		= 0x20
-feedback['sensor_base']			= 0x21
-feedback['encoder_arm']			= 0x22
-feedback['encoder_claw']		= 0x30
-feedback['encoder_claw_height']	= 0x31
+# feedback['refresh_all']			=
+feedback['encoder_left']		= 0x41
+feedback['encoder_right']		= 0x21
+# feedback['encoder_both']			= 
+feedback['speed_act_left']		= 0x42
+feedback['speed_act_right']		= 0x22
+# feedback['speed_both']			= 
+feedback['position_left']		= 0x44
+feedback['position_right']		= 0x24
+# feedback['position_both']			= 
+feedback['sensor_left']			= 0x46
+feedback['sensor_right']		= 0x26
+# feedback['sensor_both']			= 
+# feedback['encoder_base']			= 
+# feedback['sensor_base']			= 
+# feedback['encoder_arm']			= 
+# feedback['encoder_claw']			= 
+# feedback['encoder_claw_height']	= 
 
 # add more as needed
-
-
-# class SerialComm:
-
-# 	def __init__(self, parent=None):
-
-# 		# init values
-# 		# NOTE : these are the actual values, not their corresponding serial codes
-# 		# we'll use this module to store the values for now
-# 		# TODO: decide whether there should be a serialComm class or not
-
-# 		# driver init values
-# 		self.power_left = 0
-# 		self.power_right = 0
-# 		self.power_both = 0
-# 		self.dir_left = 0
-# 		self.dir_right = 0
-# 		self.pid_toggle = False
-# 		self.speed_left = 0
-# 		self.speed_right = 0
-# 		self.speed_both= 0
-
-# 		# feedback init values
-# 		self.refresh_all = 0
-# 		self.encoder_left = 0
-# 		self.encoder_right = 0
-# 		self.sensor_left = 0
-# 		self.sensor_right = 0
-# 		self.encoder_base = 0
-# 		self.sensor_base = 0
-# 		self.encoder_arm = 0
-# 		self.encoder_claw = 0
-# 		self.encoder_claw_height = 0
-
-
-# # serial send codes start here
-
-
-
-# power_left = 23
-
-# def powerLeft(value=None):
-# 	power_left = 23
-# 	if value :
-# 		power_left = value
-# 	else :
-# 		return hex(power_left)
-
-# #dictionaries
-# commands = TwoWayDict()
-# feedback = TwoWayDict()
-
-# commands[powerLeft] = 0x01
-
-
-
-
-
