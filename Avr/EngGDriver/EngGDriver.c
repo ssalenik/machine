@@ -34,21 +34,20 @@ int main(void) {
     // The LOOP
     while(1) {
         // read serial port
-        readCommand(); 
+        readCommand();          // communication.c
                
         // apply speed calculation and run odometer
         if (timer >= lastSpeedCalc + SPEED_CALC_PERIOD) {
             lastSpeedCalc = timer;
-            calculateSpeeds();
-            runOdometer();
+            calculateSpeeds();  // motors.c
             if (pidOn) {    
-                //navigator();
-                runPID();
+                runPID();       // motors.c
             }
+            runOdometer();      // odometer.c
         }
         
         // read sensors and apply position correction
-        positionCorrection();
+        positionCorrection();   // odometer.c
             
         // print debug
         if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
