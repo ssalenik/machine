@@ -364,333 +364,6 @@ class CentralWidget(QWidget):
             self.output.refresh()
 
             time.sleep(1.0/float(GUI_RATE))
-
-class Controller(QObject):
-
-    # define slots
-    connectionLost = Signal()
-
-    def __init__(self, output, serial, parent=None):
-        super(Controller, self).__init__(parent)
-
-        self.out = output
-        self.serial = serial
-        self.connected = False
-
-        self.sendLock = Lock()
-
-        # default states
-        self.connectedToMainCPU = True
-        self.printAll = False
-
-        # init controlled values
-        self.power_left = 0
-        self.power_right = 0
-        self.speed_right = 0
-        self.speed_left = 0
-
-        # init feedback values
-        self.encoder_left = 0
-        self.encoder_right = 0
-        self.speed_act_left = 0
-        self.speed_act_right = 0
-        self.position_left = 0
-        self.position_right = 0
-        self.sensor_left = 0
-        self.sensor_right = 0
-        self.encoder_base = 0
-        self.sensor_base = 0
-        self.encoder_arm = 0
-        self.encoder_claw = 0
-        self.encoder_claw_height = 0
-
-    def connectToPort(self, port, rate=POLL_RATE):
-        if not self.serial.isOpen() :
-            self.rate = rate
-            self.port = port
-            self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
-            self.serial.port =self.port
-            self.serial.timeout = 1
-            # try to connect a few times
-            i = 0
-            while not self.serial.isOpen() and (i < 20) :
-                i += 1
-                try:
-                    self.serial.open()
-                except serial.SerialException:
-                    None
-                    
-                if not self.serial.isOpen():
-                    self.out("<font color=red>could not open connection, trying again</font>")
-
-            if self.serial.isOpen():
-                self.connected = True
-                self.serialThread = Thread(target=self.pollSerial)
-                #self.serialThread.daemon = True
-
-                # create text wrapper
-                # when line_bufferin=True a call to write implies a flush() if it contains a newline char
-                #self.sio = io.TextIOWrapper(io.BufferedRWPair(self.serial, self.serial), encoding='ascii', line_buffering=True)
-
-                self.serialThread.start()
-                return True
-            else:
-                self.out("<font color=red>could not open connection, check if the port is correct</font>")
-                self.connected = False
-                return False
-        else:
-            self.out("<font color=red>already connected</font>")
-            return True
-
-
-    def disconnect(self):
-        if self.serial.isOpen() :
-            self.connected = False
-            self.serialThread.join()    #wait for threads to end
-            self.serial.close()
-            self.out("<font color=green>closed serial port</font>")
-
-    def changePollRate(self, rate):
-        self.out("<font color=blue>changing poll rate to %i</font>" % rate)
-        self.rate = rate
-
-    def requestFeedback(self):
-        """
-        requests for feedback for all the gui items
-        """
-        #list of all the feedback requests to send
-        requests = ['encoder_left',
-                    'encoder_right',
-                    'speed_act_left',
-                    'speed_act_right',
-                    'position_left', 
-                    'position_right',
-                    'sensor_left',
-                    'sensor_right'
-                    ]
-        
-        for r in requests :
-            self.sendMessage(feedback[r], sendToDriver=True)
-
-    def pollFeedback(self):
-        """
-        loop which polls for feedback updates at the set rate
-        """
-        self.out("<font color=green>starting to poll for feedback </font>")
-        while(self.connected):
-                self.requestFeedback()
-                time.sleep(1.0/float(self.rate))
-
-        self.out("<font color=green>stoped polling for feedback</font>")
-
-    def sendMessage(self, code, sendToDriver=True, data=-1):
-        """
-        sends message
-        if there is data to send, assumes its only u8 bits for now
-        """
-        if not self.serial.isOpen:
-            # make sure connection is open
-            self.out("<font color=red>send error : no connection</font>")
-            return
-
-        message = ""
-        if self.connectedToMainCPU and sendToDriver :
-            # if command to driver and we're not direclty connected to it
-            message += commands['driver']
-
-        message += "%02X" % code
-
-        # right now I assume we're just sending an 8 bit signed int
-        # insert if/else statements here if otherwise
-        if data > -1 :
-            message += "%02X" % ord(pack('!B', data&0xFF))
-
-        #before we append the EOL
-        if self.printAll :
-            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
-
-        # add EOL
-        message += EOL
-
-        self.sendLock.acquire()
-        self.serial.write(message)
-        self.sendLock.release()
-
-    def sendCustomMessage(self, message):
-        """
-        sends message; assumes its already in hex
-        appends EOL char to the end
-        """
-        if not self.serial.isOpen:
-            # make sure connection is open
-            self.out("<font color=red>send error : no connection</font>")
-            return
-
-        #before we append the EOL
-        if self.printAll :
-            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
-
-        message += EOL
-
-        self.sendLock.acquire()
-        self.serial.write(message)
-        self.sendLock.release()
-
-    def pollSerial(self):
-        """
-        loop which continously gets the message at the serial in buffer
-        delimited by newlines
-        runs at full speed currently, no sleep
-        """
-
-        self.out("<font color=green>listening to serial port </font>")
-        while(self.connected):
-            if self.serial.isOpen():
-                #keep getting messages while there is something to read
-                #if performance gets bad, slow this guy down with a sleep
-                self.parseMessage(self.receiveMessage())
-                
-            else:
-                self.out("<font color=red>connect terminated unexpectedly</font>")
-                self.connected = False
-                self.connectionLost.emit()
-
-        self.out("<font color=green>stopping listening to serial port</font>")
-
-    def receiveMessage(self):
-        """
-        returns the message if there was one
-        message will be empty if nothing was received, or only newline was received
-        """
-        message = []
-        byte = self.serial.read(1)
-        if byte :
-            while byte != serialComm.EOL :
-                message.append(byte)
-
-        return message    
-
-
-    # not the most clever implementation, but should be more readable/maintainable
-    def parseMessage(self, message):
-        """returns True if a message was receive, False if it was empty"""
-        # check for empty message
-        if not message :
-            return
-
-        parseError = False # if there was an error during parsing
-
-        # message must start with a feedback indicator and be long enough
-        # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
-        if message[0] == feedback['delim'] and len(message) > 4 :
-            #feedback message, check if its one the gui 
-            code = ord(("".join(message[1:3]).decode('hex'))) #converts to int
-            if code in feedback :
-                #try unpacking the data in different ways:
-                data = message[2:]
-
-                try :
-                    # expecting hex values
-                    hexValue = ("".join(data)).decode('hex')
-
-                    if len(hexValue == 1) :
-                        # one byte
-                        data_int = unpack('!b', char)[0]
-                        data_uint = unpack('!B', char)[0]
-                    elif len(hexValue == 2) :
-                        # two bytes
-                        data_int = unpack('!h', ''.join(data))[0]
-                        data_uint = unpack('H', ''.join(data))[0]
-                    elif len(hexValue == 4) :
-                        # four bytes
-                        data_int = unpack('!i', ''.join(data))[0]
-                        data_uint = unpack('!I', ''.join(data))[0]
-
-                        # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', ''.join(data))
-                        data_2_uint = unpack('!HH', ''.join(data))
-                    elif len(hexValue == 8) :
-                        # 8 bytes
-                        # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', ''.join(data))
-                        data_2_uint = unpack('!II', ''.join(data))
-                    else :
-                        # does not match expected data format
-                        parseError = True
-                except error:
-                    # some error trying to unpack
-                    parseError = True
-
-                # now match the data to the value
-                if not parseError :
-
-                    if code == feedback['encoder_left'] :
-                        self.encoder_left = data_int
-
-                    elif code == feedback['encoder_right'] :
-                        self.encoder_right = data_int
-
-                    # elif code == feedback['encoder_both'] :
-                    #     self.encoder_left = data_2_int[0]
-                    #     self.encoder_right = data_2_int[1]
-
-                    elif code == feedback['speed_act_left'] :
-                        self.speed_left = data_int
-
-                    elif code == feedback['speed_act_right'] :
-                        self.speed_right = data_int
-
-                    # elif code == feedback['speed_both'] :
-                    #     self.speed_left = data_2_int[0]
-                    #     self.speed_right = data_2_int[1]
-
-                    elif code == feedback['position_left'] :
-                        self.position_left = data_int
-
-                    elif code == feedback['position_right'] :
-                        self.position_right = data_int
-
-                    # elif code == feedback['position_both'] :
-                    #     self.position_left = data_2_int[0]
-                    #     self.position_right = data_2_int[1]
-
-                    elif code == feedback['sensor_left'] :
-                        self.sensor_left = data_uint
-
-                    elif code == feedback['sensor_right'] :
-                        self.sensor_right = data_uint
-
-                    # elif code == feedback['sensor_both'] :
-                    #     self.sensor_left = data_2_int[0]
-                    #     self.sensor_right = data_2_int[1]
-
-                    # elif code == feedback['encoder_base'] :
-                    #     self.encoder_base = data_int
-
-                    # elif code == feedback['encoder_arm'] :
-                    #     self.encoder_arm = data_int
-
-                    # elif code == feedback['encoder_claw'] :
-                    #     self.encoder_claw = data_int
-
-                    # elif code == feedback['encoder_claw_height'] :
-                    #     self.encoder_claw_height = data_int
-
-                    else :
-                        # should not happed, but just in case
-                        parseError = True
-
-            # print the message if print all is enabled
-            # or if there was a parsing error
-            if self.printAll or parseError :
-                # else just print it in hex
-                hexString = "< " + "".join(message[1:])
-                self.out("<font color=black><b>%s</b></font>" % hexString.upper())
-
-        else:
-            #unknown message, push to output as hex string in red
-            hexString = "".join(message)
-            self.out("<font color=red><b>%s</b></font>" % hexString.upper())
         
 class Output(QTextEdit):
     def __init__(self, parent=None):
@@ -1161,6 +834,333 @@ class Commands(QFrame):
 
     def disableButtons(self):
         self.setEnabled(False)
+
+class Controller(QObject):
+
+    # define slots
+    connectionLost = Signal()
+
+    def __init__(self, output, serial, parent=None):
+        super(Controller, self).__init__(parent)
+
+        self.out = output
+        self.serial = serial
+        self.connected = False
+
+        self.sendLock = Lock()
+
+        # default states
+        self.connectedToMainCPU = True
+        self.printAll = False
+
+        # init controlled values
+        self.power_left = 0
+        self.power_right = 0
+        self.speed_right = 0
+        self.speed_left = 0
+
+        # init feedback values
+        self.encoder_left = 0
+        self.encoder_right = 0
+        self.speed_act_left = 0
+        self.speed_act_right = 0
+        self.position_left = 0
+        self.position_right = 0
+        self.sensor_left = 0
+        self.sensor_right = 0
+        self.encoder_base = 0
+        self.sensor_base = 0
+        self.encoder_arm = 0
+        self.encoder_claw = 0
+        self.encoder_claw_height = 0
+
+    def connectToPort(self, port, rate=POLL_RATE):
+        if not self.serial.isOpen() :
+            self.rate = rate
+            self.port = port
+            self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
+            self.serial.port =self.port
+            self.serial.timeout = 1
+            # try to connect a few times
+            i = 0
+            while not self.serial.isOpen() and (i < 20) :
+                i += 1
+                try:
+                    self.serial.open()
+                except serial.SerialException:
+                    None
+                    
+                if not self.serial.isOpen():
+                    self.out("<font color=red>could not open connection, trying again</font>")
+
+            if self.serial.isOpen():
+                self.connected = True
+                self.serialThread = Thread(target=self.pollSerial)
+                #self.serialThread.daemon = True
+
+                # create text wrapper
+                # when line_bufferin=True a call to write implies a flush() if it contains a newline char
+                #self.sio = io.TextIOWrapper(io.BufferedRWPair(self.serial, self.serial), encoding='ascii', line_buffering=True)
+
+                self.serialThread.start()
+                return True
+            else:
+                self.out("<font color=red>could not open connection, check if the port is correct</font>")
+                self.connected = False
+                return False
+        else:
+            self.out("<font color=red>already connected</font>")
+            return True
+
+
+    def disconnect(self):
+        if self.serial.isOpen() :
+            self.connected = False
+            self.serialThread.join()    #wait for threads to end
+            self.serial.close()
+            self.out("<font color=green>closed serial port</font>")
+
+    def changePollRate(self, rate):
+        self.out("<font color=blue>changing poll rate to %i</font>" % rate)
+        self.rate = rate
+
+    def requestFeedback(self):
+        """
+        requests for feedback for all the gui items
+        """
+        #list of all the feedback requests to send
+        requests = ['encoder_left',
+                    'encoder_right',
+                    'speed_act_left',
+                    'speed_act_right',
+                    'position_left', 
+                    'position_right',
+                    'sensor_left',
+                    'sensor_right'
+                    ]
+        
+        for r in requests :
+            self.sendMessage(feedback[r], sendToDriver=True)
+
+    def pollFeedback(self):
+        """
+        loop which polls for feedback updates at the set rate
+        """
+        self.out("<font color=green>starting to poll for feedback </font>")
+        while(self.connected):
+                self.requestFeedback()
+                time.sleep(1.0/float(self.rate))
+
+        self.out("<font color=green>stoped polling for feedback</font>")
+
+    def sendMessage(self, code, sendToDriver=True, data=-1):
+        """
+        sends message
+        if there is data to send, assumes its only u8 bits for now
+        """
+        if not self.serial.isOpen:
+            # make sure connection is open
+            self.out("<font color=red>send error : no connection</font>")
+            return
+
+        message = ""
+        if self.connectedToMainCPU and sendToDriver :
+            # if command to driver and we're not direclty connected to it
+            message += commands['driver']
+
+        message += "%02X" % code
+
+        # right now I assume we're just sending an 8 bit signed int
+        # insert if/else statements here if otherwise
+        if data > -1 :
+            message += "%02X" % ord(pack('!B', data&0xFF))
+
+        #before we append the EOL
+        if self.printAll :
+            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
+
+        # add EOL
+        message += EOL
+
+        self.sendLock.acquire()
+        self.serial.write(message)
+        self.sendLock.release()
+
+    def sendCustomMessage(self, message):
+        """
+        sends message; assumes its already in hex
+        appends EOL char to the end
+        """
+        if not self.serial.isOpen:
+            # make sure connection is open
+            self.out("<font color=red>send error : no connection</font>")
+            return
+
+        #before we append the EOL
+        if self.printAll :
+            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
+
+        message += EOL
+
+        self.sendLock.acquire()
+        self.serial.write(message)
+        self.sendLock.release()
+
+    def pollSerial(self):
+        """
+        loop which continously gets the message at the serial in buffer
+        delimited by newlines
+        runs at full speed currently, no sleep
+        """
+
+        self.out("<font color=green>listening to serial port </font>")
+        while(self.connected):
+            if self.serial.isOpen():
+                #keep getting messages while there is something to read
+                #if performance gets bad, slow this guy down with a sleep
+                self.parseMessage(self.receiveMessage())
+                
+            else:
+                self.out("<font color=red>connect terminated unexpectedly</font>")
+                self.connected = False
+                self.connectionLost.emit()
+
+        self.out("<font color=green>stopping listening to serial port</font>")
+
+    def receiveMessage(self):
+        """
+        returns the message if there was one
+        message will be empty if nothing was received, or only newline was received
+        """
+        message = []
+        byte = self.serial.read(1)
+        if byte :
+            while byte != serialComm.EOL :
+                message.append(byte)
+
+        return message    
+
+
+    # not the most clever implementation, but should be more readable/maintainable
+    def parseMessage(self, message):
+        """returns True if a message was receive, False if it was empty"""
+        # check for empty message
+        if not message :
+            return
+
+        parseError = False # if there was an error during parsing
+
+        # message must start with a feedback indicator and be long enough
+        # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
+        if message[0] == feedback['delim'] and len(message) > 4 :
+            #feedback message, check if its one the gui 
+            code = ord(("".join(message[1:3]).decode('hex'))) #converts to int
+            if code in feedback :
+                #try unpacking the data in different ways:
+                data = message[2:]
+
+                try :
+                    # expecting hex values
+                    hexValue = ("".join(data)).decode('hex')
+
+                    if len(hexValue == 1) :
+                        # one byte
+                        data_int = unpack('!b', char)[0]
+                        data_uint = unpack('!B', char)[0]
+                    elif len(hexValue == 2) :
+                        # two bytes
+                        data_int = unpack('!h', ''.join(data))[0]
+                        data_uint = unpack('H', ''.join(data))[0]
+                    elif len(hexValue == 4) :
+                        # four bytes
+                        data_int = unpack('!i', ''.join(data))[0]
+                        data_uint = unpack('!I', ''.join(data))[0]
+
+                        # maybe 2 (16 bit) ints?
+                        data_2_int = unpack('!hh', ''.join(data))
+                        data_2_uint = unpack('!HH', ''.join(data))
+                    elif len(hexValue == 8) :
+                        # 8 bytes
+                        # should be 2 (32 bit) ints
+                        data_2_int = unpack('!ii', ''.join(data))
+                        data_2_uint = unpack('!II', ''.join(data))
+                    else :
+                        # does not match expected data format
+                        parseError = True
+                except error:
+                    # some error trying to unpack
+                    parseError = True
+
+                # now match the data to the value
+                if not parseError :
+
+                    if code == feedback['encoder_left'] :
+                        self.encoder_left = data_int
+
+                    elif code == feedback['encoder_right'] :
+                        self.encoder_right = data_int
+
+                    # elif code == feedback['encoder_both'] :
+                    #     self.encoder_left = data_2_int[0]
+                    #     self.encoder_right = data_2_int[1]
+
+                    elif code == feedback['speed_act_left'] :
+                        self.speed_left = data_int
+
+                    elif code == feedback['speed_act_right'] :
+                        self.speed_right = data_int
+
+                    # elif code == feedback['speed_both'] :
+                    #     self.speed_left = data_2_int[0]
+                    #     self.speed_right = data_2_int[1]
+
+                    elif code == feedback['position_left'] :
+                        self.position_left = data_int
+
+                    elif code == feedback['position_right'] :
+                        self.position_right = data_int
+
+                    # elif code == feedback['position_both'] :
+                    #     self.position_left = data_2_int[0]
+                    #     self.position_right = data_2_int[1]
+
+                    elif code == feedback['sensor_left'] :
+                        self.sensor_left = data_uint
+
+                    elif code == feedback['sensor_right'] :
+                        self.sensor_right = data_uint
+
+                    # elif code == feedback['sensor_both'] :
+                    #     self.sensor_left = data_2_int[0]
+                    #     self.sensor_right = data_2_int[1]
+
+                    # elif code == feedback['encoder_base'] :
+                    #     self.encoder_base = data_int
+
+                    # elif code == feedback['encoder_arm'] :
+                    #     self.encoder_arm = data_int
+
+                    # elif code == feedback['encoder_claw'] :
+                    #     self.encoder_claw = data_int
+
+                    # elif code == feedback['encoder_claw_height'] :
+                    #     self.encoder_claw_height = data_int
+
+                    else :
+                        # should not happed, but just in case
+                        parseError = True
+
+            # print the message if print all is enabled
+            # or if there was a parsing error
+            if self.printAll or parseError :
+                # else just print it in hex
+                hexString = "< " + "".join(message[1:])
+                self.out("<font color=black><b>%s</b></font>" % hexString.upper())
+
+        else:
+            #unknown message, push to output as hex string in red
+            hexString = "".join(message)
+            self.out("<font color=red><b>%s</b></font>" % hexString.upper())
 
 if __name__ == '__main__':
     # create the app
