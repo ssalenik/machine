@@ -44,16 +44,17 @@ int32_t lastSpeedCalc = 0;              // SpeedCalculation and PID timer
     // Legend: L - Left motor, R - Right motor
 int32_t p_Lfull = 0, p_Rfull = 0;       // position, full precision (mm / 1024) 
 int16_t p_L = 0, p_R = 0;               // position, in mm
-int8_t p_Lsection = 0, p_Rsection = 0;  // Which section we are located in
+int32_t p_Lticks = 0, p_Rticks = 0;     // tacho count on last odometer run
+int8_t p_Ltrans = 0, p_Rtrans = 0;      // Which transition region we are located in
 int16_t p_Lrel = 0, p_Rrel = 0;         // position, relative to section
     // List of absolute positions for each track sensor transition
 int16_t p_transLlist[TRANSITIONS] = TRANS_L_LIST;   
 int16_t p_transRlist[TRANSITIONS] = TRANS_R_LIST;
     // position correction
 uint8_t p_LsensVal = 0, p_RsensVal = 0; // last track sensor value (0 | 1)
-//int16_t p_LsensPos = 0, p_RsensPos = 0;   // ticks at last sensor poll
-int8_t p_Lerr = 0, p_Rerr = 0;          // last track sensor position correction error
- 
+//int16_t p_LsensPos = 0, p_RsensPos = 0; // ticks at last sensor poll
+int16_t p_Lerr = 0, p_Rerr = 0;          // last track sensor position correction error
+int8_t posCorrectionOn = 0;             // toggle position correction
 /* --------------*/
 
 /* --- PID parameters --- */
@@ -113,15 +114,13 @@ uint8_t rotAdjOn = 1;
 
 /* --- Debug --- */
 uint8_t debug1 = 0;
-uint8_t debug2 = 2;
+uint8_t debug2 = 1;
 uint8_t debug3 = 0;
 uint8_t debug4 = 0;
 uint8_t debug5 = 0;
 uint8_t debug6 = 0;
 uint8_t debug7 = 0;
 uint16_t debugPeriod = 1000;
-uint16_t d_count1 = 0;
-void debugF1();
 /* --------------*/
 
 /* This statement allows printf to work with serial com
@@ -135,48 +134,61 @@ static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
 
 
 int main(void) {
-    int32_t lastTime = 0;
+    int32_t lastDebug = 0;
 
+    // initalize misc variables
+    initVariables();
+    
+    // initialize serial comm
+    uart_init();
     // redirect printf output to serial port
     stdout = &uart_stdout;
 
-    initVariables();
-    
-    resetPID();
-
-    uart_init();
-
+    // initialize system timer
     initTimer0();
-    initPWM1();
-    initADC();
-    initMotorPins();
-    sbi(DDRC, 3);
-    sbi(DDRC, 4);
     
-    EICRA = 0x0f;
-    EIMSK = 0x03;
+    // initialize motor PWM, pins and encoders
+    initPWM1();
+    initMotorPins();
+    initEncoders();  
 
+    // clear motor speed and direction just in case
     setDirection(LMOTOR, FORWARD);
     setDirection(RMOTOR, FORWARD);
-    setPowerA(LMOTOR, 20);
-    setPowerA(RMOTOR, 20);
-
+    setPowerA(LMOTOR, 0);
+    setPowerA(RMOTOR, 0);
+    
+    // set initial position
+    setOdometerTo(0, 0);
+    updateRelativePos();
+    
+    // reset PID and position correction
+    resetPID();
+    resetPosCorrection();
+    
     sei(); // enable interrupts
  
     while(1) {
-        readCommand();
-        
+        // read serial port
+        readCommand(); 
+               
+        // apply speed calculation and runOdometer
         if (timer >= lastSpeedCalc + SPEED_CALC_PERIOD) {
             lastSpeedCalc = timer;
             calculateSpeeds();
+            runOdometer();
             if (pidOn) {    
                 //navigator();
                 runPID();
             }
         }
+        
+        // read sensors and apply position correction
+        positionCorrection();
             
-        if ((debugPeriod) && timer >= (lastTime + debugPeriod)) {
-            lastTime += debugPeriod;
+        // print debug
+        if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
+            lastDebug += debugPeriod;
             if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
             if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);
             if (debug5) printf("%d\t%d\r\n", speed0, speed1);
@@ -186,14 +198,6 @@ int main(void) {
     }
     
     while(1);
-}
-
-void debugF1() {
-    debug1 = angleWithin(179, -165, 20);
-    debug2 = angleWithin(-3, 179, 20);
-    debug3 = angleWithin(13, -175, 20);
-    debug4 = angleWithin(-176, 178, 20);
-    debug5 = 0;
 }
 
 // sets the power of the motor. To use with timer1.
@@ -309,17 +313,6 @@ void initPWM1() {
     TCCR1B |= 0b00000001; // set prescaler to 1 (start TIMER1)
     TCCR1A =  0b10110000; // enable PWM1A, PWM1B in opposite phase
     DDRB |= 0b00000110; // set PWM pins A and B as output
-}
-
-// Inits params for ADC functioning, including timer0
-void initADC() {
-    // configure ADC module
-    ADMUX |= 1 << REFS0;  // set ref. voltage to AVcc
-    ADMUX |= 1 << ADLAR;  // left justify output    
-    
-    // Note: ADC channel is set in bits 3..0 of ADMUX. 0000 for chan0
-    ADCSRA |= 7;          // set ADC clock prescaler to 64
-    ADCSRA |= 1 << ADEN;  // enable ADC
 }
 
 void initMotorPins() {
@@ -447,9 +440,9 @@ void readCommand() {
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) {
                         if (LMOTOR) {
-                            targetSpeed1 = arg1 * 2;
+                            targetSpeed1 = arg1 * 16;
                         } else {
-                            targetSpeed0 = arg1 * 2;
+                            targetSpeed0 = arg1 * 16;
                         }
                         resetPID();
                     }
@@ -458,9 +451,9 @@ void readCommand() {
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) {
                         if (RMOTOR) {
-                            targetSpeed1 = arg1 * 2;
+                            targetSpeed1 = arg1 * 16;
                         } else {
-                            targetSpeed0 = arg1 * 2;
+                            targetSpeed0 = arg1 * 16;
                         }
                         resetPID();
                     }
@@ -468,10 +461,16 @@ void readCommand() {
                 case 0x15: // set speed for both motors
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) {
-                        targetSpeed0 = arg1 * 2;
-                        targetSpeed1 = arg1 * 2;
+                        targetSpeed0 = arg1 * 16;
+                        targetSpeed1 = arg1 * 16;
                         resetPID();
                     }
+                    break;
+                case 0x16: // reverse direction for both motors
+                    ldir = (ldir == FORWARD) ? BACKWARD : FORWARD;
+                    rdir = (rdir == FORWARD) ? BACKWARD : FORWARD;
+                    setDirection(LMOTOR, ldir);
+                    setDirection(RMOTOR, rdir);
                     break;
                 case 0x17: // toggle adjX on/off (auto, this one is preferred)
                     arg1 = readByte(&buf[2], &valid);
@@ -494,14 +493,8 @@ void readCommand() {
                         resetPID();
                     }
                     break;
-                case 0x20: // reverse direction for both motors
-                    ldir = (ldir == FORWARD) ? BACKWARD : FORWARD;
-                    rdir = (rdir == FORWARD) ? BACKWARD : FORWARD;
-                    setDirection(LMOTOR, ldir);
-                    setDirection(RMOTOR, rdir);
-                    break;
                 // NAVIGATOR COMMANDS
-                case 0x30: // break, put navigator to idle
+                /*case 0x30: // break, put navigator to idle
                     navFree(0, 0, ldir, rdir);
                     break;
                 case 0x31: // navigator in NAV_SYNC mode
@@ -554,7 +547,7 @@ void readCommand() {
                     break;
                 case 0x42: // send distance travelled
                     sendDist();
-                    break;
+                    break;*/
                 case 0x43: // toggle rotation angle adjustment
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) rotAdjOn = arg1;
@@ -564,11 +557,13 @@ void readCommand() {
                     arg1 = readByte(&buf[2], &valid);
                     arg2 = readByte(&buf[4], &valid);
                     arg3 = readByte(&buf[6], &valid);
-                    arg4 = readByte(&buf[8], &valid);
                     if (valid) {
                         kP = arg1;
                         kI = arg2;
                         kD = arg3;
+                    }
+                    arg4 = readByte(&buf[8], &valid);
+                    if (valid) {
                         kX = arg4;
                     }
                     break;
@@ -618,28 +613,72 @@ void readCommand() {
                     break;
                 // DEBUG COMMANDS
                 case 0x70:
-                    printParams();
+                    debug1 = 0;
+                    debug2 = 0;
+                    debug3 = 0;
+                    debug4 = 0;
+                    debug5 = 0;
+                    debug6 = 0;
+                    debug7 = 0;
                     break;
                 case 0x71:
-                    debug1 = debug1 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug1 = arg1;
+                    } else {
+                        debug1 = debug1 ? 0 : 1;
+                    }
                     break;
                 case 0x72:
-                    debug2 = debug2 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug2 = arg1;
+                    } else {
+                        debug2 = debug2 ? 0 : 1;
+                    }
                     break;
                 case 0x73:
-                    debug3 = debug3 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug3 = arg1;
+                    } else {
+                        debug3 = debug3 ? 0 : 1;
+                    }
                     break;
                 case 0x74:
-                    debug4 = debug4 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug4 = arg1;
+                    } else {
+                        debug4 = debug4 ? 0 : 1;
+                    }
                     break;
                 case 0x75:
-                    debug5 = debug5 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug5 = arg1;
+                    } else {
+                        debug5 = debug5 ? 0 : 1;
+                    }
                     break;
                 case 0x76:
-                    debug6 = debug6 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug6 = arg1;
+                    } else {
+                        debug6 = debug6 ? 0 : 1;
+                    }
                     break;
                 case 0x77:
-                    debug7 = debug7 ? 0 : 1;
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        debug7 = arg1;
+                    } else {
+                        debug7 = debug7 ? 0 : 1;
+                    }
+                    break;
+                case 0x78:
+                    printParams();
                     break;
                 case 0x79:
                     printParams2();
@@ -649,7 +688,7 @@ void readCommand() {
                     arg1i = readInt(&buf[2], &valid);
                     if (valid) {
                         if (arg1i && (uint16_t)arg1i < 100) arg1i = 100;
-                        debugPeriod = arg1i;
+                        debugPeriod = (uint16_t)arg1i;
                     }
                     break;
                 }
@@ -690,6 +729,8 @@ inline int16_t readInt(char *buf, uint8_t *valid) {
 void runPID() {
     int16_t adjust, pwr;
     int16_t errD, errP;
+    int16_t targetSpeed0s, targetSpeed1s;
+    
     //int32_t errX;
         
     /* CROSS ADJUSTMENT CALCULATIONS: Makes sure both motors travel same dist */
@@ -705,17 +746,52 @@ void runPID() {
         adjustX = 0;
     }*/
 
+    
     /* --- Motor0 CALCULATIONS --- */
+    /* Note: since both targetSpeed and speed are signed and power
+     * is unsigned, we need to take some precautions.
+     */
+    
+    // Convert unsigned target speed into signed
+    if (RMOTOR) {
+        if (ldir == FORWARD) {
+            targetSpeed0s = targetSpeed0;
+        } else {
+            targetSpeed0s = -targetSpeed0;
+        }
+        if (rdir == FORWARD) {
+            targetSpeed1s = targetSpeed1;
+        } else {
+            targetSpeed1s = -targetSpeed1;
+        }
+    } else {
+        if (rdir == FORWARD) {
+            targetSpeed0s = targetSpeed0;
+        } else {
+            targetSpeed0s = -targetSpeed0;
+        }
+        if (ldir == FORWARD) {
+            targetSpeed1s = targetSpeed1;
+        } else {
+            targetSpeed1s = -targetSpeed1;
+        }
+    }
+     
     if (targetSpeed0 == 0) {
         power0 = 0;
     } else {
         // The P parameter is the error of current speed vs target speed
-        errP = targetSpeed0 - speed0;
+        errP = targetSpeed0s - speed0;
         // The I parameter is the intergral of P errors. 
         // It must be capped to reduce oscillations
         errI0 += errP;
-        if (errI0 > errIMax) errI0 = errIMax;
-        if (errI0 < errIMin) errI0 = errIMin;
+        if (targetSpeed0s > 0) {
+            if (errI0 > errIMax) errI0 = errIMax;
+            if (errI0 < errIMin) errI0 = errIMin;
+        } else {
+            if (errI0 < -errIMax) errI0 = -errIMax;
+            if (errI0 > -errIMin) errI0 = -errIMin;
+        }
         // The D parameter is equal to the acceleration
         errD = accel0;
 
@@ -727,7 +803,7 @@ void runPID() {
 
         // Since power is unsigned, and 'adjust' sees power as signed,
         // we must correct its sign
-        if (targetSpeed0 < 0) adjust =-adjust;
+        if (targetSpeed0s < 0) adjust =-adjust;
         
         // Cap the power adjustment to reduce oscillations
         if (adjust > adjustMax) adjust = adjustMax;
@@ -748,13 +824,18 @@ void runPID() {
 
 
     /* --- Motor1 CALCULATIONS: Identical to Motor0 --- */
-    if (targetSpeed1 == 0) {
+    if (targetSpeed1s == 0) {
         power1 = 0;
     } else {
-        errP = targetSpeed1 - speed1;
+        errP = targetSpeed1s - speed1;
         errI1 += errP;
-        if (errI1 > errIMax) errI1 = errIMax;
-        if (errI1 < errIMin) errI1 = errIMin;
+        if (targetSpeed1s > 0) {
+            if (errI1 > errIMax) errI1 = errIMax;
+            if (errI1 < errIMin) errI1 = errIMin;
+        } else {
+            if (errI1 < -errIMax) errI1 = -errIMax;
+            if (errI1 > -errIMin) errI1 = -errIMin;
+        }
         errD = accel1;
 
         adjust = ((int32_t)errP * kP) >> 8;
@@ -762,7 +843,7 @@ void runPID() {
         adjust -= ((int32_t)errD * kD) >> 8;
         //adjust += adjustX;
         
-        if (targetSpeed1 < 0) adjust =-adjust;
+        if (targetSpeed1s < 0) adjust =-adjust;
         if (adjust > adjustMax) adjust = adjustMax;
         if (adjust < adjustMin) adjust = adjustMin;
         
@@ -882,7 +963,7 @@ void navSync(int16_t speed, uint8_t dirL, uint8_t dirR) {
     navCom = NAV_SYNC;
 }
 
-void navDist(int16_t speed, uint8_t dir, int16_t distance) {
+/*void navDist(int16_t speed, uint8_t dir, int16_t distance) {
     resetPID();
     if (dir != ldir) setDirection(LMOTOR, dir);
     if (dir != rdir) setDirection(RMOTOR, dir);
@@ -892,7 +973,7 @@ void navDist(int16_t speed, uint8_t dir, int16_t distance) {
     n_ticks = (int32_t) distance * DISTTOTICKS >> 8;
     slipAdjust();
     navCom = NAV_DIST;
-}
+}*/
 
 void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR) {
     resetPID();
@@ -1029,7 +1110,7 @@ void sendDone() {
 }
 
 // sends travelled distance in mm for each track
-void sendDist() {
+/*void sendDist() {
     int16_t ticks0_cached, ticks1_cached;
     int16_t dist0, dist1;
     cli();
@@ -1039,7 +1120,7 @@ void sendDist() {
     dist0 = (int32_t) ticks0_cached * TICKSTODIST >> 8;
     dist1 = (int32_t) ticks1_cached * TICKSTODIST >> 8;
     printf("T%04x%04x\r", dist0, dist1);
-}
+}*/
 
 void resetPID () {
     errI0 = 0;
@@ -1154,4 +1235,267 @@ void initVariables() {
         lastSpeed0[i] = 0;
         lastSpeed1[i] = 0;
     }
+}
+
+void initEncoders() {
+    // set external interrupts 0 and 1 to rising edge
+    EICRA = 0x0f;
+    // enable external interrupts 0 and 1
+    sbi(EIMSK, INT0);
+    sbi(EIMSK, INT1);
+}
+
+void runOdometer() {
+    int32_t deltaLticks, deltaRticks;
+    
+    // read the change in tacho since last run
+    cli();
+    if (RMOTOR) {
+        deltaLticks = ticks0 - p_Lticks;
+        p_Lticks = ticks0;
+        deltaRticks = ticks1 - p_Rticks;
+        p_Rticks = ticks1;
+    } else {
+        deltaLticks = ticks1 - p_Lticks;
+        p_Lticks = ticks1;
+        deltaRticks = ticks0 - p_Rticks;
+        p_Rticks = ticks0;
+    }
+    sei();
+    
+    // calculate change in distance and update absolute position
+    p_Lfull += deltaLticks * DISTTOTICKS_L;
+    p_Rfull += deltaRticks * DISTTOTICKS_R;
+    p_L = p_Lfull >> 10;
+    p_R = p_Rfull >> 10;
+    
+    // update relative position
+    updateRelativePos();
+}
+
+// set all odometer positions to 0
+void resetOdometer() {
+    setOdometerTo(0, 0);
+}
+
+void setOdometerTo(int16_t distL, int16_t distR) {
+    // reset last odometery tacho to current tacho
+    cli();
+    if (RMOTOR) {
+        p_Lticks = ticks0;
+        p_Rticks = ticks1;
+    } else {
+        p_Lticks = ticks1;
+        p_Rticks = ticks0;
+    }
+    sei();
+    
+    // update distances
+    p_L = distL;
+    p_R = distR;
+    p_Lfull = ((int32_t)p_L) << 10;
+    p_Rfull = ((int32_t)p_R) << 10;
+}
+
+// Updates relative position using absolute position p_L and p_R
+void updateRelativePos() {
+    int16_t relToAbsL, relToAbsR;
+    
+    // update relative position
+    relToAbsL = relativeToAbsolutePos_L(p_Lrel, p_Ltrans);
+    p_Lrel = p_Lrel + p_L - relToAbsL;
+    
+    // if a there's a change in transition region, just run 
+    // the absoluteToRelativePos function
+    if (p_Lrel < 0) {
+        p_Lrel = absoluteToRelativePos_L(p_L, &p_Ltrans);
+    } else if (p_Ltrans < TRANSITIONS - 1) {
+        if (p_Lrel + p_transLlist[p_Ltrans] >= p_transLlist[p_Ltrans + 1]) {
+            p_Lrel = absoluteToRelativePos_L(p_L, &p_Ltrans);
+        }
+    }
+    
+    relToAbsR = relativeToAbsolutePos_R(p_Rrel, p_Rtrans);
+    p_Rrel = p_Rrel + p_R - relToAbsR;
+    
+    if (p_Rrel < 0) {
+        p_Rrel = absoluteToRelativePos_R(p_R, &p_Rtrans);
+    } else if (p_Rtrans < TRANSITIONS - 1) {
+        if (p_Rrel + p_transRlist[p_Rtrans] >= p_transRlist[p_Rtrans + 1]) {
+            p_Rrel = absoluteToRelativePos_R(p_R, &p_Rtrans);
+        }
+    }
+    
+}
+
+int16_t absoluteToRelativePos_L(int16_t absPosL, int8_t *pTransition) {
+    uint8_t trans = 0;
+   
+    // split the search list in 4 for efficiency
+    if (absPosL >= p_transLlist[TRANSITIONS / 2]) {
+        if (absPosL >= p_transLlist[(3 * TRANSITIONS) / 4]) {
+            trans = (3 * TRANSITIONS) / 4;
+            // special case, location >= Last Transition 
+            if (p_transLlist[TRANSITIONS - 1] >= absPosL) {
+                *pTransition = TRANSITIONS - 1;
+                return absPosL - p_transLlist[TRANSITIONS - 1];
+            }
+        } else {
+            trans = TRANSITIONS / 2;
+        }
+    } else {
+        if (absPosL >= p_transLlist[TRANSITIONS / 4]) {
+            trans = TRANSITIONS / 4;
+        } else {
+            trans = 0;
+        }
+    }
+    
+    while(++trans < TRANSITIONS) {
+        if (absPosL < p_transLlist[trans]) break;
+    }
+    
+    trans--;
+    *pTransition = trans;
+    return absPosL - p_transLlist[trans];
+}
+
+int16_t absoluteToRelativePos_R(int16_t absPosR, int8_t *pTransition) {
+    uint8_t trans = 0;
+   
+    // split the search list in 4 for efficiency
+    if (absPosR >= p_transRlist[TRANSITIONS / 2]) {
+        if (absPosR >= p_transRlist[(3 * TRANSITIONS) / 4]) {
+            trans = (3 * TRANSITIONS) / 4;
+            // special case, location >= Rast Transition 
+            if (p_transRlist[TRANSITIONS - 1] >= absPosR) {
+                *pTransition = TRANSITIONS - 1;
+                return absPosR - p_transRlist[TRANSITIONS - 1];
+            }
+        } else {
+            trans = TRANSITIONS / 2;
+        }
+    } else {
+        if (absPosR >= p_transRlist[TRANSITIONS / 4]) {
+            trans = TRANSITIONS / 4;
+        } else {
+            trans = 0;
+        }
+    }
+    
+    while(++trans < TRANSITIONS) {
+        if (absPosR < p_transRlist[trans]) break;
+    }
+    
+    trans--;
+    *pTransition = trans;
+    return absPosR - p_transRlist[trans];
+}
+
+int16_t relativeToAbsolutePos_L(int16_t relPosL, uint8_t transition) {
+    return(relPosL + p_transLlist[transition]);
+}
+
+int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition) {
+    return(relPosR + p_transRlist[transition]);
+}
+
+void readTrackSensors() {
+    p_LsensVal = PINB & 0x01;
+    p_RsensVal = (PINB >> 1) & 0x01;
+}
+
+// 
+void positionCorrection() {
+    uint8_t lastLval, lastRval;
+    int16_t transL, transR;
+    int16_t absErr;
+    
+    // remember previous track sensor values
+    lastLval = p_LsensVal;
+    lastRval = p_RsensVal;
+    
+    // read the track sensors
+    readTrackSensors();
+    
+    // exit if correction is turned off
+    if (!posCorrectionOn) {
+        return;
+    }
+    
+    // check for transitions
+    if ((lastLval != p_LsensVal) || (lastRval != p_RsensVal)) {
+        /* make sure we have the updated position values if we need to
+         * run the correction algorithm. Note that since the digital
+         * sensor has a very fast smapling rate of about 2.5 ms, the 
+         * speed of the robot has negligeable effect on the precision
+         * of the correction.
+         */
+        runOdometer();
+    }
+    
+    // check left side
+    if (lastLval != p_LsensVal) {
+        // check if we are closer to the next transition than to the 
+        // one in whose zone we are
+        transL = p_Ltrans;
+        if (p_Ltrans < TRANSITIONS - 1) {
+            p_Lerr = (p_transLlist[p_Ltrans] + p_Lrel) - p_transLlist[p_Ltrans + 1];
+            if (-p_Lerr < p_Lrel) {
+                transL++;
+            } else {
+                p_Lerr = p_Lrel;
+            }
+        } else {
+            p_Lerr = p_Lrel;
+        }
+        
+        // check that correction is whitin acceptable range
+        absErr = p_Lerr < 0 ? -p_Lerr : p_Lerr;
+        if (absErr <= MAX_CORR_ERROR) {
+            // apply the correction
+            p_Ltrans = transL;
+            p_Lrel = 0;
+            p_L = p_transLlist[transL];
+            p_Lfull = ((int32_t)p_L) << 10;
+        } else {
+            // mucho problemo
+            // TODO: send a notification
+            if (debug1) printf("posL correction failed!\n");
+        }
+    }
+
+    // check right side
+    if (lastRval != p_RsensVal) {
+        transR = p_Rtrans;
+        if (p_Rtrans < TRANSITIONS - 1) {
+            p_Rerr = (p_transRlist[p_Rtrans] + p_Rrel) - p_transRlist[p_Rtrans + 1];
+            if (-p_Rerr < p_Rrel) {
+                transR++;
+            } else {
+                p_Rerr = p_Rrel;
+            }
+        } else {
+            p_Rerr = p_Rrel;
+        }
+
+        absErr = p_Rerr < 0 ? -p_Rerr : p_Rerr;
+        if (absErr <= MAX_CORR_ERROR) {
+            p_Rtrans = transR;
+            p_Rrel = 0;
+            p_R = p_transRlist[transR];
+            p_Rfull = ((int32_t)p_R) << 10;
+        } else {
+            // mucho problemo
+            // TODO: send a notification
+            if (debug1) printf("posR correction failed!\n");
+        }
+    }    
+}
+
+void resetPosCorrection() {
+    // update track sensor values
+    readTrackSensors();
+    // clear correction errors
+    p_Lerr = p_Rerr = 0;
 }

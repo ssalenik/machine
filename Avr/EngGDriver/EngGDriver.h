@@ -4,7 +4,7 @@
 #include <avr/io.h>
 
 /* VERSION */
-#define VERSION "2.2"
+#define VERSION "2.3"
 
 /* ==========  Macros  ========== */
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
@@ -63,11 +63,12 @@
 /* --- Odometer --- */
     // conversions between ticks and distance 
     // basically, 1 tick = 0.11 mm
-#define DISTTOTICKS 2327    // DIST in mm -> TICKS / 256
-#define TICKSTODIST 112     // TICKS -> DIST in 1/1024th of a mm 
+#define DISTTOTICKS_L 2327  // DIST in mm -> TICKS / 256 (Left Motor)
+#define TICKSTODIST_L 112   // TICKS -> DIST in 1/1024th of a mm (Left Motor)
+#define DISTTOTICKS_R 2327  // DIST in mm -> TICKS / 256 (Right Motor)
+#define TICKSTODIST_R 112   // TICKS -> DIST in 1/1024th of a mm (Right Motor)
 #define TRANSITIONS (24 * 2)// Number Track Sensor Transition points
                             // 2 transition points per transversal plank
-#define MAX_CORR_ERROR 30   // maximum allowable pos correction (in mm)
 #define TRANS_L_LIST \
     {64, 165, 292, 394, 521, 622, 749, 851, \
     978, 1080, 1207, 1308, 1435, 1537, 1664, 1765, \
@@ -85,6 +86,8 @@
     3721, 3823, 3950, 4051, 4178, 4280, 4407, 4509, \
     4787, 4889, 5016, 5117, 5244, 5346, 5473, 5575}
 
+/* --- Track Sensor and pos correction --- */
+#define MAX_CORR_ERROR 30   // maximum allowable pos correction (in mm)
 
 /* OBOSLETE> */
     // basically, 1 ticks = 0.64 degrees
@@ -136,6 +139,16 @@ void slipAdjust();
 uint8_t angleWithin(int16_t angle1, int16_t angle2, int16_t maxDelta);
 void calculateSpeeds();
 void initVariables();
-
+void initEncoders();
+void readTrackSensors();
+void positionCorrection();
+void runOdometer();
+void updateRelativePos();
+int16_t absoluteToRelativePos_L(int16_t absPosL, int8_t *pTransition);
+int16_t absoluteToRelativePos_R(int16_t absPosR, int8_t *pTransition);
+int16_t relativeToAbsolutePos_L(int16_t relPosL, uint8_t transition);
+int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition);
+void setOdometerTo(int16_t distL, int16_t distR);
+void resetPosCorrection();
 
 #endif //ENGGDRIVER_H
