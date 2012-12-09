@@ -30,21 +30,21 @@
 	- M1IN1 & M11N2 are direction pins for motor 1 / OC1B
 */
 
-#define LMOTOR 1
-#define RMOTOR 0
+#define LMOTOR 0
+#define RMOTOR 1
 
-#define M0IN1 6
-#define M0IN2 5
-#define M1IN1 7
-#define M1IN2 0
+#define M0IN1 5
+#define M0IN2 6
+#define M1IN1 0
+#define M1IN2 7
 #define DDRM0IN1 DDRD
 #define DDRM0IN2 DDRD
-#define DDRM1IN1 DDRD
-#define DDRM1IN2 DDRB
+#define DDRM1IN1 DDRB
+#define DDRM1IN2 DDRD
 #define PORTM0IN1 PORTD
 #define PORTM0IN2 PORTD
-#define PORTM1IN1 PORTD
-#define PORTM1IN2 PORTB
+#define PORTM1IN1 PORTB
+#define PORTM1IN2 PORTD
 
 #define FORWARD 0   // High-Low
 #define BACKWARD 1  // Low-High 
