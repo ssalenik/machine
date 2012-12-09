@@ -8,6 +8,7 @@ import serial.tools.list_ports
 from struct import *
 #import io
 import time
+import copy
 from threading import Thread
 from threading import Lock
 from PySide.QtCore import *
@@ -17,7 +18,7 @@ from serialComm import *
 
 POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100    # max serial poll rate
-GUI_RATE = 25         # max gui refresh rate
+GUI_RATE = 15         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
 # slot defines
@@ -382,7 +383,7 @@ class Output(QTextEdit):
 
     def output(self, text):
         self.outputLock.acquire()
-        self.newOutput.append(text)
+        self.newOutput.append(copy.copy(text))
         self.outputLock.release()
 
     def refresh(self):
