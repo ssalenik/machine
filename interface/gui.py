@@ -375,7 +375,10 @@ class Output(QTextEdit):
 
         # output lock to make outputting thread safe
         self.outputLock = Lock()
+
         self.newOutput = []
+
+        self.printedLastRefresh = False # for scrolling
 
         # set the maximum paragraph count
         # will delete paragraphs from the beginging once the limit is reached
@@ -387,17 +390,22 @@ class Output(QTextEdit):
         self.outputLock.release()
 
     def refresh(self):
-        self.outputLock.acquire()
-        if self.newOutput :
-            for text in self.newOutput :
-                if text :
-                    self.append(text)
-            time.sleep(0.001)
+        if self.printedLastRefresh:
             sb = self.verticalScrollBar()
-            sb.setValue(sb.maximum()) 
-        self.newOutput[:] = []
+            sb.setValue(sb.maximum())
+
+        self.outputLock.acquire()
+        temp = self.newOutput
+        self.newOutput = [] # should create a new list
         self.outputLock.release()
 
+        if temp :
+            self.printedLastRefresh = True
+            for text in temp :
+                if text :
+                    self.append(text)
+        else :
+            self.printedLastRefresh = False         
 
 class Settings(QFrame):
 
