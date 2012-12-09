@@ -387,13 +387,14 @@ class Output(QTextEdit):
         self.outputLock.release()
 
     def refresh(self):
-        sb = self.verticalScrollBar()
-        sb.setValue(sb.maximum())
         self.outputLock.acquire()
         if self.newOutput :
             for text in self.newOutput :
                 if text :
-                    self.append(text) 
+                    self.append(text)
+            time.sleep(0.001)
+            sb = self.verticalScrollBar()
+            sb.setValue(sb.maximum()) 
         self.newOutput[:] = []
         self.outputLock.release()
 
