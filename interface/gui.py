@@ -247,16 +247,14 @@ class CentralWidget(QWidget):
     def PIDToggle(self, state):
         if state == Qt.CheckState.Checked:
             # set speed instead of power
-            self.controls.chassy.lMotorLabel.setText("left speed:")
-            self.controls.chassy.rMotorLabel.setText("right speed")
+            self.controls.chassy.inputLabel.setText("speed:")
             self.controls.chassy.lMotorInput.setMaximum(0xFF) # max u8
             self.controls.chassy.rMotorInput.setMaximum(0xFF) # max u8
             self.controls.chassy.lMotorInput.setValue(0)
             self.controls.chassy.rMotorInput.setValue(0)
         else:
             # set power instead of speed
-            self.controls.chassy.lMotorLabel.setText("left power:")
-            self.controls.chassy.rMotorLabel.setText("right power")
+            self.controls.chassy.inputLabel.setText("power:")
             self.controls.chassy.lMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.lMotorInput.setValue(0)
@@ -460,24 +458,24 @@ class Settings(QFrame):
         self.statusLabel.setPixmap(self.redFill)
 
         # layout
-        self.layout = QGridLayout()
-        self.layout.setHorizontalSpacing(5)
-        self.layout.addWidget(self.label, 0, 0)
-        self.layout.addWidget(self.hLine, 1, 0, 1, 14)
-        self.layout.addWidget(self.portLabel, 2, 0)
-        self.layout.addWidget(self.portSelect, 2, 1, 1, 8, Qt.AlignLeft)
-        self.layout.addWidget(self.connectButton, 2, 11, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.statusLabel, 2, 13, Qt.AlignHCenter)
-        self.layout.addWidget(self.refreshButton, 3, 0, 1, 2, Qt.AlignLeft)
-        self.layout.addWidget(self.rateSwitch, 3, 3, Qt.AlignRight)
-        self.layout.addWidget(self.rateInput, 3, 4, Qt.AlignRight)
-        self.layout.addWidget(self.rateUnits, 3, 5, Qt.AlignLeft)
-        self.layout.addWidget(self.mcuLabel, 3, 7, Qt.AlignRight)
-        self.layout.addWidget(self.mcuSelect, 3, 8, Qt.AlignLeft)
-        self.layout.addWidget(self.debugSelect, 3, 10, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.printSelect, 3, 12, 1, 2, Qt.AlignHCenter)
+        layout = QGridLayout()
+        layout.setHorizontalSpacing(5)
+        layout.addWidget(self.label, 0, 0)
+        layout.addWidget(self.hLine, 1, 0, 1, 14)
+        layout.addWidget(self.portLabel, 2, 0)
+        layout.addWidget(self.portSelect, 2, 1, 1, 8, Qt.AlignLeft)
+        layout.addWidget(self.connectButton, 2, 11, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.statusLabel, 2, 13, Qt.AlignHCenter)
+        layout.addWidget(self.refreshButton, 3, 0, 1, 2, Qt.AlignLeft)
+        layout.addWidget(self.rateSwitch, 3, 3, Qt.AlignRight)
+        layout.addWidget(self.rateInput, 3, 4, Qt.AlignRight)
+        layout.addWidget(self.rateUnits, 3, 5, Qt.AlignLeft)
+        layout.addWidget(self.mcuLabel, 3, 7, Qt.AlignRight)
+        layout.addWidget(self.mcuSelect, 3, 8, Qt.AlignLeft)
+        layout.addWidget(self.debugSelect, 3, 10, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.printSelect, 3, 12, 1, 2, Qt.AlignHCenter)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
         # signals
         self.rateSwitch.stateChanged.connect(self.enableAutoRefresh)
@@ -528,17 +526,17 @@ class ControlsFrame(QFrame):
                 )
 
         # layout
-        self.layout = QGridLayout()
-        self.layout.setHorizontalSpacing(0)
+        layout = QGridLayout()
+        layout.setHorizontalSpacing(0)
         #self.layout.setContentsMargins(0,10,0,10)
-        self.layout.addWidget(self.stopAllButton, 0, 0, 1, 5)
-        self.layout.addWidget(self.chassy, 1, 0)
-        self.layout.addWidget(self.vLine1, 1, 1)
-        self.layout.addWidget(self.arm, 1, 2)
-        self.layout.addWidget(self.vLine2, 1, 3)
-        self.layout.addWidget(self.claw, 1, 4)
+        layout.addWidget(self.stopAllButton, 0, 0, 1, 5)
+        layout.addWidget(self.chassy, 1, 0)
+        layout.addWidget(self.vLine1, 1, 1)
+        layout.addWidget(self.arm, 1, 2)
+        layout.addWidget(self.vLine2, 1, 3)
+        layout.addWidget(self.claw, 1, 4)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def enableButtons(self):
         self.setEnabled(True)
@@ -566,93 +564,100 @@ class ChassyFrame(QFrame):
         self.cwButton = QPushButton("CW")
         self.cwButton.setFixedWidth(110)
         self.PIDSwitch = QCheckBox("PID on")
-        self.lMotorLabel = QLabel("left power:")
+
+        # left/right
+        self.lMotorLabel = QLabel("left:")
         self.lMotorLabel.setAlignment(Qt.AlignHCenter)
+        self.rMotorLabel = QLabel("right:")
+        self.rMotorLabel.setAlignment(Qt.AlignHCenter)
+        # input power/speed
+        self.inputLabel = QLabel("power:")
         self.lMotorInput = QSpinBox()
         self.lMotorInput.setMinimum(0)
         self.lMotorInput.setMaximum(100) #100 for power
         self.lMotorInput.setFixedWidth(75)
-        self.rMotorLabel = QLabel("right power:")
-        self.rMotorLabel.setAlignment(Qt.AlignHCenter)
         self.rMotorInput = QSpinBox()
         self.rMotorInput.setMinimum(0)
         self.rMotorInput.setMaximum(100) #100 for power
         self.rMotorInput.setFixedWidth(75)
-        self.lSpeedLabel = QLabel("left speed:")
-        self.lSpeedLabel.setAlignment(Qt.AlignHCenter)
+        # actual speed
+        self.speedLabel = QLabel("speed:")
+        #self.speedLabel.setAlignment(Qt.AlignHCenter)
         self.lSpeedValue = QLineEdit()
         self.lSpeedValue.setReadOnly(True)
         self.lSpeedValue.setFixedWidth(75)
-        self.rSpeedLabel = QLabel("right speed:")
-        self.rSpeedLabel.setAlignment(Qt.AlignHCenter)
         self.rSpeedValue = QLineEdit()
         self.rSpeedValue.setReadOnly(True)
         self.rSpeedValue.setFixedWidth(75)
-        self.lEncoderLabel = QLabel("left encoder:")
-        self.lEncoderLabel.setAlignment(Qt.AlignHCenter)
+        # encoder
+        self.encoderLabel = QLabel("encoder:")
+        #self.encoderLabel.setAlignment(Qt.AlignHCenter)
         self.lEncoderValue = QLineEdit()
         self.lEncoderValue.setReadOnly(True)
         self.lEncoderValue.setFixedWidth(75)
-        self.rEncoderLabel = QLabel("right encoder:")
-        self.rEncoderLabel.setAlignment(Qt.AlignHCenter)
         self.rEncoderValue = QLineEdit()
         self.rEncoderValue.setReadOnly(True)
         self.rEncoderValue.setFixedWidth(75)
-        self.lSensorLabel = QLabel("left sensor:")
-        self.lSensorLabel.setAlignment(Qt.AlignHCenter)
+        # sensor
+        self.sensorLabel = QLabel("sensor:")
+        #self.sensorLabel.setAlignment(Qt.AlignHCenter)
         self.lSensorValue = QLineEdit()
         self.lSensorValue.setReadOnly(True)
         self.lSensorValue.setFixedWidth(75)
-        self.rSensorLabel = QLabel("right sensor:")
-        self.rSensorLabel.setAlignment(Qt.AlignHCenter)
         self.rSensorValue = QLineEdit()
         self.rSensorValue.setReadOnly(True)
         self.rSensorValue.setFixedWidth(75)
-        self.lPositionLabel = QLabel("left position:")
-        self.lPositionLabel.setAlignment(Qt.AlignHCenter)
+        # position
+        self.positionLabel = QLabel("position:")
+        #self.positionLabel.setAlignment(Qt.AlignHCenter)
         self.lPositionValue = QLineEdit()
         self.lPositionValue.setReadOnly(True)
         self.lPositionValue.setFixedWidth(75)
-        self.rPositionLabel = QLabel("right position:")
-        self.rPositionLabel.setAlignment(Qt.AlignHCenter)
         self.rPositionValue = QLineEdit()
         self.rPositionValue.setReadOnly(True)
         self.rPositionValue.setFixedWidth(75)
 
-        # layout
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.label, 0, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.hLine, 1, 0, 1, 2)
-        self.layout.addWidget(self.forwardButton, 2, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.ccwButton, 3, 0, 1, 1, Qt.AlignLeft)
-        self.layout.addWidget(self.cwButton, 3, 1, 1, 1, Qt.AlignRight)
-        self.layout.addWidget(self.backwardButton, 4, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.lMotorLabel, 6, 0)
-        self.layout.addWidget(self.rMotorLabel, 6, 1)
-        self.layout.addWidget(self.lMotorInput, 7, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rMotorInput, 7, 1, Qt.AlignHCenter)
-        self.layout.addWidget(self.PIDSwitch, 8, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.lSpeedLabel, 9, 0)
-        self.layout.addWidget(self.lSpeedValue, 10, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rSpeedLabel, 9, 1)
-        self.layout.addWidget(self.rSpeedValue, 10, 1, Qt.AlignHCenter)
-        self.layout.addWidget(self.lPositionLabel, 11, 0)
-        self.layout.addWidget(self.lPositionValue, 12, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rPositionLabel, 11, 1)
-        self.layout.addWidget(self.rPositionValue, 12, 1, Qt.AlignHCenter)
-        self.layout.addWidget(self.lSensorLabel, 13, 0)
-        self.layout.addWidget(self.lSensorValue, 14, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rSensorLabel, 13, 1)
-        self.layout.addWidget(self.rSensorValue, 14, 1, Qt.AlignHCenter)
-        self.layout.addWidget(self.lEncoderLabel, 15, 0)
-        self.layout.addWidget(self.lEncoderValue, 16, 0, Qt.AlignHCenter)
-        self.layout.addWidget(self.rEncoderLabel, 15, 1)
-        self.layout.addWidget(self.rEncoderValue, 16, 1, Qt.AlignHCenter)
+        # main layout
+        layout = QGridLayout()
+
+        layout.addWidget(self.label, 0, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.hLine, 1, 0, 1, 2)
+        layout.addWidget(self.forwardButton, 2, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.ccwButton, 3, 0, 1, 1, Qt.AlignLeft)
+        layout.addWidget(self.cwButton, 3, 1, 1, 1, Qt.AlignRight)
+        layout.addWidget(self.backwardButton, 4, 0, 1, 2, Qt.AlignHCenter)
+
+        # bottom layout
+        bottomLayout = QGridLayout()
+        bottomLayout.setContentsMargins(0, 0, 0, 0)
+        bottomLayout.setHorizontalSpacing(5)
+        chassyValues = QWidget()
+        bottomLayout.addWidget(self.lMotorLabel, 0, 1)
+        bottomLayout.addWidget(self.rMotorLabel, 0, 2)
+        bottomLayout.addWidget(self.inputLabel, 1, 0)
+        bottomLayout.addWidget(self.lMotorInput, 1, 1)
+        bottomLayout.addWidget(self.rMotorInput, 1, 2)
+        bottomLayout.addWidget(self.PIDSwitch, 2, 1, 1, 2, Qt.AlignHCenter)
+        bottomLayout.addWidget(self.speedLabel, 3, 0)
+        bottomLayout.addWidget(self.lSpeedValue, 3, 1)
+        bottomLayout.addWidget(self.rSpeedValue, 3, 2)
+        bottomLayout.addWidget(self.positionLabel, 4, 0)
+        bottomLayout.addWidget(self.lPositionValue, 4, 1)
+        bottomLayout.addWidget(self.rPositionValue, 4, 2)
+        bottomLayout.addWidget(self.sensorLabel, 5, 0)
+        bottomLayout.addWidget(self.lSensorValue, 5, 1)
+        bottomLayout.addWidget(self.rSensorValue, 5, 2)
+        bottomLayout.addWidget(self.encoderLabel, 6, 0)
+        bottomLayout.addWidget(self.lEncoderValue, 6, 1)
+        bottomLayout.addWidget(self.rEncoderValue, 6, 2)
+
+        chassyValues.setLayout(bottomLayout)
+        layout.addWidget(chassyValues, 5, 0, 1, 2)
 
         # make row at the end stretch
-        self.layout.setRowStretch(17, 1)
+        layout.setRowStretch(6, 1)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def enableButtons(self):
         None
@@ -706,31 +711,31 @@ class ArmFrame(QFrame):
         self.magnetSwitchSwitch = QCheckBox("electro magnet on")
 
         # layout
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.label, 0, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.hLine, 1, 0, 1, 4)
-        self.layout.addWidget(self.baseLabel, 2, 0, 1, 4)
-        self.layout.addWidget(self.ccwButton, 3, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.cwButton, 3, 2, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.basePowerLabel, 4, 0)
-        self.layout.addWidget(self.basePowerInput, 4, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.baseEncoderLabel, 5, 0)
-        self.layout.addWidget(self.baseEncoderValue, 5, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.baseSensorLabel, 6, 0)
-        self.layout.addWidget(self.baseSensorValue, 6, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.linActuatorLabel, 7, 0, 1, 4)
-        self.layout.addWidget(self.upButton, 8, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.downButton, 9, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.linActPowerLabel, 10, 0)
-        self.layout.addWidget(self.linActPowerInput, 10, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.linActEncoderLabel, 11, 0)
-        self.layout.addWidget(self.linActEncoderValue, 11, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.magnetSwitchSwitch, 12, 0, 1, 4, Qt.AlignHCenter)
+        layout = QGridLayout()
+        layout.addWidget(self.label, 0, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine, 1, 0, 1, 4)
+        layout.addWidget(self.baseLabel, 2, 0, 1, 4)
+        layout.addWidget(self.ccwButton, 3, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.cwButton, 3, 2, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.basePowerLabel, 4, 0)
+        layout.addWidget(self.basePowerInput, 4, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.baseEncoderLabel, 5, 0)
+        layout.addWidget(self.baseEncoderValue, 5, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.baseSensorLabel, 6, 0)
+        layout.addWidget(self.baseSensorValue, 6, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.linActuatorLabel, 7, 0, 1, 4)
+        layout.addWidget(self.upButton, 8, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.downButton, 9, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.linActPowerLabel, 10, 0)
+        layout.addWidget(self.linActPowerInput, 10, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.linActEncoderLabel, 11, 0)
+        layout.addWidget(self.linActEncoderValue, 11, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.magnetSwitchSwitch, 12, 0, 1, 4, Qt.AlignHCenter)
 
         # make row at the end stretch
-        self.layout.setRowStretch(13, 1)
+        layout.setRowStretch(13, 1)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def enableButtons(self):
         None
@@ -781,28 +786,28 @@ class ClawFrame(QFrame):
         self.hLine2.setFrameStyle(QFrame.HLine | QFrame.Sunken)
 
         # layout
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.label, 0, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.hLine1, 1, 0, 1, 4)
-        self.layout.addWidget(self.openButton, 2, 0, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.closeButton, 2, 2, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.clawPowerLabel, 3, 0)
-        self.layout.addWidget(self.clawPowerInput, 3, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.clawEncoderLabel, 4, 0)
-        self.layout.addWidget(self.clawEncoderValue, 4, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.raiseButton, 5, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.lowerButton, 6, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.heightPowerLabel, 7, 0)
-        self.layout.addWidget(self.heightPowerInput, 7, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.heightEncoderLabel, 8, 0)
-        self.layout.addWidget(self.heightEncoderValue, 8, 1, 1, 2, Qt.AlignHCenter)
-        self.layout.addWidget(self.otherLabel, 9, 0, 1, 4, Qt.AlignHCenter)
-        self.layout.addWidget(self.hLine2, 10, 0, 1, 4)
+        layout = QGridLayout()
+        layout.addWidget(self.label, 0, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine1, 1, 0, 1, 4)
+        layout.addWidget(self.openButton, 2, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.closeButton, 2, 2, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.clawPowerLabel, 3, 0)
+        layout.addWidget(self.clawPowerInput, 3, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.clawEncoderLabel, 4, 0)
+        layout.addWidget(self.clawEncoderValue, 4, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.raiseButton, 5, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.lowerButton, 6, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.heightPowerLabel, 7, 0)
+        layout.addWidget(self.heightPowerInput, 7, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.heightEncoderLabel, 8, 0)
+        layout.addWidget(self.heightEncoderValue, 8, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.otherLabel, 9, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine2, 10, 0, 1, 4)
 
         # make row at the end stretch
-        self.layout.setRowStretch(11, 1)
+        layout.setRowStretch(11, 1)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def enableButtons(self):
         None
@@ -826,18 +831,18 @@ class Commands(QFrame):
         self.sendButton = QPushButton("send")
 
         # layout
-        self.layout = QGridLayout()
-        self.layout.addWidget(self.label, 0, 0)
-        self.layout.addWidget(self.commandInput, 0, 1)
-        self.layout.addWidget(self.sendButton, 0, 2)
+        layout = QGridLayout()
+        layout.addWidget(self.label, 0, 0)
+        layout.addWidget(self.commandInput, 0, 1)
+        layout.addWidget(self.sendButton, 0, 2)
 
         # make middle column stretch
-        self.layout.setColumnStretch(3, 1)
+        layout.setColumnStretch(3, 1)
 
         # make last row stretch
-        self.layout.setRowStretch(1, 1)
+        layout.setRowStretch(1, 1)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
     def enableButtons(self):
         self.setEnabled(True)
