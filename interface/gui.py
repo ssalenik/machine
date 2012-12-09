@@ -77,14 +77,218 @@ class CentralWidget(QWidget):
         # disable stuff untill connected
         self.disableButtons()
 
-        # signals
+        # settings signals
         self.settings.connectButton.clicked.connect(self.connect)
         self.settings.rateInput.valueChanged.connect(self.controller.changePollRate)
         self.controller.connectionLost.connect(self.disconnected)
+        self.settings.mcuSelect.currentIndexChanged[unicode].connect(self.mcuSelect)
+        self.settings.debugSelect.stateChanged.connect(self.debugRequest)
+        self.settings.printSelect.stateChanged.connect(self.printAll)
+        self.settings.refreshButton.clicked.connect(self.refreshRequest)
+
+        self.controls.stopAllButton.clicked.connect(self.stopAll)
+
+        # chassy signals
+        self.controls.chassy.PIDSwitch.stateChanged.connect(self.PIDToggle)
+        self.controls.chassy.forwardButton.pressed.connect(self.forward)
+        self.controls.chassy.forwardButton.released.connect(self.stopChassy)
+        self.controls.chassy.backwardButton.pressed.connect(self.backward)
+        self.controls.chassy.backwardButton.released.connect(self.stopChassy)
+        self.controls.chassy.cwButton.pressed.connect(self.chassyCW)
+        self.controls.chassy.cwButton.released.connect(self.stopChassy)
+        self.controls.chassy.ccwButton.pressed.connect(self.chassyCCW)
+        self.controls.chassy.ccwButton.released.connect(self.stopChassy)
+
+        # arm signals
+        self.controls.arm.ccwButton.pressed.connect(self.baseCCW)
+        self.controls.arm.ccwButton.released.connect(self.stopBase)
+        self.controls.arm.cwButton.pressed.connect(self.baseCW)
+        self.controls.arm.cwButton.released.connect(self.stopBase)
+        self.controls.arm.upButton.pressed.connect(self.armUp)
+        self.controls.arm.upButton.released.connect(self.stopArm)
+        self.controls.arm.downButton.pressed.connect(self.armDown)
+        self.controls.arm.downButton.released.connect(self.stopArm)
+
+        # claw signals
+        self.controls.claw.openButton.pressed.connect(self.clawOpen)
+        self.controls.claw.openButton.released.connect(self.stopClaw)
+        self.controls.claw.closeButton.pressed.connect(self.clawClose)
+        self.controls.claw.closeButton.released.connect(self.stopClaw)
+        self.controls.claw.raiseButton.pressed.connect(self.clawRaise)
+        self.controls.claw.raiseButton.released.connect(self.stopHeight)
+        self.controls.claw.lowerButton.pressed.connect(self.clawLower)
+        self.controls.claw.lowerButton.released.connect(self.stopHeight)
+
+        # command signals
+        self.command.sendButton.clicked.connect(self.sendCustom)
 
         # start gui update thread
         self.refreshThread = Thread(target=self.refreshGUI)
         self.refreshThread.start()
+
+    def sendCustom(self):
+        self.controller.sendCustomMessage(self.command.commandInput.text())
+
+    def stopAll(self):
+        self.controller.sendCustomMessage(commands['stop_all'])
+
+    def clawOpen(self):
+        #TODO
+        None
+
+    def clawClose(self):
+        #TODO
+        None
+
+    def stopClaw(self):
+        #TODO
+        None
+
+    def clawRaise(self):
+        #TODO
+        None
+
+    def clawLower(self):
+        #TODO
+        None
+
+    def stopHeight(self):
+        #TODO
+        None
+
+    def baseCCW(self):
+        #TODO
+        None
+
+    def baseCW(self):
+        #TODO
+        None
+
+    def stopBase(self):
+        #TODO
+        None
+
+    def armUp(self):
+        #TODO
+        None
+
+    def armDown(self):
+        #TODO
+        None
+
+    def stopArm(self):
+        #TODO
+        None
+
+    def stopChassy(self):
+        if self.controls.chassy.PIDSwitch.isChecked() :
+            self.controller.sendMessage(code=commands['speed_both'], data=0)
+        else:
+            self.controller.sendMessage(code=commands['power_both'], data=0)
+
+    def chassyCCW(self):
+        # set direction
+        self.controller.sendMessage(code=commands['dir_left'], data=BACKWARD)
+        self.controller.sendMessage(code=commands['dir_right'], data=FORWARD)
+
+        if self.controls.chassy.PIDSwitch.isChecked() :
+            # set speed
+            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+        else :
+            # set power
+            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+
+    def chassyCW(self):
+        # set direction
+        self.controller.sendMessage(code=commands['dir_left'], data=FORWARD)
+        self.controller.sendMessage(code=commands['dir_right'], data=BACKWARD)
+
+        if self.controls.chassy.PIDSwitch.isChecked() :
+            # set speed
+            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+        else :
+            # set power
+            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+
+    def backward(self):
+        # set direction
+        self.controller.sendMessage(code=commands['dir_left'], data=BACKWARD)
+        self.controller.sendMessage(code=commands['dir_right'], data=BACKWARD)
+
+        if self.controls.chassy.PIDSwitch.isChecked() :
+            # set speed
+            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+        else :
+            # set power
+            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+
+    def forward(self):
+        # set direction
+        self.controller.sendMessage(code=commands['dir_left'], data=FORWARD)
+        self.controller.sendMessage(code=commands['dir_right'], data=FORWARD)
+
+        if self.controls.chassy.PIDSwitch.isChecked() :
+            # set speed
+            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+        else :
+            # set power
+            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+
+
+    def PIDToggle(self, state):
+        if state == Qt.CheckState.Checked:
+            # set speed instead of power
+            self.controls.chassy.lMotorLabel.setText("left speed:")
+            self.controls.chassy.rMotorLabel.setText("right speed")
+            self.controls.chassy.lMotorInput.setMaximum(0xFF) # max u8
+            self.controls.chassy.rMotorInput.setMaximum(0xFF) # max u8
+            self.controls.chassy.lMotorInput.setValue(0)
+            self.controls.chassy.rMotorInput.setValue(0)
+        else:
+            # set power instead of speed
+            self.controls.chassy.lMotorLabel.setText("left power:")
+            self.controls.chassy.rMotorLabel.setText("right power")
+            self.controls.chassy.lMotorInput.setMaximum(100) # power is 100
+            self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
+            self.controls.chassy.lMotorInput.setValue(0)
+            self.controls.chassy.rMotorInput.setValue(0)
+
+    def refreshRequest(self):
+        self.controller.requestFeedback()
+
+    def debugRequest(self, state):
+        if state == Qt.CheckState.Checked:
+            # turn on all teh debugs
+            self.controller.sendMessage(code=commands['debug_1'], data=1)
+            self.controller.sendMessage(code=commands['debug_2'], data=1)
+            self.controller.sendMessage(code=commands['debug_3'], data=1)
+            self.controller.sendMessage(code=commands['debug_4'], data=1)
+            self.controller.sendMessage(code=commands['debug_5'], data=1)
+            self.controller.sendMessage(code=commands['debug_6'], data=1)
+            self.controller.sendMessage(code=commands['debug_7'], data=1)
+        else:
+            # turn off debug
+            self.controller.sendMessage(code=commands['debug_off'])
+
+    def printAll(self, state):
+        if state == Qt.CheckState.Checked:
+            self.controller.printAll = True
+        else:
+            self.controller.printAll = False
+
+    def mcuSelect(self, checked):
+        if checked == "main CPU" :
+            self.controller.connectedToMainCPU = True
+        else :
+            self.controller.connectedToMainCPU = False
 
     def closing(self):
         # disconnect if connected
@@ -173,10 +377,13 @@ class Controller(QObject):
 
         self.sendLock = Lock()
 
+        # default states
+        self.connectedToMainCPU = True
+        self.printAll = False
+
         # init controlled values
         self.power_left = 0
         self.power_right = 0
-        self.pid_toggle = False
         self.speed_right = 0
         self.speed_left = 0
 
@@ -267,7 +474,7 @@ class Controller(QObject):
 
         self.out("<font color=green>stoped polling for feedback</font>")
 
-    def sendMessage(self, code, sendToDriver=False, data=None):
+    def sendMessage(self, code, sendToDriver=True, data=-1):
         """
         sends message
         if there is data to send, assumes its only u8 bits for now
@@ -286,7 +493,12 @@ class Controller(QObject):
 
         # right now I assume we're just sending an 8 bit signed int
         # insert if/else statements here if otherwise
-        message += "%02X" % ord(pack('!B', data&0xFF))
+        if data > -1 :
+            message += "%02X" % ord(pack('!B', data&0xFF))
+
+        #before we append the EOL
+        if self.printAll :
+            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
 
         # add EOL
         message += EOL
@@ -305,14 +517,15 @@ class Controller(QObject):
             self.out("<font color=red>send error : no connection</font>")
             return
 
+        #before we append the EOL
+        if self.printAll :
+            self.out("<font color=green>sending: </font>\"<font color=blue>%s</font>\"" % message)
+
         message += EOL
 
         self.sendLock.acquire()
         self.serial.write(message)
         self.sendLock.release()
-
-        if self.printAll :
-            self.out("<font color=green>sending: </font><font color=blue>%s</font>" % message)
 
     def pollSerial(self):
         """
@@ -583,9 +796,11 @@ class Settings(QFrame):
 
     def enableButtons(self):
         self.refreshButton.setEnabled(True)
+        self.debugSelect.setEnabled(True)
 
     def disableButtons(self):
         self.refreshButton.setEnabled(False)
+        self.debugSelect.setEnabled(False)
 
 
 class ControlsFrame(QFrame):

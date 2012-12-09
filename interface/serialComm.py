@@ -20,6 +20,11 @@ class TwoWayDict(dict):
 
 # new line, always ends all commands and requests
 EOL = '\r'
+FORWARD = 0
+BACKWARD = 1
+# not sure about these
+CW = 0
+CCW = 1
 
 commands = TwoWayDict()
 feedback = TwoWayDict()
@@ -35,6 +40,14 @@ commands['pid_toggle']	= 0x10
 commands['speed_left']	= 0x11
 commands['speed_right']	= 0x12
 commands['speed_both']	= 0x15
+commands['debug_off']	= 0x70
+commands['debug_1']		= 0x71
+commands['debug_2']		= 0x72
+commands['debug_3']		= 0x73
+commands['debug_4']		= 0x74
+commands['debug_5']		= 0x75
+commands['debug_6']		= 0x76
+commands['debug_7']		= 0x77
 
 # there are more...
 
