@@ -32,6 +32,12 @@ class MainWindow(QMainWindow):
         self.centre = CentralWidget(parent=self) 
         self.setCentralWidget(self.centre)
 
+    def closeEvent(self, event):
+        # make sure we're disconnected from the port; kill all threads"
+        print "quitting"
+        self.centre.closing()
+        event.accept()
+
 class CentralWidget(QWidget):
 
     def __init__(self, parent=None):
@@ -39,6 +45,7 @@ class CentralWidget(QWidget):
 
         # status
         self.connected = False
+        self.refresh = True
         
         # widgets which will be contained in the central widget
         self.settings = Settings()
@@ -75,20 +82,37 @@ class CentralWidget(QWidget):
         self.settings.rateInput.valueChanged.connect(self.controller.changePollRate)
         self.controller.connectionLost.connect(self.disconnected)
 
+        # start gui update thread
+        self.refreshThread = Thread(target=self.refreshGUI)
+        self.refreshThread.start()
+
+    def closing(self):
+        # disconnect if connected
+        if self.connected :
+            self.connect()
+
+        # end refresh thread
+        self.refresh = False
+        self.refreshThread.join()
+
     def connect(self):
         if self.connected == True :
+            self.disableButtons()
+            self.connected = False
+            #self.refreshThread.join()
+            #self.controller.disconnect()
             self.controller.disconnect()
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
             self.settings.portSelect.setEnabled(True)
-            self.connected = False
-            self.disableButtons()
         else :
             if self.controller.connectToPort(port=self.settings.portSelect.currentText()):
                 self.connected = True
                 self.settings.connectButton.setText("disconnect")
                 self.settings.statusLabel.setPixmap(self.settings.greenFill)
                 self.settings.portSelect.setEnabled(False)
+                #self.refreshThread = Thread(target=refreshGUI)
+                #self.refreshThread.start()
                 self.enableButtons()
     
     def disconnected(self):
@@ -109,7 +133,31 @@ class CentralWidget(QWidget):
         self.command.disableButtons()
 
     def refreshGUI(self):
-        None
+        while(self.refresh):
+            if self.connected :
+                c = self.controller
+                # chassy
+                chassy = self.controls.chassy
+                chassy.lSpeedValue.setText("%i" % c.speed_act_left)
+                chassy.rSpeedValue.setText("%i" % c.speed_act_right)
+                chassy.lEncoderValue.setText("%i" % c.encoder_left)
+                chassy.rEncoderValue.setText("%i" % c.encoder_right)
+                chassy.lSensorValue.setText("%i" % c.sensor_left)
+                chassy.rSensorValue.setText("%i" % c.sensor_right)
+                # arm
+                arm = self.controls.arm
+                arm.baseEncoderValue.setText("%i" % c.encoder_base)
+                arm.baseSensorValue.setText("%i" % c.sensor_base)
+                arm.linActEncoderValue.setText("%i" % c.encoder_arm)
+                # claw
+                claw = self.controls.claw
+                claw.clawEncoderValue.setText("%i" % c.encoder_claw)
+                claw.heightEncoderValue.setText("%i" % c.encoder_claw_height)
+
+            # output
+            self.output.refresh()
+
+            time.sleep(1.0/float(GUI_RATE))
 
 class Controller(QObject):
 
@@ -128,10 +176,24 @@ class Controller(QObject):
         # init controlled values
         self.power_left = 0
         self.power_right = 0
-        self.dir_left = 0
+        self.pid_toggle = False
+        self.speed_right = 0
+        self.speed_left = 0
 
         # init feedback values
-
+        self.encoder_left = 0
+        self.encoder_right = 0
+        self.speed_act_left = 0
+        self.speed_act_right = 0
+        self.position_left = 0
+        self.position_right = 0
+        self.sensor_left = 0
+        self.sensor_right = 0
+        self.encoder_base = 0
+        self.sensor_base = 0
+        self.encoder_arm = 0
+        self.encoder_claw = 0
+        self.encoder_claw_height = 0
 
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
@@ -201,7 +263,7 @@ class Controller(QObject):
         self.out("<font color=green>starting to poll for feedback </font>")
         while(self.connected):
                 self.requestFeedback()
-                Thread.sleep(1.0/float(self.rate))
+                time.sleep(1.0/float(self.rate))
 
         self.out("<font color=green>stoped polling for feedback</font>")
 
@@ -229,7 +291,7 @@ class Controller(QObject):
         # add EOL
         message += EOL
 
-        self.sendLock.aquire()
+        self.sendLock.acquire()
         self.serial.write(message)
         self.sendLock.release()
 
@@ -245,7 +307,7 @@ class Controller(QObject):
 
         message += EOL
 
-        self.sendLock.aquire()
+        self.sendLock.acquire()
         self.serial.write(message)
         self.sendLock.release()
 
@@ -370,10 +432,10 @@ class Controller(QObject):
                         self.position_left = data_2_int[0]
                         self.position_right = data_2_int[1]
 
-                    elif code == feedback['sensor_left'] :
+                    elif code == feedback['sensor_act_left'] :
                         self.sensor_left = data_int
 
-                    elif code == feedback['sensor_right'] :
+                    elif code == feedback['sensor_act_right'] :
                         self.sensor_right = data_int
 
                     elif code == feedback['sensor_both'] :
@@ -415,12 +477,28 @@ class Output(QTextEdit):
         self.setReadOnly(True)
         self.setMinimumWidth(350)
 
+        # output lock to make outputting thread safe
+        self.outputLock = Lock()
+        self.newOutput = []
+
         # set the maximum paragraph count
         # will delete paragraphs from the beginging once the limit is reached
         self.document().setMaximumBlockCount(MAX_LINES)
 
     def output(self, text):
-        self.append(text)
+        self.outputLock.acquire()
+        self.newOutput.append(text)
+        self.outputLock.release()
+
+    def refresh(self):
+        self.outputLock.acquire()
+        if self.newOutput :
+            for text in self.newOutput :
+                if text :
+                    self.append(text)
+            self.newOutput[:] = []
+        self.outputLock.release()
+
 
 class Settings(QFrame):
 
@@ -545,7 +623,6 @@ class ControlsFrame(QFrame):
 
     def disableButtons(self):
         self.setEnabled(False)
-
 
 class ChassyFrame(QFrame):
 
