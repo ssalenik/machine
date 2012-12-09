@@ -504,10 +504,10 @@ class Settings(QFrame):
             self.rateInput.setEnabled(False)
 
     def enableButtons(self):
-        None
+        self.refreshButton.setEnabled(True)
 
     def disableButtons(self):
-        None
+        self.refreshButton.setEnabled(False)
 
 
 class ControlsFrame(QFrame):
@@ -812,7 +812,12 @@ class Commands(QFrame):
         self.commandInput.setMinimumWidth(200)
         self.sendButton = QPushButton("send")
         self.stopAllButton = QPushButton("STOP ALL MOTORS")
-        self.stopAllButton.setStyleSheet("background-color: red; color: yellow;")
+        self.stopAllButton.setStyleSheet(
+            "QPushButton"
+                "{background-color: red; color: yellow;}"
+            "QPushButton:disabled"
+                "{background-color: gray; color: white;}"
+                )
 
         # layout
         self.layout = QGridLayout()
