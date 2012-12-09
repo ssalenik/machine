@@ -43,7 +43,9 @@ OBJECTS = EngGDriver.o uart.o hex.o
 LINKONLYOBJECTS = 
 
 ## Build
-all: $(TARGET) EngGDriver.hex EngGDriver.eep EngGDriver.lss## Compile
+all: $(TARGET) EngGDriver.hex EngGDriver.eep EngGDriver.lss size
+
+## Compile
 EngGDriver.o: EngGDriver.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
@@ -65,6 +67,10 @@ $(TARGET): $(OBJECTS)
 
 %.lss: $(TARGET)
 	avr-objdump -h -S $< > $@
+
+size: ${TARGET}
+	@echo
+	@avr-size -C --mcu=${MCU} ${TARGET}
 
 ## Clean target
 .PHONY: clean

@@ -107,48 +107,63 @@
 
 /* ========== Function Prototypes ========== */
 
-void initADC();
-uint8_t readADC(uint8_t channel);
+void initVariables();
 void initTimer0();
-void initPWM1();
-void setPower(uint8_t motor, uint16_t power);
-void setPowerA(uint8_t motor, uint8_t power100);
-void setPowerB(uint8_t motor, uint16_t power800);
-void setDirection(uint8_t motor, uint8_t direction);
-void setTargetSpeed(uint8_t motor, int16_t speed);
+
+/* --- motors.c: Motor control, encoders, PID --- */
+    // initialize hardware for motors & encoders
 void initMotorPins();
+void initPWM1();
+void initEncoders();
+    // set power and direction
+void setPower(uint8_t motor, uint16_t power);
+void setPower100(uint8_t motor, uint8_t power100);
+void setPower800(uint8_t motor, uint16_t power800);
+void setDirection(uint8_t motor, uint8_t direction);
+    // calculate speed and acceleration and run PID
+void calculateSpeeds();
+void resetPID();
+void runPID();
+
+/* --- communication.c: communication and com related functions */
+    // com dispatcher and its helper functions
 void readCommand();
 inline uint8_t readByte(char *buf, uint8_t *valid);
 inline int16_t readInt(char *buf, uint8_t *valid);
 inline uint16_t readUInt(char *buf, uint8_t *valid);
-void runPID();
-void resetPID();
+    // functions called by dispatcher
+void sendDone();
+void sendDist();
 void printParams();
 void printParams2();
+
+/* --- odometer.c: Odometer and Position Correction --- */
+    // Odometer (convert ticks to position: absolute and relative)
+void resetOdometer();
+void runOdometer();
+void updateRelativePos();
+void setOdometerTo(int16_t distL, int16_t distR);
+    // position correction (read track sensors and do correction)
+void resetPosCorrection();
+void positionCorrection();
+void readTrackSensors();
+    // helper functions
+int16_t absoluteToRelativePos_L(int16_t absPosL, int8_t *pTransition);
+int16_t absoluteToRelativePos_R(int16_t absPosR, int8_t *pTransition);
+int16_t relativeToAbsolutePos_L(int16_t relPosL, uint8_t transition);
+int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition);
+
+/* --- navigation.c: all navigation related stuff. To be modified --- */
 void navigator();
 void navSync(int16_t speed, uint8_t dirL, uint8_t dirR);
 void navDist(int16_t speed, uint8_t dir, int16_t distance);
 void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR);
 void navRot1(int16_t speed, int16_t angle, uint8_t dir);
 void navRot2(int16_t speed, int16_t tHeading);
+void setTargetSpeed(uint8_t motor, int16_t speed);
+
 int16_t deltaAng(int16_t startAng, int16_t endAng, uint8_t direction);
 int16_t adjustAng(int16_t angle);
-void sendDone();
-void sendDist();
-void slipAdjust();
 uint8_t angleWithin(int16_t angle1, int16_t angle2, int16_t maxDelta);
-void calculateSpeeds();
-void initVariables();
-void initEncoders();
-void readTrackSensors();
-void positionCorrection();
-void runOdometer();
-void updateRelativePos();
-int16_t absoluteToRelativePos_L(int16_t absPosL, int8_t *pTransition);
-int16_t absoluteToRelativePos_R(int16_t absPosR, int8_t *pTransition);
-int16_t relativeToAbsolutePos_L(int16_t relPosL, uint8_t transition);
-int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition);
-void setOdometerTo(int16_t distL, int16_t distR);
-void resetPosCorrection();
 
 #endif //ENGGDRIVER_H

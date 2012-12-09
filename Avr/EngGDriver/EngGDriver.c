@@ -155,8 +155,8 @@ int main(void) {
     // clear motor speed and direction just in case
     setDirection(LMOTOR, FORWARD);
     setDirection(RMOTOR, FORWARD);
-    setPowerA(LMOTOR, 0);
-    setPowerA(RMOTOR, 0);
+    setPower100(LMOTOR, 0);
+    setPower100(RMOTOR, 0);
     
     // set initial position
     setOdometerTo(0, 0);
@@ -216,19 +216,19 @@ void setPower(uint8_t motor, uint16_t power) {
 
 // Same as setPower, but ranges from 0-100 for ease of use
 // ranges from 0 to 100
-void setPowerA(uint8_t motor, uint8_t power100) {
+void setPower100(uint8_t motor, uint8_t power100) {
     if (power100 > MAXPOW100) power100 = MAXPOW100;
     if (motor) {
         OCR1B = MAXTIMER - (uint16_t)power100 * (MAXTIMER/100); // opposite phase
     } else {
         OCR1A = (uint16_t)power100 * (MAXTIMER/100);
     }   
-}
+} 
 
 
 // Same as setPower, but ranges from 0-800 for PID controller
 // ranges from 0 to 800
-void setPowerB(uint8_t motor, uint16_t power800) {
+void setPower800(uint8_t motor, uint16_t power800) {
     if (power800 > MAXPOW800) power800 = MAXPOW800;
     if (motor) {
         OCR1B = MAXTIMER - power800 * (MAXTIMER/800); // opposite phase
@@ -323,15 +323,6 @@ void initMotorPins() {
     sbi(DDRM1IN2, M1IN2);
 }
 
-uint8_t readADC(uint8_t channel) {
-    channel &= 0x0f;
-    ADMUX &= 0xf0;
-    ADMUX |= channel;       // choose channel
-    ADCSRA |= 1 << ADSC;    // start conversion 
-    while (ADCSRA & (1 << ADSC)); // wait for convertion to finish
-    return ADCH;
-}
-
 // Interrupt for Motor 0 encoder
 ISR(INT0_vect) {
     uint8_t dir;
@@ -407,11 +398,11 @@ void readCommand() {
                 // POWER & DIRECTION COMMANDS
                 case 0x01: // set power of left motor
                     arg1 = readByte(&buf[2], &valid);
-                    if (valid) setPowerA(LMOTOR, arg1);
+                    if (valid) setPower100(LMOTOR, arg1);
                     break;
                 case 0x02: // set power of right motor
                     arg1 = readByte(&buf[2], &valid);
-                    if (valid) setPowerA(RMOTOR, arg1);
+                    if (valid) setPower100(RMOTOR, arg1);
                     break;
                 case 0x03: // set direction of left motor
                     arg1 = readByte(&buf[2], &valid);
@@ -424,8 +415,8 @@ void readCommand() {
                 case 0x05: // set power for both motors
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) {
-                        setPowerA(LMOTOR, arg1);
-                        setPowerA(RMOTOR, arg1);
+                        setPower100(LMOTOR, arg1);
+                        setPower100(RMOTOR, arg1);
                     }
                     break;
                 // PID COMMANDS
@@ -820,7 +811,7 @@ void runPID() {
         }
     }
 
-    setPowerB(0, power0);
+    setPower800(0, power0);
 
 
     /* --- Motor1 CALCULATIONS: Identical to Motor0 --- */
@@ -857,7 +848,7 @@ void runPID() {
         }
     }
 
-    setPowerB(1, power1);
+    setPower800(1, power1);
 }
 
 /* function that decides where the robot goes by setting target speed of motors
@@ -959,7 +950,6 @@ void navSync(int16_t speed, uint8_t dirL, uint8_t dirR) {
     n_targetHeading = heading;
     targetSpeed0 = speed;
     targetSpeed1 = speed;
-    slipAdjust();
     navCom = NAV_SYNC;
 }
 
@@ -971,7 +961,6 @@ void navSync(int16_t speed, uint8_t dirL, uint8_t dirR) {
     targetSpeed0 = speed;
     targetSpeed1 = speed;
     n_ticks = (int32_t) distance * DISTTOTICKS >> 8;
-    slipAdjust();
     navCom = NAV_DIST;
 }*/
 
@@ -1057,38 +1046,6 @@ int16_t adjustAng(int16_t angle) {
     while (angle <= -180) angle += 360;
     while (angle > 180) angle -= 360;
     return angle;
-}
-
-// adjustment for slippage
-void slipAdjust() {
-    adjXOn = 0;
-    if (angleWithin(n_targetHeading, 90, 20)) {
-        if (slipAdjFOn) {
-            if (!rdir) {
-                n_ticks = ( (int32_t) n_ticks * SLIPADJ90 ) >> 8;
-            } else {
-                n_ticks = ( (int32_t) n_ticks * SLIPADJ270 ) >> 8;
-            }
-        }
-    } else if (angleWithin(n_targetHeading, -90, 20)) {
-        if (slipAdjFOn) {
-            if (!rdir) {
-                n_ticks = ( (int32_t) n_ticks * SLIPADJ270 ) >> 8;
-            } else {
-                n_ticks = ( (int32_t) n_ticks * SLIPADJ90 ) >> 8;
-            }
-        }
-    } else if (angleWithin(n_targetHeading, 0, 20)) {
-        if (slipAdjSOn) {
-            xCalibration = SLIPADJ0;
-            adjXOn = 1;
-        }
-    } else if (angleWithin(n_targetHeading, 180, 20)) {
-        if (slipAdjSOn) {
-            xCalibration = SLIPADJ180;
-            adjXOn = 1;
-        }
-    }
 }
 
 // checks if angle1 is within maxDelta from angle2
