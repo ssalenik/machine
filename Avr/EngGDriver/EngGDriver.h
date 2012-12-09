@@ -4,7 +4,7 @@
 #include <avr/io.h>
 
 /* VERSION */
-#define VERSION "2.3"
+#define VERSION "2.4"
 
 /* ==========  Macros  ========== */
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
@@ -107,14 +107,19 @@
 
 /* ========== Function Prototypes ========== */
 
-void initVariables();
+/* --- EngGDriver.c: Main function, system timer --- */
+    // init all modules and system timer
+void initAll();
 void initTimer0();
+    // Interrupt vector of EngGDriver.c:
+// --> ISR(TIMER0_COMPA_vect)
 
 /* --- motors.c: Motor control, encoders, PID --- */
     // initialize hardware for motors & encoders
 void initMotorPins();
 void initPWM1();
 void initEncoders();
+void initTachoVariables();
     // set power and direction
 void setPower(uint8_t motor, uint16_t power);
 void setPower100(uint8_t motor, uint8_t power100);
@@ -124,6 +129,9 @@ void setDirection(uint8_t motor, uint8_t direction);
 void calculateSpeeds();
 void resetPID();
 void runPID();
+    // Interrupt vectors of motor.c are:
+// --> ISR(INT0_vect)
+// --> ISR(INT1_vect)
 
 /* --- communication.c: communication and com related functions */
     // com dispatcher and its helper functions
@@ -142,7 +150,7 @@ void printParams2();
 void resetOdometer();
 void runOdometer();
 void updateRelativePos();
-void setOdometerTo(int16_t distL, int16_t distR);
+void setOdometerTo(int16_t posL, int16_t posR);
     // position correction (read track sensors and do correction)
 void resetPosCorrection();
 void positionCorrection();
