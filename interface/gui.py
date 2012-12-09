@@ -605,16 +605,29 @@ class ControlsFrame(QFrame):
         self.chassy = ChassyFrame()
         self.arm = ArmFrame()
         self.claw = ClawFrame()
+        self.stopAllButton = QPushButton("STOP ALL MOTORS")
+        font = self.stopAllButton.font()
+        font.setPointSize(15)
+        self.stopAllButton.setFont(font)
+        self.stopAllButton.setStyleSheet(
+            "QPushButton"
+                "{color: red;}"
+            "QPushButton:disabled"
+                "{color: gray;}"
+            "QPushButton:pressed"
+                "{color: yellow}"
+                )
 
         # layout
-        self.layout = QHBoxLayout()
-        self.layout.setSpacing(0)
-        self.layout.setContentsMargins(0,10,0,10)
-        self.layout.addWidget(self.chassy)
-        self.layout.addWidget(self.vLine1)
-        self.layout.addWidget(self.arm)
-        self.layout.addWidget(self.vLine2)
-        self.layout.addWidget(self.claw)
+        self.layout = QGridLayout()
+        self.layout.setHorizontalSpacing(0)
+        #self.layout.setContentsMargins(0,10,0,10)
+        self.layout.addWidget(self.stopAllButton, 0, 0, 1, 5)
+        self.layout.addWidget(self.chassy, 1, 0)
+        self.layout.addWidget(self.vLine1, 1, 1)
+        self.layout.addWidget(self.arm, 1, 2)
+        self.layout.addWidget(self.vLine2, 1, 3)
+        self.layout.addWidget(self.claw, 1, 4)
 
         self.setLayout(self.layout)
 
@@ -888,20 +901,12 @@ class Commands(QFrame):
         self.commandInput = QLineEdit()
         self.commandInput.setMinimumWidth(200)
         self.sendButton = QPushButton("send")
-        self.stopAllButton = QPushButton("STOP ALL MOTORS")
-        self.stopAllButton.setStyleSheet(
-            "QPushButton"
-                "{background-color: red; color: yellow;}"
-            "QPushButton:disabled"
-                "{background-color: gray; color: white;}"
-                )
 
         # layout
         self.layout = QGridLayout()
         self.layout.addWidget(self.label, 0, 0)
         self.layout.addWidget(self.commandInput, 0, 1)
         self.layout.addWidget(self.sendButton, 0, 2)
-        self.layout.addWidget(self.stopAllButton, 0, 4)
 
         # make middle column stretch
         self.layout.setColumnStretch(3, 1)
