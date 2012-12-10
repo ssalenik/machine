@@ -33,6 +33,8 @@ class MainWindow(QMainWindow):
         self.centre = CentralWidget(parent=self) 
         self.setCentralWidget(self.centre)
 
+        self.setWindowIcon(QIcon('mcgilllogo.png'))
+
     def closeEvent(self, event):
         # make sure we're disconnected from the port; kill all threads"
         print "quitting"
@@ -57,11 +59,8 @@ class CentralWidget(QWidget):
         self.output = Output()
         self.out = self.output.output
 
-        # serial
-        self.serial = serial.Serial()
-
         # controller
-        self.controller = Controller(serial=self.serial, output=self.out)
+        self.controller = Controller(output=self.out)
 
         # layout
         self.layout = QGridLayout()
@@ -268,14 +267,21 @@ class CentralWidget(QWidget):
             # turn on all teh debugs
             self.controller.sendMessage(code=commands['debug_1'], data=1)
             self.controller.sendMessage(code=commands['debug_2'], data=1)
+            # self.controller.sendMessage(code=commands['debug_3'], data=1)
+            # self.controller.sendMessage(code=commands['debug_4'], data=1)
+            # self.controller.sendMessage(code=commands['debug_5'], data=1)
+            # self.controller.sendMessage(code=commands['debug_6'], data=1)
+            # self.controller.sendMessage(code=commands['debug_7'], data=1)
+        else:
+            # turn off debug
+            # self.controller.sendMessage(code=commands['debug_off'])
+            self.controller.sendMessage(code=commands['debug_1'], data=0)
+            self.controller.sendMessage(code=commands['debug_2'], data=0)
             self.controller.sendMessage(code=commands['debug_3'], data=1)
             self.controller.sendMessage(code=commands['debug_4'], data=1)
             self.controller.sendMessage(code=commands['debug_5'], data=1)
             self.controller.sendMessage(code=commands['debug_6'], data=1)
             self.controller.sendMessage(code=commands['debug_7'], data=1)
-        else:
-            # turn off debug
-            self.controller.sendMessage(code=commands['debug_off'])
 
     def printAll(self, state):
         if state == Qt.CheckState.Checked:
@@ -855,11 +861,11 @@ class Controller(QObject):
     # define slots
     connectionLost = Signal()
 
-    def __init__(self, output, serial, parent=None):
+    def __init__(self, output, parent=None):
         super(Controller, self).__init__(parent)
 
         self.out = output
-        self.serial = serial
+        self.serial = serial.Serial()
         self.connected = False
 
         self.sendLock = Lock()
@@ -894,33 +900,27 @@ class Controller(QObject):
             self.rate = rate
             self.port = port
             self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
-            self.serial.port =self.port
-            self.serial.timeout = 1
+            # self.serial.port =self.port
+            # self.serial.timeout = 0
+            # self.serial.baudrate = 9600
+            # self.serial.bytesize=serial.EIGHTBITS
+            # self.serial.stopbits=serial.STOPBITS_ONE
             # try to connect a few times
-            i = 0
-            while not self.serial.isOpen() and (i < 20) :
-                i += 1
-                try:
-                    self.serial.open()
-                except serial.SerialException:
-                    None
-                    
-                if not self.serial.isOpen():
-                    self.out("<font color=red>could not open connection, trying again</font>")
+            try:
+                #self.serial.open()
+                self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE ) #timeout=0.1)
+            except serial.SerialException as e:
+                self.out("<font color=red>%s</font>" % e)
 
             if self.serial.isOpen():
                 self.connected = True
                 self.serialThread = Thread(target=self.pollSerial)
                 #self.serialThread.daemon = True
-
-                # create text wrapper
-                # when line_bufferin=True a call to write implies a flush() if it contains a newline char
-                #self.sio = io.TextIOWrapper(io.BufferedRWPair(self.serial, self.serial), encoding='ascii', line_buffering=True)
-
+                self.serial.flushInput()
                 self.serialThread.start()
                 return True
             else:
-                self.out("<font color=red>could not open connection, check if the port is correct</font>")
+                self.out("<font color=blue>check if you have the correct port and try again</font>")
                 self.connected = False
                 return False
         else:
@@ -1033,8 +1033,12 @@ class Controller(QObject):
             if self.serial.isOpen():
                 #keep getting messages while there is something to read
                 #if performance gets bad, slow this guy down with a sleep
-                self.parseMessage(self.receiveMessage())
-                
+                #self.receiveMessage
+                #self.parseMessage(self.receiveMessage())
+
+                self.parseMessage(self.serial.readline())
+
+                #time.sleep(0.1)
             else:
                 self.out("<font color=red>connect terminated unexpectedly</font>")
                 self.connected = False
@@ -1050,33 +1054,40 @@ class Controller(QObject):
         message = []
         byte = self.serial.read(1)
         if byte :
-            while byte != serialComm.EOL :
-                message.append(byte)
+            if byte != '\n' : #ignore these too
+                while byte != EOL :
+                    message.append(byte)
 
+        print message
         return message    
 
 
     # not the most clever implementation, but should be more readable/maintainable
-    def parseMessage(self, message):
+    def parseMessage(self, line):
         """returns True if a message was receive, False if it was empty"""
         # check for empty message
-        if not message :
-            return
+        if not line :
+            return False
 
+        # copy for parsing
+        message = copy.copy(line)
+        message.rstrip('\n') # get rid of newline
+        message.rstrip(EOL)  # get rid of eol char
+        
         parseError = False # if there was an error during parsing
 
         # message must start with a feedback indicator and be long enough
         # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
         if message[0] == feedback['delim'] and len(message) > 4 :
             #feedback message, check if its one the gui 
-            code = ord(("".join(message[1:3]).decode('hex'))) #converts to int
+            code = ord((message[1:3].decode('hex'))) #converts to int
             if code in feedback :
                 #try unpacking the data in different ways:
                 data = message[2:]
 
                 try :
                     # expecting hex values
-                    hexValue = ("".join(data)).decode('hex')
+                    hexValue = data.decode('hex')
 
                     if len(hexValue == 1) :
                         # one byte
@@ -1084,21 +1095,21 @@ class Controller(QObject):
                         data_uint = unpack('!B', char)[0]
                     elif len(hexValue == 2) :
                         # two bytes
-                        data_int = unpack('!h', ''.join(data))[0]
-                        data_uint = unpack('H', ''.join(data))[0]
+                        data_int = unpack('!h', data)[0]
+                        data_uint = unpack('H', data)[0]
                     elif len(hexValue == 4) :
                         # four bytes
-                        data_int = unpack('!i', ''.join(data))[0]
-                        data_uint = unpack('!I', ''.join(data))[0]
+                        data_int = unpack('!i', data)[0]
+                        data_uint = unpack('!I', data)[0]
 
                         # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', ''.join(data))
-                        data_2_uint = unpack('!HH', ''.join(data))
+                        data_2_int = unpack('!hh', data)
+                        data_2_uint = unpack('!HH', data)
                     elif len(hexValue == 8) :
                         # 8 bytes
                         # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', ''.join(data))
-                        data_2_uint = unpack('!II', ''.join(data))
+                        data_2_int = unpack('!ii', data)
+                        data_2_uint = unpack('!II', data)
                     else :
                         # does not match expected data format
                         parseError = True
@@ -1165,17 +1176,18 @@ class Controller(QObject):
                         # should not happed, but just in case
                         parseError = True
 
+
             # print the message if print all is enabled
             # or if there was a parsing error
             if self.printAll or parseError :
                 # else just print it in hex
-                hexString = "< " + "".join(message[1:])
-                self.out("<font color=black><b>%s</b></font>" % hexString.upper())
+                self.out("<font color=black><b>%s</b></font>" % message)
 
         else:
             #unknown message, push to output as hex string in red
-            hexString = "".join(message)
-            self.out("<font color=red><b>%s</b></font>" % hexString.upper())
+            self.out("<font color=black><b>%s</b></font>" % line)
+
+        return True
 
 if __name__ == '__main__':
     # create the app
