@@ -8,7 +8,7 @@ void check_drive_uart(void) {
 		if(recv == '\r') {
 			if(inputptr) {
 				if(inputbuf[0] == '@') {
-					// reverse command to MAIN MCU
+					// reverse command from MAIN MCU
 					// TODO
 				}
 				else if(rev_passthru) {

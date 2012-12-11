@@ -51,8 +51,9 @@
 #define FET2	A, 7
 
 #define BLD_SW	B, 0
-#define Q3_IO	B, 1
-#define Q3_INT	B, 2
+#define Q3_PIN	PINB
+#define Q3_IO	   1
+#define Q3_INT	   2
 
 #define LED1	C, 2
 #define SPWR	C, 3
@@ -79,4 +80,9 @@ void init_ports(void) {
 	PORTD = 0b00000101;
 	DDRD  = 0b11111010;
 }
+
+void motor3_fwd(void) { clr_bit(DIR3B); set_bit(DIR3A); }
+void motor3_rev(void) { clr_bit(DIR3A); set_bit(DIR3B); }
+void motor4_fwd(void) { clr_bit(DIR4A); set_bit(DIR4B); }
+void motor4_rev(void) { clr_bit(DIR4B); set_bit(DIR4A); }
 
