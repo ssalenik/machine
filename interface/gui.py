@@ -367,9 +367,9 @@ class CentralWidget(QWidget):
                 arm.basePValue.setText("%i" % c.p_base)
                 arm.baseIValue.setText("%i" % c.i_base)
                 arm.baseDValue.setText("%i" % c.d_base)
-                arm.armPValue.setText("%i" % c.p_arm)
-                arm.armIValue.setText("%i" % c.i_arm)
-                arm.armDValue.setText("%i" % c.d_arm)
+                arm.linActPValue.setText("%i" % c.p_arm)
+                arm.linActIValue.setText("%i" % c.i_arm)
+                arm.linActDValue.setText("%i" % c.d_arm)
                 # claw
                 # claw = self.controls.claw
                 # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
@@ -1006,6 +1006,7 @@ class Controller(QObject):
         if self.serial.isOpen() :
             self.connected = False
             self.serialThread.join()    #wait for threads to end
+            self.serial.flushInput()
             self.serial.close()
             self.out("<font color=green>closed serial port</font>")
 
@@ -1173,7 +1174,7 @@ class Controller(QObject):
             code = ord((message[1:3].decode('hex'))) #converts to int
             if message[0] == driver['feedback'] and code in driver :
                 #try unpacking the data in different ways:
-                data = message[2:]
+                data = message[3:]
 
                 try :
                     # expecting hex values
@@ -1268,7 +1269,7 @@ class Controller(QObject):
 
             elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
                 #try unpacking the data in different ways:
-                data = message[2:]
+                data = message[3:]
 
                 try :
                     # expecting hex values
