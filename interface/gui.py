@@ -13,6 +13,7 @@ from threading import Thread
 from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
+import platform
 
 from serialComm import *
 
@@ -439,9 +440,12 @@ class Settings(QFrame):
         self.portSelect = QComboBox()
         self.portSelect.addItem("select or enter port")
         #get all serial ports
-        self.serialPorts = serial.tools.list_ports.comports()
-        for port in self.serialPorts:
-            self.portSelect.addItem(port[0])
+        if platform.system() == 'Linux' :
+            self.portSelect.addItem('/dev/rfcomm0')
+        else:
+            self.serialPorts = serial.tools.list_ports.comports()
+            for port in self.serialPorts:
+                self.portSelect.addItem(port[0])
         self.portSelect.setMinimumWidth(300)
         self.portSelect.setEditable(True)
         self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
