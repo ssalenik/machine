@@ -58,8 +58,6 @@ void backwards_dist(uint8_t speed, uint16_t dist)  { drive_complete = 0; fprintf
 void init(void) {
 	init_ports();
 	
-	delay_ms(T_MS * 200); // wait for capacitors to charge
-	
 	init_uart();
 	init_adc();
 	init_enc();

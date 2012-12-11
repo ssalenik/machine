@@ -34,6 +34,11 @@ void check_debug_uart(void) {
 					local_dump ^= 1;
 					break;
 					
+					case 'o': // PID on/off
+					pid_on ^= 1;
+					if(pid_on) reset_pid();
+					break;
+					
 					case 's': // start/stop main thread
 					run_main ^= 1;
 					if(run_main) { fprintf_P(&debug, PSTR("Main thread started!\r\n")); }
@@ -50,6 +55,7 @@ void check_debug_uart(void) {
 					break;
 					
 					case ' ':
+					pid_on = 0;
 					stop();
 					set_speed_3(0);
 					set_speed_4(0);

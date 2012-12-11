@@ -13,11 +13,13 @@ void check_print_stat(void) {
 	set_interval(500);
 	
 	if(local_dump) {
-		fprintf_P(&debug, PSTR("<32%04x\r\n<33%04x\r\n<34%08x\r\n<35%04x\r\n"), read_enc3_synchro(), enc3_pro, enc3_int, enc3_der);
-		fprintf_P(&debug, PSTR("<42%04x\r\n<43%04x\r\n<44%08x\r\n<45%04x\r\n"), read_actu_synchro(), actu_pro, actu_int, actu_der);
-		
 		//fprintf_P(&debug, PSTR("E%+d\tP%+d\tI%+ld\tD%+d\t\t"), read_enc3_synchro(), enc3_pro, enc3_int, enc3_der);
 		//fprintf_P(&debug, PSTR("E%+d\tP%+d\tI%+ld\tD%+d\r\n"), read_actu_synchro(), actu_pro, actu_int, actu_der);
+		
+		fprintf_P(&debug, PSTR("<32%04x\r\n<33%04x\r\n<34%08lx\r\n<35%04x\r\n"), read_enc3_synchro(), enc3_pro, enc3_int, enc3_der);
+		fprintf_P(&debug, PSTR("<42%04x\r\n<43%04x\r\n<44%08lx\r\n<45%04x\r\n"), read_actu_synchro(), actu_pro, actu_int, actu_der);
+		
+		fprintf_P(&debug, PSTR("R%+d\tR%+d\r\n"), read_enc3_ref(), read_actu_ref());
 	}
 }
 
