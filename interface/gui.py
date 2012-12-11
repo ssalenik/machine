@@ -108,6 +108,8 @@ class CentralWidget(QWidget):
         self.controls.arm.upButton.released.connect(self.stopArm)
         self.controls.arm.downButton.pressed.connect(self.armDown)
         self.controls.arm.downButton.released.connect(self.stopArm)
+        self.controls.arm.setBaseRef.clicked.connect(self.setBaseRef)
+        self.controls.arm.setLinActRef.clicked.connect(self.setArmRef)
 
         # claw signals
         self.controls.claw.openButton.pressed.connect(self.clawOpen)
@@ -156,91 +158,94 @@ class CentralWidget(QWidget):
         #TODO
         None
 
+    def setArmRef(self):
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
+
+    def setBaseRef(self):
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
+
     def baseCCW(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value())
 
     def baseCW(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value())
 
     def stopBase(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=0)
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=0)
 
     def armUp(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value())
 
     def armDown(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value())
 
     def stopArm(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=0)
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=0)
+        
 
     def stopChassy(self):
         if self.controls.chassy.PIDSwitch.isChecked() :
-            self.controller.sendMessage(code=commands['speed_both'], data=0)
+            self.controller.sendMessage(code=driver['speed_both'], data=0)
         else:
-            self.controller.sendMessage(code=commands['power_both'], data=0)
+            self.controller.sendMessage(code=driver['power_both'], data=0)
 
     def chassyCCW(self):
         # set direction
-        self.controller.sendMessage(code=commands['dir_left'], data=BACKWARD)
-        self.controller.sendMessage(code=commands['dir_right'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD)
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
         else :
             # set power
-            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
 
     def chassyCW(self):
         # set direction
-        self.controller.sendMessage(code=commands['dir_left'], data=FORWARD)
-        self.controller.sendMessage(code=commands['dir_right'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD)
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
         else :
             # set power
-            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
 
     def backward(self):
         # set direction
-        self.controller.sendMessage(code=commands['dir_left'], data=BACKWARD)
-        self.controller.sendMessage(code=commands['dir_right'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD)
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
         else :
             # set power
-            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
 
     def forward(self):
         # set direction
-        self.controller.sendMessage(code=commands['dir_left'], data=FORWARD)
-        self.controller.sendMessage(code=commands['dir_right'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD)
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=commands['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
         else :
             # set power
-            self.controller.sendMessage(code=commands['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=commands['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
 
 
     def PIDToggle(self, state):
@@ -265,23 +270,23 @@ class CentralWidget(QWidget):
     def debugRequest(self, state):
         if state == Qt.CheckState.Checked:
             # turn on all teh debugs
-            self.controller.sendMessage(code=commands['debug_1'], data=1)
-            self.controller.sendMessage(code=commands['debug_2'], data=1)
-            # self.controller.sendMessage(code=commands['debug_3'], data=1)
-            # self.controller.sendMessage(code=commands['debug_4'], data=1)
-            # self.controller.sendMessage(code=commands['debug_5'], data=1)
-            # self.controller.sendMessage(code=commands['debug_6'], data=1)
-            # self.controller.sendMessage(code=commands['debug_7'], data=1)
+            self.controller.sendMessage(code=driver['debug_1'], data=1)
+            self.controller.sendMessage(code=driver['debug_2'], data=1)
+            # self.controller.sendMessage(code=driver['debug_3'], data=1)
+            # self.controller.sendMessage(code=driver['debug_4'], data=1)
+            # self.controller.sendMessage(code=driver['debug_5'], data=1)
+            # self.controller.sendMessage(code=driver['debug_6'], data=1)
+            # self.controller.sendMessage(code=driver['debug_7'], data=1)
         else:
             # turn off debug
-            # self.controller.sendMessage(code=commands['debug_off'])
-            self.controller.sendMessage(code=commands['debug_1'], data=0)
-            self.controller.sendMessage(code=commands['debug_2'], data=0)
-            self.controller.sendMessage(code=commands['debug_3'], data=1)
-            self.controller.sendMessage(code=commands['debug_4'], data=1)
-            self.controller.sendMessage(code=commands['debug_5'], data=1)
-            self.controller.sendMessage(code=commands['debug_6'], data=1)
-            self.controller.sendMessage(code=commands['debug_7'], data=1)
+            # self.controller.sendMessage(code=driver['debug_off'])
+            self.controller.sendMessage(code=driver['debug_1'], data=0)
+            self.controller.sendMessage(code=driver['debug_2'], data=0)
+            self.controller.sendMessage(code=driver['debug_3'], data=1)
+            self.controller.sendMessage(code=driver['debug_4'], data=1)
+            self.controller.sendMessage(code=driver['debug_5'], data=1)
+            self.controller.sendMessage(code=driver['debug_6'], data=1)
+            self.controller.sendMessage(code=driver['debug_7'], data=1)
 
     def printAll(self, state):
         if state == Qt.CheckState.Checked:
@@ -358,12 +363,17 @@ class CentralWidget(QWidget):
                 # arm
                 arm = self.controls.arm
                 arm.baseEncoderValue.setText("%i" % c.encoder_base)
-                arm.baseSensorValue.setText("%i" % c.sensor_base)
                 arm.linActEncoderValue.setText("%i" % c.encoder_arm)
+                arm.basePValue.setText("%i" % c.p_base)
+                arm.baseIValue.setText("%i" % c.i_base)
+                arm.baseDValue.setText("%i" % c.d_base)
+                arm.armPValue.setText("%i" % c.p_arm)
+                arm.armIValue.setText("%i" % c.i_arm)
+                arm.armDValue.setText("%i" % c.d_arm)
                 # claw
-                claw = self.controls.claw
-                claw.clawEncoderValue.setText("%i" % c.encoder_claw)
-                claw.heightEncoderValue.setText("%i" % c.encoder_claw_height)
+                # claw = self.controls.claw
+                # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
+                # claw.heightEncoderValue.setText("%i" % c.encoder_claw_height)
 
             # output
             self.output.refresh()
@@ -948,11 +958,16 @@ class Controller(QObject):
         self.position_right = 0
         self.sensor_left = 0
         self.sensor_right = 0
+
+        # main cpu
         self.encoder_base = 0
-        self.sensor_base = 0
         self.encoder_arm = 0
-        self.encoder_claw = 0
-        self.encoder_claw_height = 0
+        self.p_base = 0
+        self.i_base = 0
+        self.d_base = 0
+        self.p_arm = 0
+        self.i_arm = 0
+        self.d_arm = 0
 
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
@@ -1027,10 +1042,16 @@ class Controller(QObject):
 
         self.out("<font color=green>stoped polling for feedback</font>")
 
-    def sendMessage(self, code, sendToDriver=True, data=-1):
+    def sendMessage(self, code, sendToDriver=True, data=None, encoding='u8'):
         """
         sends message
-        if there is data to send, assumes its only u8 bits for now
+        valid encodings:
+            *u8
+            *s8
+            *u16
+            *s16
+            *u32
+            *s32
         """
         if not self.serial.isOpen:
             # make sure connection is open
@@ -1040,14 +1061,24 @@ class Controller(QObject):
         message = ""
         if self.connectedToMainCPU and sendToDriver :
             # if command to driver and we're not direclty connected to it
-            message += commands['driver']
+            message += driver['cmd']
 
         message += "%02X" % code
 
-        # right now I assume we're just sending an 8 bit signed int
-        # insert if/else statements here if otherwise
-        if data > -1 :
-            message += "%02X" % ord(pack('!B', data&0xFF))
+        # check which encoding to use
+        if not data == None :
+            if encoding == 'u8' :
+                message += "%02X" % ord(pack('!B', data&0xFF))
+            if encoding == 's8' :
+                message += "%02X" % ord(pack('!b', data&0xFF))
+            if encoding == 's16' :
+                message += "%04X" % ord(pack('!h', data&0xFFFF))
+            if encoding == 'u16' :
+                message += "%04X" % ord(pack('!H', data&0xFFFF))
+            if encoding == 's32' :
+                message += "%08X" % ord(pack('!i', data&0xFFFFFFFF))
+            if encoding == 'u32' :
+                message += "%08X" % ord(pack('!I', data&0xFFFFFFFF))
 
         #before we append the EOL
         if self.printAll :
@@ -1137,10 +1168,10 @@ class Controller(QObject):
 
         # message must start with a feedback indicator and be long enough
         # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
-        if message[0] == feedback['delim'] and len(message) > 4 :
+        if message[0] == driver['feedback'] or message[0] == mainCPU['feedback'] :
             #feedback message, check if its one the gui 
             code = ord((message[1:3].decode('hex'))) #converts to int
-            if code in feedback :
+            if message[0] == driver['feedback'] and code in driver :
                 #try unpacking the data in different ways:
                 data = message[2:]
 
@@ -1179,57 +1210,128 @@ class Controller(QObject):
                 # now match the data to the value
                 if not parseError :
 
-                    if code == feedback['encoder_left'] :
+                    if code == driver['encoder_left'] :
                         self.encoder_left = data_int
 
-                    elif code == feedback['encoder_right'] :
+                    elif code == driver['encoder_right'] :
                         self.encoder_right = data_int
 
-                    # elif code == feedback['encoder_both'] :
+                    # elif code == driver['encoder_both'] :
                     #     self.encoder_left = data_2_int[0]
                     #     self.encoder_right = data_2_int[1]
 
-                    elif code == feedback['speed_act_left'] :
+                    elif code == driver['speed_act_left'] :
                         self.speed_left = data_int
 
-                    elif code == feedback['speed_act_right'] :
+                    elif code == driver['speed_act_right'] :
                         self.speed_right = data_int
 
-                    # elif code == feedback['speed_both'] :
+                    # elif code == driver['speed_both'] :
                     #     self.speed_left = data_2_int[0]
                     #     self.speed_right = data_2_int[1]
 
-                    elif code == feedback['position_left'] :
+                    elif code == driver['position_left'] :
                         self.position_left = data_int
 
-                    elif code == feedback['position_right'] :
+                    elif code == driver['position_right'] :
                         self.position_right = data_int
 
-                    # elif code == feedback['position_both'] :
+                    # elif code == driver['position_both'] :
                     #     self.position_left = data_2_int[0]
                     #     self.position_right = data_2_int[1]
 
-                    elif code == feedback['sensor_left'] :
+                    elif code == driver['sensor_left'] :
                         self.sensor_left = data_uint
 
-                    elif code == feedback['sensor_right'] :
+                    elif code == driver['sensor_right'] :
                         self.sensor_right = data_uint
 
-                    # elif code == feedback['sensor_both'] :
+                    # elif code == driver['sensor_both'] :
                     #     self.sensor_left = data_2_int[0]
                     #     self.sensor_right = data_2_int[1]
 
-                    # elif code == feedback['encoder_base'] :
+                    # elif code == driver['encoder_base'] :
                     #     self.encoder_base = data_int
 
-                    # elif code == feedback['encoder_arm'] :
+                    # elif code == driver['encoder_arm'] :
                     #     self.encoder_arm = data_int
 
-                    # elif code == feedback['encoder_claw'] :
+                    # elif code == driver['encoder_claw'] :
                     #     self.encoder_claw = data_int
 
-                    # elif code == feedback['encoder_claw_height'] :
+                    # elif code == driver['encoder_claw_height'] :
                     #     self.encoder_claw_height = data_int
+
+                    else :
+                        # should not happed, but just in case
+                        parseError = True
+
+            elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
+                #try unpacking the data in different ways:
+                data = message[2:]
+
+                try :
+                    # expecting hex values
+                    hexValue = data.decode('hex')
+
+                    if len(hexValue == 1) :
+                        # one byte
+                        data_int = unpack('!b', char)[0]
+                        data_uint = unpack('!B', char)[0]
+                    elif len(hexValue == 2) :
+                        # two bytes
+                        data_int = unpack('!h', data)[0]
+                        data_uint = unpack('H', data)[0]
+                    elif len(hexValue == 4) :
+                        # four bytes
+                        data_int = unpack('!i', data)[0]
+                        data_uint = unpack('!I', data)[0]
+
+                        # maybe 2 (16 bit) ints?
+                        data_2_int = unpack('!hh', data)
+                        data_2_uint = unpack('!HH', data)
+                    elif len(hexValue == 8) :
+                        # 8 bytes
+                        # should be 2 (32 bit) ints
+                        data_2_int = unpack('!ii', data)
+                        data_2_uint = unpack('!II', data)
+                    else :
+                        # does not match expected data format
+                        parseError = True
+                except error:
+                    # some error trying to unpack
+                    parseError = True
+
+                # now match the data to the value
+                if not parseError :
+                    motor = code&0xF0
+                    feedback = code&0x0F
+
+                    if motor == mainCPU['base'] :
+
+                        if feedback == mainCPU['encoder']:
+                            self.encoder_base = data_int
+                        elif feedback == mainCPU['pid_p']:
+                            self.p_base = data_int
+                        elif feedback == mainCPU['pid_i']:
+                            self.i_base = data_int
+                        elif feedback == mainCPU['pid_d']:
+                            self.d_base = data_int
+                        else:
+                            parseError = True
+
+                    elif motor == mainCPU['arm'] :
+
+                        if feedback == mainCPU['encoder']:
+                            self.encoder_arm = data_int
+                        elif feedback == mainCPU['pid_p']:
+                            self.p_arm = data_int
+                        elif feedback == mainCPU['pid_i']:
+                            self.i_arm = data_int
+                        elif feedback == mainCPU['pid_d']:
+                            self.d_arm = data_int
+                        else:
+                            parseError = True
 
                     else :
                         # should not happed, but just in case
