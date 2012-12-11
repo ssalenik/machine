@@ -54,7 +54,8 @@ commands['debug_7']		= 0x77
 
 
 # feedback
-feedback['delim']				= '>'
+feedback['delim_driver']		= '>'
+feedback['delim_main']			= '<'
 # feedback['refresh_all']			=
 feedback['encoder_left']		= 0x41
 feedback['encoder_right']		= 0x21
