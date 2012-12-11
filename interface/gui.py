@@ -13,6 +13,7 @@ from threading import Thread
 from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
+import platform
 
 from serialComm import *
 
@@ -132,7 +133,7 @@ class CentralWidget(QWidget):
         self.controller.sendCustomMessage(self.command.commandInput.text())
 
     def stopAll(self):
-        self.controller.sendCustomMessage(commands['stop_all'])
+        self.controller.sendCustomMessage(STOP_ALL)
 
     def clawOpen(self):
         #TODO
@@ -165,87 +166,87 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=mainCPU['base']|mainCPU['encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
 
     def baseCCW(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value())
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def baseCW(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value())
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def stopBase(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=0)
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=0)
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=0, encoding='u8')
 
     def armUp(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value())
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def armDown(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value())
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def stopArm(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=0)
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=0)
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=0, encoding='u8')
         
 
     def stopChassy(self):
         if self.controls.chassy.PIDSwitch.isChecked() :
-            self.controller.sendMessage(code=driver['speed_both'], data=0)
+            self.controller.sendMessage(code=driver['speed_both'], data=0, encoding='u8')
         else:
-            self.controller.sendMessage(code=driver['power_both'], data=0)
+            self.controller.sendMessage(code=driver['power_both'], data=0, encoding='u8')
 
     def chassyCCW(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD)
-        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def chassyCW(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD)
-        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def backward(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD)
-        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def forward(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD)
-        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD)
+        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value())
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value())
+            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
 
     def PIDToggle(self, state):
@@ -270,8 +271,8 @@ class CentralWidget(QWidget):
     def debugRequest(self, state):
         if state == Qt.CheckState.Checked:
             # turn on all teh debugs
-            self.controller.sendMessage(code=driver['debug_1'], data=1)
-            self.controller.sendMessage(code=driver['debug_2'], data=1)
+            self.controller.sendMessage(code=driver['debug_1'], data=1, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_2'], data=1, encoding='u8')
             # self.controller.sendMessage(code=driver['debug_3'], data=1)
             # self.controller.sendMessage(code=driver['debug_4'], data=1)
             # self.controller.sendMessage(code=driver['debug_5'], data=1)
@@ -280,13 +281,13 @@ class CentralWidget(QWidget):
         else:
             # turn off debug
             # self.controller.sendMessage(code=driver['debug_off'])
-            self.controller.sendMessage(code=driver['debug_1'], data=0)
-            self.controller.sendMessage(code=driver['debug_2'], data=0)
-            self.controller.sendMessage(code=driver['debug_3'], data=1)
-            self.controller.sendMessage(code=driver['debug_4'], data=1)
-            self.controller.sendMessage(code=driver['debug_5'], data=1)
-            self.controller.sendMessage(code=driver['debug_6'], data=1)
-            self.controller.sendMessage(code=driver['debug_7'], data=1)
+            self.controller.sendMessage(code=driver['debug_1'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_2'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_3'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_4'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_5'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_6'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_7'], data=0, encoding='u8')
 
     def printAll(self, state):
         if state == Qt.CheckState.Checked:
@@ -367,9 +368,9 @@ class CentralWidget(QWidget):
                 arm.basePValue.setText("%i" % c.p_base)
                 arm.baseIValue.setText("%i" % c.i_base)
                 arm.baseDValue.setText("%i" % c.d_base)
-                arm.armPValue.setText("%i" % c.p_arm)
-                arm.armIValue.setText("%i" % c.i_arm)
-                arm.armDValue.setText("%i" % c.d_arm)
+                arm.linActPValue.setText("%i" % c.p_arm)
+                arm.linActIValue.setText("%i" % c.i_arm)
+                arm.linActDValue.setText("%i" % c.d_arm)
                 # claw
                 # claw = self.controls.claw
                 # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
@@ -439,9 +440,12 @@ class Settings(QFrame):
         self.portSelect = QComboBox()
         self.portSelect.addItem("select or enter port")
         #get all serial ports
-        self.serialPorts = serial.tools.list_ports.comports()
-        for port in self.serialPorts:
-            self.portSelect.addItem(port[0])
+        if platform.system() == 'Linux' :
+            self.portSelect.addItem('/dev/rfcomm0')
+        else:
+            self.serialPorts = serial.tools.list_ports.comports()
+            for port in self.serialPorts:
+                self.portSelect.addItem(port[0])
         self.portSelect.setMinimumWidth(300)
         self.portSelect.setEditable(True)
         self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
@@ -1006,6 +1010,7 @@ class Controller(QObject):
         if self.serial.isOpen() :
             self.connected = False
             self.serialThread.join()    #wait for threads to end
+            self.serial.flushInput()
             self.serial.close()
             self.out("<font color=green>closed serial port</font>")
 
@@ -1042,10 +1047,11 @@ class Controller(QObject):
 
         self.out("<font color=green>stoped polling for feedback</font>")
 
-    def sendMessage(self, code, sendToDriver=True, data=None, encoding='u8'):
+    def sendMessage(self, code, data=0, sendToDriver=True, encoding='none'):
         """
         sends message
         valid encodings:
+            *none - when no data
             *u8
             *s8
             *u16
@@ -1066,19 +1072,19 @@ class Controller(QObject):
         message += "%02X" % code
 
         # check which encoding to use
-        if not data == None :
+        if not encoding == 'none' :
             if encoding == 'u8' :
-                message += "%02X" % ord(pack('!B', data&0xFF))
+                message += "%02X" % (int(data)&0xFF)
             if encoding == 's8' :
-                message += "%02X" % ord(pack('!b', data&0xFF))
+                message += "%02X" % (int(data)&0xFF)
             if encoding == 's16' :
-                message += "%04X" % ord(pack('!h', data&0xFFFF))
+                message += "%04X" % (int(data)&0xFFFF)
             if encoding == 'u16' :
-                message += "%04X" % ord(pack('!H', data&0xFFFF))
+                message += "%04X" % (int(data)&0xFFFF)
             if encoding == 's32' :
-                message += "%08X" % ord(pack('!i', data&0xFFFFFFFF))
+                message += "%08X" % (int(data)&0xFFFFFFFF)
             if encoding == 'u32' :
-                message += "%08X" % ord(pack('!I', data&0xFFFFFFFF))
+                message += "%08X" % (int(data)&0xFFFFFFFF)
 
         #before we append the EOL
         if self.printAll :
@@ -1161,8 +1167,9 @@ class Controller(QObject):
 
         # copy for parsing
         message = copy.copy(line)
-        message.rstrip('\n') # get rid of newline
-        message.rstrip(EOL)  # get rid of eol char
+        message = message.rstrip()
+        # message.rstrip('\n') # get rid of newline
+        # message.rstrip(EOL)  # get rid of eol char
         
         parseError = False # if there was an error during parsing
 
@@ -1173,33 +1180,33 @@ class Controller(QObject):
             code = ord((message[1:3].decode('hex'))) #converts to int
             if message[0] == driver['feedback'] and code in driver :
                 #try unpacking the data in different ways:
-                data = message[2:]
+                data = message[3:]
 
                 try :
                     # expecting hex values
                     hexValue = data.decode('hex')
 
-                    if len(hexValue == 1) :
+                    if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', char)[0]
-                        data_uint = unpack('!B', char)[0]
-                    elif len(hexValue == 2) :
+                        data_int = unpack('!b', hexValue)[0]
+                        data_uint = unpack('!B', hexValue)[0]
+                    elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', data)[0]
-                        data_uint = unpack('H', data)[0]
-                    elif len(hexValue == 4) :
+                        data_int = unpack('!h', hexValue)[0]
+                        data_uint = unpack('H', hexValue)[0]
+                    elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', data)[0]
-                        data_uint = unpack('!I', data)[0]
+                        data_int = unpack('!i', hexValue)[0]
+                        data_uint = unpack('!I', hexValue)[0]
 
                         # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', data)
-                        data_2_uint = unpack('!HH', data)
-                    elif len(hexValue == 8) :
+                        data_2_int = unpack('!hh', hexValue)
+                        data_2_uint = unpack('!HH', hexValue)
+                    elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', data)
-                        data_2_uint = unpack('!II', data)
+                        data_2_int = unpack('!ii', hexValue)
+                        data_2_uint = unpack('!II', hexValue)
                     else :
                         # does not match expected data format
                         parseError = True
@@ -1268,39 +1275,40 @@ class Controller(QObject):
 
             elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
                 #try unpacking the data in different ways:
-                data = message[2:]
+                data = message[3:]
 
                 try :
                     # expecting hex values
                     hexValue = data.decode('hex')
 
-                    if len(hexValue == 1) :
+                    if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', char)[0]
-                        data_uint = unpack('!B', char)[0]
-                    elif len(hexValue == 2) :
+                        data_int = unpack('!b', hexValue)[0]
+                        data_uint = unpack('!B', hexValue)[0]
+                    elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', data)[0]
-                        data_uint = unpack('H', data)[0]
-                    elif len(hexValue == 4) :
+                        data_int = unpack('!h', hexValue)[0]
+                        data_uint = unpack('H', hexValue)[0]
+                    elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', data)[0]
-                        data_uint = unpack('!I', data)[0]
+                        data_int = unpack('!i', hexValue)[0]
+                        data_uint = unpack('!I', hexValue)[0]
 
                         # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', data)
-                        data_2_uint = unpack('!HH', data)
-                    elif len(hexValue == 8) :
+                        data_2_int = unpack('!hh', hexValue)
+                        data_2_uint = unpack('!HH', hexValue)
+                    elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', data)
-                        data_2_uint = unpack('!II', data)
+                        data_2_int = unpack('!ii', hexValue)
+                        data_2_uint = unpack('!II', hexValue)
                     else :
                         # does not match expected data format
                         parseError = True
                 except error:
                     # some error trying to unpack
                     parseError = True
+                    print "parse error in decoding data"
 
                 # now match the data to the value
                 if not parseError :
