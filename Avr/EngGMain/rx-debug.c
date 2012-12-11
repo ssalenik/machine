@@ -1,3 +1,5 @@
+char cmd_err[] PROGMEM = "Command error\r\n";
+
 void check_debug_uart(void) {
 	static uint8_t inputbuf[RX_LINE_SIZE], inputptr = 0;
 	uint8_t i, recv;
@@ -24,12 +26,12 @@ void check_debug_uart(void) {
 					uart_put(DRIVE, '\r');
 					break;
 					
-					case '0': // reverse passthrough OFF
-					rev_passthru = 0;
+					case 'r': // toggle reverse passthrough from DRIVE MCU
+					rev_passthru ^= 1;
 					break;
 					
-					case '1': // reverse passthrough ON
-					rev_passthru = 1;
+					case 'd': // local dump on/off
+					local_dump ^= 1;
 					break;
 					
 					case 's': // start/stop main thread
@@ -44,7 +46,7 @@ void check_debug_uart(void) {
 						if(!run_test) { fprintf_P(&debug, PSTR("All test sequences stopped!\r\n")); stop(); }
 						else { fprintf_P(&debug, PSTR("Started test sequence %u!\r\n"), run_test); }
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case ' ':
@@ -66,25 +68,73 @@ void check_debug_uart(void) {
 					if(inputptr >= 2 && (inputbuf[1] & ~1) == '0') {
 						inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '3': // turn motor commands
-					if(inputptr >= 4 && (inputbuf[1] & ~1) == '0' && isHex(inputbuf[2]) && isHex(inputbuf[3])) {
-						if(inputbuf[1] == '0') { clr_bit(DIR3A); set_bit(DIR3B); }
-						else                   { clr_bit(DIR3B); set_bit(DIR3A); }
-						set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
+					if(isHex(inputbuf[2]) && isHex(inputbuf[3])) {
+						switch(inputbuf[1]) {
+							case '0':
+							if(inputptr >= 4) {
+								motor3_fwd();
+								set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							case '1':
+							if(inputptr >= 4) {
+								motor3_rev();
+								set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							case '2':
+							if(inputptr >= 6 && isHex(inputbuf[4]) && isHex(inputbuf[5])) {
+								write_enc3_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							default:
+							fprintf_P(&debug, (PGM_P)cmd_err);
+						}
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
-					case '4': // turn motor commands
-					if(inputptr >= 4 && (inputbuf[1] & ~1) == '0' && isHex(inputbuf[2]) && isHex(inputbuf[3])) {
-						if(inputbuf[1] == '0') { clr_bit(DIR4A); set_bit(DIR4B); }
-						else                   { clr_bit(DIR4B); set_bit(DIR4A); }
-						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
+					case '4': // lift motor commands
+					if(isHex(inputbuf[2]) && isHex(inputbuf[3])) {
+						switch(inputbuf[1]) {
+							case '0':
+							if(inputptr >= 4) {
+								motor4_fwd();
+								set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							case '1':
+							if(inputptr >= 4) {
+								motor4_rev();
+								set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							case '2':
+							if(inputptr >= 6 && isHex(inputbuf[4]) && isHex(inputbuf[5])) {
+								write_actu_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
+							}
+							else { fprintf_P(&debug, (PGM_P)cmd_err); }
+							break;
+							
+							default:
+							fprintf_P(&debug, (PGM_P)cmd_err);
+						}
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '5': // servo5 commands
@@ -92,7 +142,7 @@ void check_debug_uart(void) {
 						servo5(htoa(inputbuf[1], inputbuf[2]));
 						//OCR0A = htoa(inputbuf[1], inputbuf[2]);
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '6': // servo6 commands
@@ -100,7 +150,7 @@ void check_debug_uart(void) {
 						servo6(htoa(inputbuf[1], inputbuf[2]));
 						//OCR0B = htoa(inputbuf[1], inputbuf[2]);
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '7': // servo7 commands
@@ -108,7 +158,7 @@ void check_debug_uart(void) {
 						servo7(htoa(inputbuf[1], inputbuf[2]));
 						//OCR2A = htoa(inputbuf[1], inputbuf[2]);
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '8': // servo8 commands
@@ -116,11 +166,11 @@ void check_debug_uart(void) {
 						servo8(htoa(inputbuf[1], inputbuf[2]));
 						//OCR2B = htoa(inputbuf[1], inputbuf[2]);
 					}
-					else { fprintf_P(&debug, PSTR("Command error\r\n")); }
+					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					default:
-					fprintf_P(&debug, PSTR("Command error\r\n"));
+					fprintf_P(&debug, (PGM_P)cmd_err);
 				}
 				
 				inputptr = 0;

@@ -1,4 +1,40 @@
-volatile uint32_t V_uptime;
+volatile uint32_t V_uptime = 0;
+volatile int16_t V_actu_synchro = 0, V_actu_ref = 0, V_actu_sync_ref = 0;
+volatile int16_t V_enc3_synchro = 0, V_enc3_ref = 0, V_enc3_sync_ref = 0;
+volatile uint8_t run_pid = 0;
+
+uint32_t uptime(void) { cli(); uint32_t time = V_uptime; sei(); return time; }
+
+int16_t read_actu_synchro(void)  { cli(); int16_t actu = V_actu_synchro; sei(); return actu; }
+int16_t read_enc3_synchro(void)  { cli(); int16_t enc3 = V_enc3_synchro; sei(); return enc3; }
+
+int16_t read_actu_ref(void)      { cli(); int16_t ref = V_actu_sync_ref; sei(); return ref; }
+int16_t read_enc3_ref(void)      { cli(); int16_t ref = V_enc3_sync_ref; sei(); return ref; }
+
+void write_actu_ref(int16_t ref) { cli(); V_actu_ref = ref; sei(); }
+void write_enc3_ref(int16_t ref) { cli(); V_enc3_ref = ref; sei(); }
+
+// set PWM for turn and lift motors (100% = 4000)
+#define MAXTIMER 4000
+
+void set_speed_3(uint16_t speed) {
+	if(speed > MAXTIMER) speed = MAXTIMER;
+	OCR1A = speed;
+}
+
+void set_speed_4(uint16_t speed) {
+	if(speed > MAXTIMER) speed = MAXTIMER;
+	OCR1B = MAXTIMER - speed;
+}
+
+// set angle of servos
+#define SERVO_OFFSET 49
+#define SERVO_FACTOR 193
+// these can also be set individually for each servo below
+void servo5(uint8_t degrees) { OCR0A = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
+void servo6(uint8_t degrees) { OCR0B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
+void servo7(uint8_t degrees) { OCR2A = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
+void servo8(uint8_t degrees) { OCR2B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
 
 void init_timer(void) {
 	// init. TIMER0 & TIMER2
@@ -12,7 +48,6 @@ void init_timer(void) {
 	servo8(0);
 	
 	// init. TIMER1
-	#define MAXTIMER 4000
 	TCCR1B = 1 << WGM13; // phase & frequency correct PWM (mode 8)
 	ICR1 = MAXTIMER; // PWM output frequency = 2.500 kHz
 	TCNT1 = MAXTIMER >> 1; // set timer to middle to prevent output pulse
@@ -28,26 +63,6 @@ void init_timer(void) {
 	TCCR3B |= 2 << CS30; // start TIMER3 with prescaler = 8
 }
 
-uint32_t uptime(void) {
-	cli();
-	uint32_t time = V_uptime;
-	sei();
-	return time;
-}
-
-// set PWM for turn and lift motors (100% = 4000)
-void set_speed_3(uint16_t speed) { OCR1A = speed; }
-void set_speed_4(uint16_t speed) { OCR1B = MAXTIMER - speed; }
-
-// set angle of servos
-#define SERVO_OFFSET 49
-#define SERVO_FACTOR 193
-// these can also be set individually for each servo below
-void servo5(uint8_t degrees) { OCR0A = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
-void servo6(uint8_t degrees) { OCR0B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
-void servo7(uint8_t degrees) { OCR2A = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
-void servo8(uint8_t degrees) { OCR2B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; }
-
 // TIMER3 interrupt
 SIGNAL(TIMER3_COMPA_vect) {
 	static uint8_t servo_period = 0;
@@ -55,18 +70,27 @@ SIGNAL(TIMER3_COMPA_vect) {
 	servo_period++;
 	if(servo_period == 20) {
 		servo_period = 0;
+		
+		// servo outputs
 		TCCR0B = 0; // stop TIMER0
 		TCCR2B = 0; // stop TIMER2
-		TCNT0 = 0; // reset TIMER0
-		TCNT2 = 0; // reset TIMER2
+		TCNT0 = 0;  // reset TIMER0
+		TCNT2 = 0;  // reset TIMER2
 		TCCR0A = 3 << COM0A0 | 3 << COM0B0; // set on compare match on all channels
 		TCCR2A = 3 << COM2A0 | 3 << COM2B0;
-		TCCR0B = 1 << FOC0A | 1 << FOC0B; // force compare match
-		TCCR2B = 1 << FOC2A | 1 << FOC2B;
+		TCCR0B = 1 << FOC0A  | 1 << FOC0B;  // force compare match
+		TCCR2B = 1 << FOC2A  | 1 << FOC2B;
 		TCCR0A = 2 << COM0A0 | 2 << COM0B0; // clear on compare match on all channels
 		TCCR2A = 2 << COM2A0 | 2 << COM2B0;
 		TCCR0B = 4 << CS00; // start TIMER0 with prescaler = 256 (max pulse = 3.264 ms)
 		TCCR2B = 6 << CS20; // start TIMER2 with prescaler = 256 (max pulse = 3.264 ms)
+		
+		// encoder inputs
+		V_actu_synchro = adc_sum[LIFT_FB] >> ADC_FILTER_POWER;
+		V_enc3_synchro = V_encoder;
+		V_actu_sync_ref = V_actu_ref;
+		V_enc3_sync_ref = V_enc3_ref;
+		run_pid = 1;
 	}
 }
 
