@@ -1,18 +1,14 @@
 volatile uint32_t V_uptime = 0;
-volatile int16_t V_actu_synchro = 0, V_actu_ref = 0, V_actu_sync_ref = 0;
-volatile int16_t V_enc3_synchro = 0, V_enc3_ref = 0, V_enc3_sync_ref = 0;
+volatile int16_t V_enc3_ref = 0, V_actu_ref = 0, V_enc3_error = 0, V_actu_error = 0;
 volatile uint8_t run_pid = 0;
 
-uint32_t uptime(void) { cli(); uint32_t time = V_uptime; sei(); return time; }
+uint32_t uptime(void)            { cli(); uint32_t time = V_uptime; sei(); return time; }
 
-int16_t read_actu_synchro(void)  { cli(); int16_t actu = V_actu_synchro; sei(); return actu; }
-int16_t read_enc3_synchro(void)  { cli(); int16_t enc3 = V_enc3_synchro; sei(); return enc3; }
-
-int16_t read_actu_ref(void)      { cli(); int16_t ref = V_actu_sync_ref; sei(); return ref; }
-int16_t read_enc3_ref(void)      { cli(); int16_t ref = V_enc3_sync_ref; sei(); return ref; }
-
-void write_actu_ref(int16_t ref) { cli(); V_actu_ref = ref; sei(); }
 void write_enc3_ref(int16_t ref) { cli(); V_enc3_ref = ref; sei(); }
+void write_actu_ref(int16_t ref) { cli(); V_actu_ref = ref; sei(); }
+
+int16_t read_enc3_error(void)    { cli(); int16_t error = V_enc3_error; sei(); return error; }
+int16_t read_actu_error(void)    { cli(); int16_t error = V_actu_error; sei(); return error; }
 
 // set PWM for turn and lift motors (100% = 4000)
 #define MAXTIMER 4000
@@ -85,11 +81,9 @@ SIGNAL(TIMER3_COMPA_vect) {
 		TCCR0B = 4 << CS00; // start TIMER0 with prescaler = 256 (max pulse = 3.264 ms)
 		TCCR2B = 6 << CS20; // start TIMER2 with prescaler = 256 (max pulse = 3.264 ms)
 		
-		// encoder inputs
-		V_actu_synchro = adc_sum[LIFT_FB] >> ADC_FILTER_POWER;
-		V_enc3_synchro = V_encoder;
-		V_actu_sync_ref = V_actu_ref;
-		V_enc3_sync_ref = V_enc3_ref;
+		// precise intervals for PID error calculations
+		V_enc3_error = V_enc3_ref - V_encoder;
+		V_actu_error = V_actu_ref - (adc_sum[LIFT_FB] >> ADC_FILTER_POWER);
 		run_pid = 1;
 	}
 }
