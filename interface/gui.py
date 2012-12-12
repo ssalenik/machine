@@ -1099,7 +1099,7 @@ class Controller(QObject):
 
     def sendCustomMessage(self, message):
         """
-        sends message; assumes its already in hex
+        sends message as given to it
         appends EOL char to the end
         """
         if not self.serial.isOpen:
@@ -1161,15 +1161,14 @@ class Controller(QObject):
     # not the most clever implementation, but should be more readable/maintainable
     def parseMessage(self, line):
         """returns True if a message was receive, False if it was empty"""
-        # check for empty message
-        if not line :
-            return False
 
         # copy for parsing
         message = copy.copy(line)
-        message = message.rstrip()
-        # message.rstrip('\n') # get rid of newline
-        # message.rstrip(EOL)  # get rid of eol char
+        message = message.rstrip() #strip of all spaces
+
+        # check for empty message
+        if not message :
+            return False
         
         parseError = False # if there was an error during parsing
 
