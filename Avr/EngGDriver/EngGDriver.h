@@ -13,6 +13,7 @@
 /* ==========  Defines  ========== */
 
 #define ENDCHAR '\r'
+#define CPUCHAR '>'
 
 /* --- Motor driver constants --- */
     // This is the max value to be placed in the OC1x register
@@ -144,6 +145,15 @@ void sendDone();
 void sendDist();
 void printParams();
 void printParams2();
+
+void printDirection(char dest);
+void printTicks(char dest);
+void printSpeed(char dest);
+void printAccel(char dest);
+void printAbsDist(char dest);
+void printRelDist(char dest);
+void printSensors(char dest);
+
 
 /* --- odometer.c: Odometer and Position Correction --- */
     // Odometer (convert ticks to position: absolute and relative)
