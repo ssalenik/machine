@@ -14,6 +14,8 @@ from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
 import platform
+import csv
+from time import strftime
 
 from serialComm import *
 
@@ -55,13 +57,17 @@ class CentralWidget(QWidget):
         self.settings = Settings()
         self.controls = ControlsFrame()
         self.command = Commands()
+        self.logSelect = LogSelectFrame()
 
         # output
         self.output = Output()
         self.out = self.output.output
 
+        # logger
+        self.logger = Logger(output=self.out)
+
         # controller
-        self.controller = Controller(output=self.out)
+        self.controller = Controller(output=self.out, logger=self.logger)
 
         # layout
         self.layout = QGridLayout()
@@ -70,7 +76,8 @@ class CentralWidget(QWidget):
         self.layout.addWidget(self.settings, 0, 0)
         self.layout.addWidget(self.controls, 1, 0)
         self.layout.addWidget(self.command, 2, 0)
-        self.layout.addWidget(self.output, 0, 1, 3, 1)
+        self.layout.addWidget(self.output, 0, 1, 4, 1)
+        self.layout.addWidget(self.logSelect, 3, 0)
 
         self.layout.setColumnStretch(1, 1)
         self.setLayout(self.layout)
@@ -125,9 +132,22 @@ class CentralWidget(QWidget):
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
 
+        # logger signals
+        self.logSelect.logButton.clicked.connect(self.addLoggers)
+
         # start gui update thread
         self.refreshThread = Thread(target=self.refreshGUI)
         self.refreshThread.start()
+
+    def addLoggers(self):
+        codes = self.logSelect.logInput.text().split()
+        for i in range(len(codes)):
+            codes[i] = codes[i].replace(",", "")
+
+        for code in codes:
+            self.logger.openLogFile(code)
+
+        self.logSelect.logInput.setText("")
 
     def sendCustom(self):
         self.controller.sendCustomMessage(self.command.commandInput.text())
@@ -303,6 +323,8 @@ class CentralWidget(QWidget):
 
     def closing(self):
         # disconnect if connected
+
+        self.logSelect.close
         if self.connected :
             self.connect()
 
@@ -919,6 +941,39 @@ class Commands(QFrame):
         layout.setColumnStretch(3, 1)
 
         # make last row stretch
+        # layout.setRowStretch(1, 1)
+
+        self.setLayout(layout)
+
+    def enableButtons(self):
+        self.setEnabled(True)
+
+    def disableButtons(self):
+        self.setEnabled(False)
+
+class LogSelectFrame(QFrame):
+
+    def __init__(self, parent=None):
+        super(LogSelectFrame, self).__init__(parent)
+
+        self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
+        
+        # widgets
+        self.label = QLabel("Enter commands to log:")
+        self.logInput = QLineEdit()
+        self.logInput.setMinimumWidth(300)
+        self.logButton = QPushButton("log")
+
+        # layout
+        layout = QGridLayout()
+        layout.addWidget(self.label, 0, 0)
+        layout.addWidget(self.logInput, 0, 1)
+        layout.addWidget(self.logButton, 0, 2)
+
+        # make middle column stretch
+        layout.setColumnStretch(3, 1)
+
+        # make last row stretch
         layout.setRowStretch(1, 1)
 
         self.setLayout(layout)
@@ -929,12 +984,48 @@ class Commands(QFrame):
     def disableButtons(self):
         self.setEnabled(False)
 
+class Logger():
+
+    def __init__(self, output, parent=None):
+        self.writers = {}
+        self.files = []
+        self.out = output
+
+    def openLogFile(self, code):
+        """
+        code should include the feedback delimeter
+        """
+        if code in self.writers :
+            self.out("<font color=red>code already set for logging</font>")
+
+        filename = "log_" + strftime("%H-%M-%S") + ("%s" % code) + ".csv"
+
+        csvfile = open(filename, 'wb')
+
+        csvwriter = csv.writer(csvfile, dialect='excel')
+
+        self.writers[code] = csvwriter
+        self.files.append(csvwriter)
+
+    def logData(self, code, data):
+        try :
+            writer = self.fileDict[code]
+
+            writer.writerow([data])
+        except :
+            self.out("<font color=red>log: no such file, or file is closed</font>")
+
+    def closeFiles(self):
+        for csvfile in self.files:
+            csvfile.close()
+
+
 class Controller(QObject):
 
     # define slots
     connectionLost = Signal()
 
-    def __init__(self, output, parent=None):
+    def __init__(self, output, logger, parent=None):
         super(Controller, self).__init__(parent)
 
         self.out = output
@@ -942,6 +1033,8 @@ class Controller(QObject):
         self.connected = False
 
         self.sendLock = Lock()
+
+        self.logger = logger
 
         # default states
         self.connectedToMainCPU = True
@@ -1344,6 +1437,10 @@ class Controller(QObject):
                         # should not happed, but just in case
                         parseError = True
 
+                # log
+                logCode = message[0:3]
+                if logCode in self.logger.writers :
+                    self.logger.logData([data_int])
 
             # print the message if print all is enabled
             # or if there was a parsing error
