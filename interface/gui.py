@@ -1009,9 +1009,9 @@ class Logger():
 
     def logData(self, code, data):
         try :
-            writer = self.fileDict[code]
+        writer = self.writers[code]
 
-            writer.writerow([data])
+        writer.writerow([data])
         except :
             self.out("<font color=red>log: no such file, or file is closed</font>")
 
@@ -1365,6 +1365,11 @@ class Controller(QObject):
                         # should not happed, but just in case
                         parseError = True
 
+                # log
+                logCode = message[0:3]
+                if logCode in self.logger.writers :
+                    self.logger.logData(code=("".join(logCode)), data=data_int)
+
             elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
                 #try unpacking the data in different ways:
                 data = message[3:]
@@ -1440,7 +1445,7 @@ class Controller(QObject):
                 # log
                 logCode = message[0:3]
                 if logCode in self.logger.writers :
-                    self.logger.logData([data_int])
+                    self.logger.logData(code=("".join(logCode)), data=data_int)
 
             # print the message if print all is enabled
             # or if there was a parsing error
