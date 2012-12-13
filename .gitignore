@@ -38,5 +38,10 @@
 # stupid windows stuff
 *.db
 
+# python bin
+*.pyc
+
 # other
 *.csv
+
+
