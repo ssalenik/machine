@@ -45,10 +45,10 @@ int8_t posCorrectionOn = 0;             // toggle position correction
 /* --------------*/
 
 /* --- PID parameters --- */
-uint8_t kP = 32;                        // P Constant
-uint8_t kI = 16;                        // I Constant
+uint8_t kP = 50;                     	// P Constant
+uint8_t kI = 60;                        // I Constant
 uint8_t kD = 64;                        // D Constant
-uint8_t kX = 64;                        // Cross dependency between both motor displacements
+uint8_t kX = 0;                        	// Cross dependency between both motor displacements
 int16_t errIMax = 800;                  // Max Integer value
 int16_t errIMin = -800;         
 int16_t adjustMax = 30;                 // Max power adjustment factor
@@ -101,7 +101,7 @@ uint8_t rotAdjOn = 1;
 
 /* --- Debug --- */
 uint8_t debug1 = 0;
-uint8_t debug2 = 1;
+uint8_t debug2 = 0;
 uint8_t debug3 = 0;
 uint8_t debug4 = 0;
 uint8_t debug5 = 0;

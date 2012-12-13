@@ -14,12 +14,14 @@ from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
 import platform
+import csv
+from time import strftime
 
 from serialComm import *
 
 POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100    # max serial poll rate
-GUI_RATE = 15         # max gui refresh rate
+GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
 # slot defines
@@ -55,13 +57,20 @@ class CentralWidget(QWidget):
         self.settings = Settings()
         self.controls = ControlsFrame()
         self.command = Commands()
+        self.logSelect = LogSelectFrame()
 
         # output
         self.output = Output()
         self.out = self.output.output
 
+        # logger
+        self.logger = Logger(output=self.out)
+
         # controller
-        self.controller = Controller(output=self.out)
+        self.controller = Controller(output=self.out, logger=self.logger)
+
+        # melanie
+        self.melanie = Melanie()
 
         # layout
         self.layout = QGridLayout()
@@ -70,7 +79,8 @@ class CentralWidget(QWidget):
         self.layout.addWidget(self.settings, 0, 0)
         self.layout.addWidget(self.controls, 1, 0)
         self.layout.addWidget(self.command, 2, 0)
-        self.layout.addWidget(self.output, 0, 1, 3, 1)
+        self.layout.addWidget(self.output, 0, 1, 4, 1)
+        self.layout.addWidget(self.logSelect, 3, 0)
 
         self.layout.setColumnStretch(1, 1)
         self.setLayout(self.layout)
@@ -124,13 +134,33 @@ class CentralWidget(QWidget):
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
+        self.command.commandInput.returnPressed.connect(self.sendCustom)
+
+        # logger signals
+        self.logSelect.logButton.clicked.connect(self.addLoggers)
+        self.logSelect.closeButton.clicked.connect(self.stopLogging)
 
         # start gui update thread
         self.refreshThread = Thread(target=self.refreshGUI)
         self.refreshThread.start()
 
+    def addLoggers(self):
+        codes = self.logSelect.logInput.text().split()
+        for i in range(len(codes)):
+            codes[i] = codes[i].replace(",", "")
+
+        for code in codes:
+            self.logger.openLogFile(code)
+
+    def stopLogging(self):
+        self.logger.closeFiles()
+
     def sendCustom(self):
-        self.controller.sendCustomMessage(self.command.commandInput.text())
+        if self.command.commandInput.text() == 'melanie' :
+            self.melanie.showMelanie()
+
+        else:
+            self.controller.sendCustomMessage(self.command.commandInput.text())
 
     def stopAll(self):
         self.controller.sendCustomMessage(STOP_ALL)
@@ -303,6 +333,8 @@ class CentralWidget(QWidget):
 
     def closing(self):
         # disconnect if connected
+
+        self.logSelect.close
         if self.connected :
             self.connect()
 
@@ -380,6 +412,25 @@ class CentralWidget(QWidget):
             self.output.refresh()
 
             time.sleep(1.0/float(GUI_RATE))
+
+class Melanie(QMainWindow):
+    def __init__(self, parent=None):
+        super(Melanie, self).__init__(parent)
+        self.setWindowTitle("Melanie Iglesias")        
+
+        # img
+        self.melanieLabel = QLabel(self)
+        self.melanie_gif_01 = "m01.gif"
+        self.melanieMovie = QMovie(self.melanie_gif_01)
+        self.melanieLabel.setMovie(self.melanieMovie)
+
+        self.setCentralWidget(self.melanieLabel)
+
+    def showMelanie(self):
+        if self.isVisible() == False :
+            self.melanieMovie.start()
+            self.show()
+            self.raise_()
         
 class Output(QTextEdit):
     def __init__(self, parent=None):
@@ -919,6 +970,43 @@ class Commands(QFrame):
         layout.setColumnStretch(3, 1)
 
         # make last row stretch
+        # layout.setRowStretch(1, 1)
+
+        self.setLayout(layout)
+
+    def enableButtons(self):
+        self.setEnabled(True)
+
+    def disableButtons(self):
+        self.setEnabled(False)
+
+class LogSelectFrame(QFrame):
+
+    def __init__(self, parent=None):
+        super(LogSelectFrame, self).__init__(parent)
+
+        self.setFrameStyle(QFrame.StyledPanel | QFrame.Plain)
+        
+        # widgets
+        self.label = QLabel("Enter commands to log:")
+        self.logInput = QLineEdit()
+        self.logInput.setMinimumWidth(200)
+        self.logButton = QPushButton("log")
+        self.explanation = QLabel("eg: >21, >22, <43")
+        self.closeButton = QPushButton("close log files")
+
+        # layout
+        layout = QGridLayout()
+        layout.addWidget(self.label, 0, 0)
+        layout.addWidget(self.logInput, 0, 1)
+        layout.addWidget(self.logButton, 0, 2)
+        layout.addWidget(self.explanation, 0, 3)
+        layout.addWidget(self.closeButton, 0, 5)    
+
+        # make middle column stretch
+        layout.setColumnStretch(4, 1)
+
+        # make last row stretch
         layout.setRowStretch(1, 1)
 
         self.setLayout(layout)
@@ -929,12 +1017,54 @@ class Commands(QFrame):
     def disableButtons(self):
         self.setEnabled(False)
 
+class Logger():
+
+    def __init__(self, output, parent=None):
+        self.writers = {}
+        self.files = []
+        self.out = output
+
+    def openLogFile(self, code):
+        """
+        code should include the feedback delimeter
+        """
+        if code in self.writers :
+            self.out("<font color=red>code already set for logging</font>")
+
+        filecode = code.replace('>', 'p')
+        filecode = filecode.replace('<', 'm')
+
+        filename = "log_" + strftime("%H-%M-%S") + "_" + ("%s" % filecode) + ".csv"
+
+        csvfile = open(filename, 'wb')
+
+        csvwriter = csv.writer(csvfile, dialect='excel')
+
+        self.writers[code] = csvwriter
+        self.files.append(csvfile)
+
+    def logData(self, code, data):
+        try :
+            writer = self.writers[code]
+
+            writer.writerow(data)
+        except :
+            self.out("<font color=red>log: no such file, or file is closed</font>")
+
+    def closeFiles(self):
+        for csvfile in self.files:
+            csvfile.close()
+
+        self.writers.clear()
+        self.files = []
+
+
 class Controller(QObject):
 
     # define slots
     connectionLost = Signal()
 
-    def __init__(self, output, parent=None):
+    def __init__(self, output, logger, parent=None):
         super(Controller, self).__init__(parent)
 
         self.out = output
@@ -942,6 +1072,8 @@ class Controller(QObject):
         self.connected = False
 
         self.sendLock = Lock()
+
+        self.logger = logger
 
         # default states
         self.connectedToMainCPU = True
@@ -1099,7 +1231,7 @@ class Controller(QObject):
 
     def sendCustomMessage(self, message):
         """
-        sends message; assumes its already in hex
+        sends message as given to it
         appends EOL char to the end
         """
         if not self.serial.isOpen:
@@ -1161,15 +1293,14 @@ class Controller(QObject):
     # not the most clever implementation, but should be more readable/maintainable
     def parseMessage(self, line):
         """returns True if a message was receive, False if it was empty"""
-        # check for empty message
-        if not line :
-            return False
 
         # copy for parsing
         message = copy.copy(line)
-        message = message.rstrip()
-        # message.rstrip('\n') # get rid of newline
-        # message.rstrip(EOL)  # get rid of eol char
+        message = message.rstrip() #strip of all spaces
+
+        # check for empty message
+        if not message :
+            return False
         
         parseError = False # if there was an error during parsing
 
@@ -1181,6 +1312,7 @@ class Controller(QObject):
             if message[0] == driver['feedback'] and code in driver :
                 #try unpacking the data in different ways:
                 data = message[3:]
+                logCode = message[0:3]
 
                 try :
                     # expecting hex values
@@ -1188,20 +1320,33 @@ class Controller(QObject):
 
                     if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', hexValue)[0]
-                        data_uint = unpack('!B', hexValue)[0]
+                        data_int = unpack('!b', hexValue)
+                        data_uint = unpack('!B', hexValue)
+
                     elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', hexValue)[0]
-                        data_uint = unpack('H', hexValue)[0]
+                        data_int = unpack('!h', hexValue)
+                        data_uint = unpack('H', hexValue)
+
+                    elif len(hexValue) == 3 :
+                        # 3 bytes
+                        data_3_int = unpack('!b', hexValue)
+                        data_3_uint = unpack('B', hexValue)
+
                     elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', hexValue)[0]
-                        data_uint = unpack('!I', hexValue)[0]
+                        data_int = unpack('!i', hexValue)
+                        data_uint = unpack('!I', hexValue)
 
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
                         data_2_uint = unpack('!HH', hexValue)
+
+
+                    elif len(hexValue) == 6 :
+                        # u8, s16, u8, s16
+                        data_mix = unpack('!BhBh', hexValue)
+
                     elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
@@ -1217,61 +1362,64 @@ class Controller(QObject):
                 # now match the data to the value
                 if not parseError :
 
-                    if code == driver['encoder_left'] :
-                        self.encoder_left = data_int
+                    if code == driver['dir_power_both'] :
+                        #TODO
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_3_uint)
 
-                    elif code == driver['encoder_right'] :
-                        self.encoder_right = data_int
+                    elif code == driver['encoder_both'] :
+                        self.encoder_left = data_2_int[0]
+                        self.encoder_right = data_2_int[1]
 
-                    # elif code == driver['encoder_both'] :
-                    #     self.encoder_left = data_2_int[0]
-                    #     self.encoder_right = data_2_int[1]
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
-                    elif code == driver['speed_act_left'] :
-                        self.speed_left = data_int
+                    elif code == driver['speed_both'] :
+                        self.speed_left = data_2_int[0]
+                        self.speed_right = data_2_int[1]
 
-                    elif code == driver['speed_act_right'] :
-                        self.speed_right = data_int
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
-                    # elif code == driver['speed_both'] :
-                    #     self.speed_left = data_2_int[0]
-                    #     self.speed_right = data_2_int[1]
+                    elif code == driver['acc_both'] :
+                        #TODO
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
-                    elif code == driver['position_left'] :
-                        self.position_left = data_int
+                    elif code == driver['pos_both'] :
+                        self.position_left = data_2_int[0]
+                        self.position_right = data_2_int[1]
 
-                    elif code == driver['position_right'] :
-                        self.position_right = data_int
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
-                    # elif code == driver['position_both'] :
-                    #     self.position_left = data_2_int[0]
-                    #     self.position_right = data_2_int[1]
+                    elif code == driver['transition'] :
+                        #TODO
 
-                    elif code == driver['sensor_left'] :
-                        self.sensor_left = data_uint
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_mix)
 
-                    elif code == driver['sensor_right'] :
-                        self.sensor_right = data_uint
+                    elif code == driver['sensor_both'] :
+                        self.sensor_left = data_2_uint[0]
+                        self.sensor_right = data_2_uint[1]
 
-                    # elif code == driver['sensor_both'] :
-                    #     self.sensor_left = data_2_int[0]
-                    #     self.sensor_right = data_2_int[1]
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_uint)
 
-                    # elif code == driver['encoder_base'] :
-                    #     self.encoder_base = data_int
-
-                    # elif code == driver['encoder_arm'] :
-                    #     self.encoder_arm = data_int
-
-                    # elif code == driver['encoder_claw'] :
-                    #     self.encoder_claw = data_int
-
-                    # elif code == driver['encoder_claw_height'] :
-                    #     self.encoder_claw_height = data_int
+                    elif code == driver['pos_err_both'] :
+                        #TODO
+                        
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
                     else :
                         # should not happed, but just in case
                         parseError = True
+
+                # log
+                logCode = message[0:3]
+                if logCode in self.logger.writers :
+                    self.logger.logData(code=("".join(logCode)), data=data_int)
 
             elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
                 #try unpacking the data in different ways:
@@ -1283,20 +1431,21 @@ class Controller(QObject):
 
                     if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', hexValue)[0]
-                        data_uint = unpack('!B', hexValue)[0]
+                        data_int = unpack('!b', hexValue)
+                        data_uint = unpack('!B', hexValue)
                     elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', hexValue)[0]
-                        data_uint = unpack('H', hexValue)[0]
+                        data_int = unpack('!h', hexValue)
+                        data_uint = unpack('H', hexValue)
                     elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', hexValue)[0]
-                        data_uint = unpack('!I', hexValue)[0]
+                        data_int = unpack('!i', hexValue)
+                        data_uint = unpack('!I', hexValue)
 
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
                         data_2_uint = unpack('!HH', hexValue)
+
                     elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
@@ -1314,30 +1463,62 @@ class Controller(QObject):
                 if not parseError :
                     motor = code&0xF0
                     feedback = code&0x0F
+                    logCode = message[0:3]
 
                     if motor == mainCPU['base'] :
 
                         if feedback == mainCPU['encoder']:
-                            self.encoder_base = data_int
+                            self.encoder_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_p']:
-                            self.p_base = data_int
+                            self.p_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_i']:
-                            self.i_base = data_int
+                            self.i_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_d']:
-                            self.d_base = data_int
+                            self.d_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
                         else:
                             parseError = True
 
                     elif motor == mainCPU['arm'] :
 
                         if feedback == mainCPU['encoder']:
-                            self.encoder_arm = data_int
+                            self.encoder_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_p']:
-                            self.p_arm = data_int
+                            self.p_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_i']:
-                            self.i_arm = data_int
+                            self.i_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_d']:
-                            self.d_arm = data_int
+                            self.d_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         else:
                             parseError = True
 
@@ -1345,6 +1526,7 @@ class Controller(QObject):
                         # should not happed, but just in case
                         parseError = True
 
+                
 
             # print the message if print all is enabled
             # or if there was a parsing error
@@ -1356,6 +1538,38 @@ class Controller(QObject):
             #unknown message, push to output as hex string in red
             self.out("<font color=black><b>%s</b></font>" % line)
 
+        if parseError :
+            # didn't understand
+
+            # assume all unknown stuff is logged as a signed int
+            if len(message) > 3 :
+                # log
+                logCode = message[0:3]
+                data = message[3:]
+
+                if logCode in self.logger.writers :
+                    try :
+                        # expecting hex values
+                        hexValue = data.decode('hex')
+
+                        if len(hexValue) == 1 :
+                            # one byte
+                            data_int = unpack('!b', hexValue)
+                        elif len(hexValue) == 2 :
+                            # two bytes
+                            data_int = unpack('!h', hexValue)
+                        elif len(hexValue) == 4 :
+                            # four bytes
+                            data_int = unpack('!i', hexValue)
+                        elif len(hexValue) == 8 :
+                            # 8 bytes
+                            # should be 2 (32 bit) ints
+                            data_int = unpack('!ii', hexValue)
+
+                        self.logger.logData(code=("".join(logCode)), data=data_int)
+                    except:
+                        None
+        
         return True
 
 if __name__ == '__main__':
