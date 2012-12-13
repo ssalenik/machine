@@ -1009,9 +1009,9 @@ class Logger():
 
     def logData(self, code, data):
         try :
-        writer = self.writers[code]
+            writer = self.writers[code]
 
-        writer.writerow([data])
+            writer.writerow([data])
         except :
             self.out("<font color=red>log: no such file, or file is closed</font>")
 
