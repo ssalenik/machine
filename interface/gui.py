@@ -1004,7 +1004,10 @@ class Logger():
         if code in self.writers :
             self.out("<font color=red>code already set for logging</font>")
 
-        filename = "log_" + strftime("%H-%M-%S") + "_" + ("%s" % code) + ".csv"
+        filecode = code.replace('>', 'p')
+        filecode = filecode.replace('<', 'm')
+
+        filename = "log_" + strftime("%H-%M-%S") + "_" + ("%s" % filecode) + ".csv"
 
         csvfile = open(filename, 'wb')
 
