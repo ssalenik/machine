@@ -1312,6 +1312,7 @@ class Controller(QObject):
             if message[0] == driver['feedback'] and code in driver :
                 #try unpacking the data in different ways:
                 data = message[3:]
+                logCode = message[0:3]
 
                 try :
                     # expecting hex values
@@ -1319,13 +1320,13 @@ class Controller(QObject):
 
                     if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', hexValue)[0]
-                        data_uint = unpack('!B', hexValue)[0]
+                        data_int = unpack('!b', hexValue)
+                        data_uint = unpack('!B', hexValue)
 
                     elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', hexValue)[0]
-                        data_uint = unpack('H', hexValue)[0]
+                        data_int = unpack('!h', hexValue)
+                        data_uint = unpack('H', hexValue)
 
                     elif len(hexValue) == 3 :
                         # 3 bytes
@@ -1334,8 +1335,8 @@ class Controller(QObject):
 
                     elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', hexValue)[0]
-                        data_uint = unpack('!I', hexValue)[0]
+                        data_int = unpack('!i', hexValue)
+                        data_uint = unpack('!I', hexValue)
 
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
@@ -1363,35 +1364,53 @@ class Controller(QObject):
 
                     if code == driver['dir_power_both'] :
                         #TODO
-                        None
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_3_uint)
 
                     elif code == driver['encoder_both'] :
                         self.encoder_left = data_2_int[0]
                         self.encoder_right = data_2_int[1]
 
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+
                     elif code == driver['speed_both'] :
                         self.speed_left = data_2_int[0]
                         self.speed_right = data_2_int[1]
 
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+
                     elif code == driver['acc_both'] :
                         #TODO
-                        None
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
                     elif code == driver['pos_both'] :
                         self.position_left = data_2_int[0]
                         self.position_right = data_2_int[1]
 
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+
                     elif code == driver['transition'] :
                         #TODO
-                        None
+
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_mix)
 
                     elif code == driver['sensor_both'] :
-                        self.sensor_left = data_2_int[0]
-                        self.sensor_right = data_2_int[1]
+                        self.sensor_left = data_2_uint[0]
+                        self.sensor_right = data_2_uint[1]
+
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_uint)
 
                     elif code == driver['pos_err_both'] :
                         #TODO
-                        None
+                        
+                        if logCode in self.logger.writers :
+                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
 
                     else :
                         # should not happed, but just in case
@@ -1412,16 +1431,16 @@ class Controller(QObject):
 
                     if len(hexValue) == 1 :
                         # one byte
-                        data_int = unpack('!b', hexValue)[0]
-                        data_uint = unpack('!B', hexValue)[0]
+                        data_int = unpack('!b', hexValue)
+                        data_uint = unpack('!B', hexValue)
                     elif len(hexValue) == 2 :
                         # two bytes
-                        data_int = unpack('!h', hexValue)[0]
-                        data_uint = unpack('H', hexValue)[0]
+                        data_int = unpack('!h', hexValue)
+                        data_uint = unpack('H', hexValue)
                     elif len(hexValue) == 4 :
                         # four bytes
-                        data_int = unpack('!i', hexValue)[0]
-                        data_uint = unpack('!I', hexValue)[0]
+                        data_int = unpack('!i', hexValue)
+                        data_uint = unpack('!I', hexValue)
 
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
@@ -1444,30 +1463,62 @@ class Controller(QObject):
                 if not parseError :
                     motor = code&0xF0
                     feedback = code&0x0F
+                    logCode = message[0:3]
 
                     if motor == mainCPU['base'] :
 
                         if feedback == mainCPU['encoder']:
-                            self.encoder_base = data_int
+                            self.encoder_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_p']:
-                            self.p_base = data_int
+                            self.p_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_i']:
-                            self.i_base = data_int
+                            self.i_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_d']:
-                            self.d_base = data_int
+                            self.d_base = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
                         else:
                             parseError = True
 
                     elif motor == mainCPU['arm'] :
 
                         if feedback == mainCPU['encoder']:
-                            self.encoder_arm = data_int
+                            self.encoder_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_p']:
-                            self.p_arm = data_int
+                            self.p_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_i']:
-                            self.i_arm = data_int
+                            self.i_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         elif feedback == mainCPU['pid_d']:
-                            self.d_arm = data_int
+                            self.d_arm = data_int[0]
+
+                            if logCode in self.logger.writers :
+                                self.logger.logData(code=("".join(logCode)), data=data_int)
+
                         else:
                             parseError = True
 
@@ -1475,10 +1526,7 @@ class Controller(QObject):
                         # should not happed, but just in case
                         parseError = True
 
-                # log
-                logCode = message[0:3]
-                if logCode in self.logger.writers :
-                    self.logger.logData(code=("".join(logCode)), data=data_int)
+                
 
             # print the message if print all is enabled
             # or if there was a parsing error
@@ -1490,6 +1538,38 @@ class Controller(QObject):
             #unknown message, push to output as hex string in red
             self.out("<font color=black><b>%s</b></font>" % line)
 
+        if parseError :
+            # didn't understand
+
+            # assume all unknown stuff is logged as a signed int
+            if len(message) > 3 :
+                # log
+                logCode = message[0:3]
+                data = message[3:]
+
+                if logCode in self.logger.writers :
+                    try :
+                        # expecting hex values
+                        hexValue = data.decode('hex')
+
+                        if len(hexValue) == 1 :
+                            # one byte
+                            data_int = unpack('!b', hexValue)
+                        elif len(hexValue) == 2 :
+                            # two bytes
+                            data_int = unpack('!h', hexValue)
+                        elif len(hexValue) == 4 :
+                            # four bytes
+                            data_int = unpack('!i', hexValue)
+                        elif len(hexValue) == 8 :
+                            # 8 bytes
+                            # should be 2 (32 bit) ints
+                            data_int = unpack('!ii', hexValue)
+
+                        self.logger.logData(code=("".join(logCode)), data=data_int)
+                    except:
+                        None
+        
         return True
 
 if __name__ == '__main__':
