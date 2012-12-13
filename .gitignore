@@ -37,3 +37,6 @@
 
 # stupid windows stuff
 *.db
+
+# other
+*.csv
