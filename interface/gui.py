@@ -21,7 +21,7 @@ from serialComm import *
 
 POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100    # max serial poll rate
-GUI_RATE = 15         # max gui refresh rate
+GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
 # slot defines
@@ -159,7 +159,8 @@ class CentralWidget(QWidget):
         if self.command.commandInput.text() == 'melanie' :
             self.melanie.showMelanie()
 
-        self.controller.sendCustomMessage(self.command.commandInput.text())
+        else:
+            self.controller.sendCustomMessage(self.command.commandInput.text())
 
     def stopAll(self):
         self.controller.sendCustomMessage(STOP_ALL)
@@ -1320,10 +1321,17 @@ class Controller(QObject):
                         # one byte
                         data_int = unpack('!b', hexValue)[0]
                         data_uint = unpack('!B', hexValue)[0]
+
                     elif len(hexValue) == 2 :
                         # two bytes
                         data_int = unpack('!h', hexValue)[0]
                         data_uint = unpack('H', hexValue)[0]
+
+                    elif len(hexValue) == 3 :
+                        # 3 bytes
+                        data_3_int = unpack('!b', hexValue)
+                        data_3_uint = unpack('B', hexValue)
+
                     elif len(hexValue) == 4 :
                         # four bytes
                         data_int = unpack('!i', hexValue)[0]
@@ -1332,6 +1340,12 @@ class Controller(QObject):
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
                         data_2_uint = unpack('!HH', hexValue)
+
+
+                    elif len(hexValue) == 6 :
+                        # u8, s16, u8, s16
+                        data_mix = unpack('!BhBh', hexValue)
+
                     elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
@@ -1347,57 +1361,37 @@ class Controller(QObject):
                 # now match the data to the value
                 if not parseError :
 
-                    if code == driver['encoder_left'] :
-                        self.encoder_left = data_int
+                    if code == driver['dir_power_both'] :
+                        #TODO
+                        None
 
-                    elif code == driver['encoder_right'] :
-                        self.encoder_right = data_int
+                    elif code == driver['encoder_both'] :
+                        self.encoder_left = data_2_int[0]
+                        self.encoder_right = data_2_int[1]
 
-                    # elif code == driver['encoder_both'] :
-                    #     self.encoder_left = data_2_int[0]
-                    #     self.encoder_right = data_2_int[1]
+                    elif code == driver['speed_both'] :
+                        self.speed_left = data_2_int[0]
+                        self.speed_right = data_2_int[1]
 
-                    elif code == driver['speed_act_left'] :
-                        self.speed_left = data_int
+                    elif code == driver['acc_both'] :
+                        #TODO
+                        None
 
-                    elif code == driver['speed_act_right'] :
-                        self.speed_right = data_int
+                    elif code == driver['pos_both'] :
+                        self.position_left = data_2_int[0]
+                        self.position_right = data_2_int[1]
 
-                    # elif code == driver['speed_both'] :
-                    #     self.speed_left = data_2_int[0]
-                    #     self.speed_right = data_2_int[1]
+                    elif code == driver['transition'] :
+                        #TODO
+                        None
 
-                    elif code == driver['position_left'] :
-                        self.position_left = data_int
+                    elif code == driver['sensor_both'] :
+                        self.sensor_left = data_2_int[0]
+                        self.sensor_right = data_2_int[1]
 
-                    elif code == driver['position_right'] :
-                        self.position_right = data_int
-
-                    # elif code == driver['position_both'] :
-                    #     self.position_left = data_2_int[0]
-                    #     self.position_right = data_2_int[1]
-
-                    elif code == driver['sensor_left'] :
-                        self.sensor_left = data_uint
-
-                    elif code == driver['sensor_right'] :
-                        self.sensor_right = data_uint
-
-                    # elif code == driver['sensor_both'] :
-                    #     self.sensor_left = data_2_int[0]
-                    #     self.sensor_right = data_2_int[1]
-
-                    # elif code == driver['encoder_base'] :
-                    #     self.encoder_base = data_int
-
-                    # elif code == driver['encoder_arm'] :
-                    #     self.encoder_arm = data_int
-
-                    # elif code == driver['encoder_claw'] :
-                    #     self.encoder_claw = data_int
-
-                    # elif code == driver['encoder_claw_height'] :
-                    #     self.encoder_claw_height = data_int
+                    elif code == driver['pos_err_both'] :
+                        #TODO
+                        None
 
                     else :
                         # should not happed, but just in case
@@ -1432,6 +1426,7 @@ class Controller(QObject):
                         # maybe 2 (16 bit) ints?
                         data_2_int = unpack('!hh', hexValue)
                         data_2_uint = unpack('!HH', hexValue)
+
                     elif len(hexValue) == 8 :
                         # 8 bytes
                         # should be 2 (32 bit) ints
