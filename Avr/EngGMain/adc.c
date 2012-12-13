@@ -21,7 +21,7 @@ void init_adc(void) {
 		for(adc_sample = 0; adc_sample < (1 << ADC_FILTER_POWER); adc_sample++) {
 			adc_filter[adc_channel][adc_sample] = tmp;
 		}
-		adc_sum[adc_channel] = tmp << ADC_FILTER_POWER;
+		adc_sum[adc_channel] = (tmp << ADC_FILTER_POWER) + (1 << (ADC_FILTER_POWER - 1));
 	}
 	
 	adc_channel = adc_sample = 0;

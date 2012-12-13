@@ -1,4 +1,9 @@
-char cmd_err[] PROGMEM = "Command error\r\n";
+/*
+#define cmd_err() fprintf_P(&debug, (PGM_P)cmd_error)
+char cmd_error[] PROGMEM = "Command error\r\n";
+*/
+
+void cmd_err(void) { fprintf_P(&debug, PSTR("Command error\r\n")); }
 
 void check_debug_uart(void) {
 	static uint8_t inputbuf[RX_LINE_SIZE], inputptr = 0;
@@ -36,7 +41,8 @@ void check_debug_uart(void) {
 					
 					case 'o': // PID on/off
 					pid_on ^= 1;
-					if(pid_on) reset_pid();
+					if(pid_on) { fprintf_P(&debug, PSTR("PID on!\r\n")); reset_pid(); }
+					else       { fprintf_P(&debug, PSTR("PID off!\r\n")); }
 					break;
 					
 					case 's': // start/stop main thread
@@ -46,12 +52,10 @@ void check_debug_uart(void) {
 					break;
 					
 					case 't': // start/stop test thread
-					if(inputptr == 2) {
-						run_test = htoa(0, inputbuf[1]);
-						if(!run_test) { fprintf_P(&debug, PSTR("All test sequences stopped!\r\n")); stop(); }
-						else { fprintf_P(&debug, PSTR("Started test sequence %u!\r\n"), run_test); }
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 2) { cmd_err(); break; }
+					run_test = htoa(0, inputbuf[1]);
+					if(!run_test) { fprintf_P(&debug, PSTR("All test sequences stopped!\r\n")); stop(); }
+					else { fprintf_P(&debug, PSTR("Started test sequence %u!\r\n"), run_test); }
 					break;
 					
 					case ' ':
@@ -71,112 +75,126 @@ void check_debug_uart(void) {
 					break;
 					
 					case 'm': // servo power
-					if(inputptr >= 2 && (inputbuf[1] & ~1) == '0') {
-						inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
+					inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
 					break;
 					
 					case '3': // turn motor commands
-					if(isHex(inputbuf[2]) && isHex(inputbuf[3])) {
-						switch(inputbuf[1]) {
-							case '0':
-							if(inputptr >= 4) {
-								motor3_fwd();
-								set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							case '1':
-							if(inputptr >= 4) {
-								motor3_rev();
-								set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							case '2':
-							if(inputptr >= 6 && isHex(inputbuf[4]) && isHex(inputbuf[5])) {
-								write_enc3_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							default:
-							fprintf_P(&debug, (PGM_P)cmd_err);
-						}
+					if(!isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					switch(inputbuf[1]) {
+						case '0': // forward (uint8_t speed)
+						if(inputptr != 4) { cmd_err(); break; }
+						motor3_fwd();
+						set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
+						break;
+						
+						case '1': // backwards (uint8_t speed)
+						if(inputptr != 4) { cmd_err(); break; }
+						motor3_rev();
+						set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
+						break;
+						
+						case '2': // set reference (int16_t ticks)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						write_enc3_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
+						break;
+						
+						case '3': // set P (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ENC3_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '4': // set I (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ENC3_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '5': // set D (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ENC3_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '6': // set noise gate (int16_t level)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						default:
+						cmd_err();
 					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '4': // lift motor commands
-					if(isHex(inputbuf[2]) && isHex(inputbuf[3])) {
-						switch(inputbuf[1]) {
-							case '0':
-							if(inputptr >= 4) {
-								motor4_fwd();
-								set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							case '1':
-							if(inputptr >= 4) {
-								motor4_rev();
-								set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							case '2':
-							if(inputptr >= 6 && isHex(inputbuf[4]) && isHex(inputbuf[5])) {
-								write_actu_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
-							}
-							else { fprintf_P(&debug, (PGM_P)cmd_err); }
-							break;
-							
-							default:
-							fprintf_P(&debug, (PGM_P)cmd_err);
-						}
+					if(!isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					switch(inputbuf[1]) {
+						case '0': // forward (uint8_t speed)
+						if(inputptr != 4) { cmd_err(); break; }
+						motor4_fwd();
+						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
+						break;
+						
+						case '1': // backwards (uint8_t speed)
+						if(inputptr != 4) { cmd_err(); break; }
+						motor4_rev();
+						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
+						break;
+						
+						case '2': // set reference (int16_t ticks)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						write_actu_ref(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
+						break;
+						
+						case '3': // set P (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ACTU_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '4': // set I (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ACTU_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '5': // set D (int16_t factor)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ACTU_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case '6': // set noise gate (int16_t level)
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ACTU_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						default:
+						cmd_err();
 					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
 					break;
 					
 					case '5': // servo5 commands
-					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
-						servo5(htoa(inputbuf[1], inputbuf[2]));
-						//OCR0A = htoa(inputbuf[1], inputbuf[2]);
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
+					servo5(htoa(inputbuf[1], inputbuf[2]));
+					//OCR0A = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '6': // servo6 commands
-					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
-						servo6(htoa(inputbuf[1], inputbuf[2]));
-						//OCR0B = htoa(inputbuf[1], inputbuf[2]);
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
+					servo6(htoa(inputbuf[1], inputbuf[2]));
+					//OCR0B = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '7': // servo7 commands
-					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
-						servo7(htoa(inputbuf[1], inputbuf[2]));
-						//OCR2A = htoa(inputbuf[1], inputbuf[2]);
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
+					servo7(htoa(inputbuf[1], inputbuf[2]));
+					//OCR2A = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '8': // servo8 commands
-					if(inputptr >= 3 && isHex(inputbuf[1]) && isHex(inputbuf[2])) {
-						servo8(htoa(inputbuf[1], inputbuf[2]));
-						//OCR2B = htoa(inputbuf[1], inputbuf[2]);
-					}
-					else { fprintf_P(&debug, (PGM_P)cmd_err); }
+					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
+					servo8(htoa(inputbuf[1], inputbuf[2]));
+					//OCR2B = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					default:
-					fprintf_P(&debug, (PGM_P)cmd_err);
+					cmd_err();
 				}
 				
 				inputptr = 0;
