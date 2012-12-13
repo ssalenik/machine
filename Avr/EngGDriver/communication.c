@@ -416,14 +416,14 @@ void printTicks(char dest) {
 	
 	sei()
 	ticks0_cached = ticks0;
-	ticks0_cached = ticks0;
+	ticks1_cached = ticks1;
+	cli();
 	
-	
-	printf("%c%08x%08x%c", dest, accel0, accel1, ENDCHAR);
+	printf("%c%08x%08x%c", dest, ticks0_cached, ticks1_cached, ENDCHAR);
 }
 
 void printAbsDist(char dest) {
-
+	printf("%c%04x%04x%c", dest, accel0, accel1, ENDCHAR);
 }
 
 void printRelDist(char dest) {
