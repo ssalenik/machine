@@ -131,6 +131,7 @@ class CentralWidget(QWidget):
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
+        self.command.sendButton.returnPressed().connect(self.sendCustom)
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
