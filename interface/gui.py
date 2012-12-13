@@ -157,7 +157,7 @@ class CentralWidget(QWidget):
 
     def sendCustom(self):
         if self.command.commandInput.text() == 'melanie' :
-            self.melanie.showMel()
+            self.melanie.showMelanie()
 
         self.controller.sendCustomMessage(self.command.commandInput.text())
 
@@ -342,8 +342,6 @@ class CentralWidget(QWidget):
         self.refreshThread.join()
 
     def connect(self):
-        self.melanie.showMelanie()
-
         if self.connected == True :
             self.disableButtons()
             self.connected = False
