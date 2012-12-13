@@ -29,14 +29,34 @@ int16_t ENC3_P = 10, ENC3_I = 0, ENC3_D = 0, ENC3_NOISE_GATE = 20, ACTU_P = 4, A
 #define ENC3_PCAP 3000
 #define ACTU_PCAP 3000
 
+#define MOTOR3 0
+#define MOTOR4 1
+// #define MOTOR5 2
+// #define MOTOR6 3
+// #define MOTOR7 4
+// #define MOTOR8 5
+#define NUM_MOTORS 2
+
+int16_t pid_ref[NUM_MOTORS], pid_speed[NUM_MOTORS], pid_target[NUM_MOTORS];
+int16_t pid_max_speed[] = {1064, 150};
+uint8_t pid_complete[NUM_MOTORS];
+
 int16_t enc3_error_last, actu_error_last;
 int16_t enc3_pro, actu_pro, enc3_der, actu_der;
 int32_t enc3_int = 0, actu_int = 0;
 uint8_t pid_on = 0;
 
 void reset_pid(void) {
-	write_enc3_ref(read_enc());
-	write_actu_ref(read_adc(LIFT_FB));
+	uint8_t i;
+	
+	for(i = 0; i < NUM_MOTORS; i++) {
+		pid_ref[i] = pid_target[i] = 0;
+		pid_speed[i] = pid_max_speed[i];
+		pid_complete[i] = 1;
+	}
+	
+	pid_ref[MOTOR3] = pid_target[MOTOR3] = read_enc();
+	pid_ref[MOTOR4] = pid_target[MOTOR4] = read_adc(LIFT_FB);
 	enc3_error_last = actu_error_last = enc3_int = actu_int = 0;
 }
 
@@ -44,11 +64,27 @@ void update_pid_vals(void) {
 	if(!run_pid || !pid_on) return;
 	run_pid = 0;
 	
-	int16_t enc3_pro = read_enc3_error();
-	int16_t actu_pro = read_actu_error();
+	// read encoder values synchronized by TIMER3
+	int16_t enc3 = read_enc3_synchro();
+	int16_t actu = read_actu_synchro();
+	
+	// update next position of PID reference
+	uint8_t i;
+	for(i = 0; i < NUM_MOTORS; i++) {
+		     if(pid_target[i] > pid_ref[i]) {
+			pid_ref[i] += pid_speed[i];
+			if(pid_ref[i] > pid_target[i]) { pid_ref[i] = pid_target[i]; pid_complete[i] = 1; }
+		}
+		else if(pid_target[i] < pid_ref[i]) {
+			pid_ref[i] -= pid_speed[i];
+			if(pid_ref[i] < pid_target[i]) { pid_ref[i] = pid_target[i]; pid_complete[i] = 1; }
+		}
+		else { pid_complete[i] = 1; }
+	}
 	
 	// PID for motor 3 (turn)
-	if(abs(enc3_pro) < ENC3_NOISE_GATE) enc3_pro = enc3_int = 0;
+	int16_t enc3_pro = pid_ref[MOTOR3] - enc3;
+	if(abs(pid_target[MOTOR3] - enc3) < ENC3_NOISE_GATE) enc3_pro = enc3_int = 0;
 	enc3_int += enc3_pro;
 	if(labs(enc3_int) > ENC3_INT_CAP) {
 		if(enc3_int < 0) enc3_int = -ENC3_INT_CAP;
@@ -57,11 +93,13 @@ void update_pid_vals(void) {
 	int32_t enc3_out = ((int32_t)enc3_pro * ENC3_P) >> ENC3_P_SH;
 	enc3_out += (enc3_int * ENC3_I) >> ENC3_I_SH;
 	enc3_der = enc3_pro - enc3_error_last;
-	//enc3_out += ((int32_t)((enc3 - enc3_last) - (enc3_ref - enc3_ref_last)) * ENC3_D) >> ENC3_D_SH;
+	if((enc3_der < 0 && enc3_out > 0) || (enc3_der > 0 && enc3_out < 0)) enc3_der = 0; // HACK
+	enc3_out += ((int32_t)enc3_der * ENC3_D) >> ENC3_D_SH;
 	enc3_error_last = enc3_pro;
 	
 	// PID for motor 4 (lift)
-	if(abs(actu_pro) < ACTU_NOISE_GATE) actu_pro = actu_int = 0;
+	int16_t actu_pro = pid_ref[MOTOR4] - actu;
+	if(abs(pid_target[MOTOR4] - actu) < ACTU_NOISE_GATE) actu_pro = actu_int = 0;
 	actu_int += actu_pro;
 	if(labs(actu_int) > ACTU_INT_CAP) {
 		if(actu_int < 0) actu_int = -ACTU_INT_CAP;
@@ -70,7 +108,7 @@ void update_pid_vals(void) {
 	int32_t actu_out = ((int32_t)actu_pro * ACTU_P) >> ACTU_P_SH;
 	actu_out += (actu_int * ACTU_I) >> ACTU_I_SH;
 	enc3_der = actu_pro - actu_error_last;
-	//actu_out += ((int32_t)((actu - actu_last) - (actu_ref - actu_ref_last)) * ACTU_D) >> ACTU_D_SH;
+	actu_out += ((int32_t)actu_der * ACTU_D) >> ACTU_D_SH;
 	actu_error_last = actu_pro;
 	
 	// control of motor 3 (turn)

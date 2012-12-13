@@ -41,7 +41,7 @@ uint8_t drive_complete = 1;
 uint8_t rev_passthru = 1;
 uint8_t local_dump = 1;
 
-void stop()                                        { fprintf_P(&drive, PSTR("0500\r"));            }
+void stop()                                        { fprintf_P(&drive, PSTR("00\r"));              }
 void forward(uint8_t speed)                        { fprintf_P(&drive, PSTR("31%02x00\r"), speed); }
 void backwards(uint8_t speed)                      { fprintf_P(&drive, PSTR("31%02x11\r"), speed); }
 void freedrive(uint8_t speedL, uint8_t speedR, uint8_t dir) { fprintf_P(&drive, PSTR("34%02x%02x%02x\r"), speedL, speedR, dir); }
