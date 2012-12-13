@@ -373,9 +373,9 @@ void runPID() {
         errD = accel0;
 
         // Perform a weighted addition of errors to calculate power adjustment
-        adjust = ((int32_t)errP * kP) >> 8;
-        adjust += ((int32_t)errI0 * kI) >> 10;
-        adjust -= ((int32_t)errD * kD) >> 8;
+        adjust = ((int32_t)errP * kP) >> 12;
+        adjust += ((int32_t)errI0 * kI) >> 14;
+        adjust -= ((int32_t)errD * kD) >> 12;
         //adjust += adjustX;
 
         // Since power is unsigned, and 'adjust' sees power as signed,
@@ -415,9 +415,9 @@ void runPID() {
         }
         errD = accel1;
 
-        adjust = ((int32_t)errP * kP) >> 8;
-        adjust += ((int32_t)errI1 * kI) >> 10;
-        adjust -= ((int32_t)errD * kD) >> 8;
+        adjust = ((int32_t)errP * kP) >> 12;
+        adjust += ((int32_t)errI1 * kI) >> 14;
+        adjust -= ((int32_t)errD * kD) >> 12;
         //adjust += adjustX;
         
         if (targetSpeed1s < 0) adjust =-adjust;
