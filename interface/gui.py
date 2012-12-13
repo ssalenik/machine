@@ -69,6 +69,9 @@ class CentralWidget(QWidget):
         # controller
         self.controller = Controller(output=self.out, logger=self.logger)
 
+        # melanie
+        self.melanie = Melanie()
+
         # layout
         self.layout = QGridLayout()
         self.layout.setVerticalSpacing(1)
@@ -131,7 +134,7 @@ class CentralWidget(QWidget):
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
-        self.command.sendButton.returnPressed().connect(self.sendCustom)
+        self.command.commandInput.returnPressed.connect(self.sendCustom)
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
@@ -153,6 +156,9 @@ class CentralWidget(QWidget):
         self.logger.closeFiles()
 
     def sendCustom(self):
+        if self.command.commandInput.text() == 'melanie' :
+            self.melanie.showMel()
+
         self.controller.sendCustomMessage(self.command.commandInput.text())
 
     def stopAll(self):
@@ -336,6 +342,8 @@ class CentralWidget(QWidget):
         self.refreshThread.join()
 
     def connect(self):
+        self.melanie.showMelanie()
+
         if self.connected == True :
             self.disableButtons()
             self.connected = False
@@ -405,6 +413,25 @@ class CentralWidget(QWidget):
             self.output.refresh()
 
             time.sleep(1.0/float(GUI_RATE))
+
+class Melanie(QMainWindow):
+    def __init__(self, parent=None):
+        super(Melanie, self).__init__(parent)
+        self.setWindowTitle("Melanie Iglesias")        
+
+        # img
+        self.melanieLabel = QLabel(self)
+        self.melanie_gif_01 = "melanie_01.gif"
+        self.melanieMovie = QMovie(self.melanie_gif_01)
+        self.melanieLabel.setMovie(self.melanieMovie)
+
+        self.setCentralWidget(self.melanieLabel)
+
+    def showMelanie(self):
+        if self.isVisible() == False :
+            self.melanieMovie.start()
+            self.show()
+            self.raise_()
         
 class Output(QTextEdit):
     def __init__(self, parent=None):
