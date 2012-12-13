@@ -178,11 +178,12 @@
                     break;
                 case 0x42: // send distance travelled
                     sendDist();
-                    break;*/
+                    break;
                 case 0x43: // toggle rotation angle adjustment
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) rotAdjOn = arg1;
-                    break;
+                    break;*/
+				
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
                     arg1 = readByte(&buf[2], &valid);
@@ -396,3 +397,40 @@ void printParams2() {
     dist1 = (int32_t) ticks1_cached * TICKSTODIST >> 8;
     printf("T%04x%04x\r", dist0, dist1);
 }*/
+
+void printSpeed(char dest) {
+	printf("%c%04x%04x%c", dest, speed0, speed1, ENDCHAR);
+}
+
+void printAccel(char dest) {
+	printf("%c%04x%04x%c", dest, accel0, accel1, ENDCHAR);
+}
+
+void printDirection(char dest) {
+	printf("%c%02x%02x%c", dest, ldir, rdir, ENDCHAR);
+}
+
+void printTicks(char dest) {
+	int32_t ticks0_cached;
+	int32_t ticks1_cached;
+	
+	sei()
+	ticks0_cached = ticks0;
+	ticks0_cached = ticks0;
+	
+	
+	printf("%c%08x%08x%c", dest, accel0, accel1, ENDCHAR);
+}
+
+void printAbsDist(char dest) {
+
+}
+
+void printRelDist(char dest) {
+
+}
+
+void printSensors(char dest) {
+
+}
+
