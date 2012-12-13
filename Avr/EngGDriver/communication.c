@@ -398,39 +398,39 @@ void printParams2() {
     printf("T%04x%04x\r", dist0, dist1);
 }*/
 
-void printSpeed(char dest) {
-	printf("%c%04x%04x%c", dest, speed0, speed1, ENDCHAR);
-}
-
-void printAccel(char dest) {
-	printf("%c%04x%04x%c", dest, accel0, accel1, ENDCHAR);
-}
-
 void printDirection(char dest) {
-	printf("%c%02x%02x%c", dest, ldir, rdir, ENDCHAR);
+	printf("%c40%02x%02x%c", dest, ldir, rdir, ENDCHAR);
 }
 
 void printTicks(char dest) {
 	int32_t ticks0_cached;
 	int32_t ticks1_cached;
 	
-	sei()
+	sei();
 	ticks0_cached = ticks0;
 	ticks1_cached = ticks1;
 	cli();
 	
-	printf("%c%08x%08x%c", dest, ticks0_cached, ticks1_cached, ENDCHAR);
+	printf("%c41%08lx%08lx%c", dest, ticks0_cached, ticks1_cached, ENDCHAR);
+}
+
+void printSpeed(char dest) {
+	printf("%c42%04x%04x%c", dest, speed0, speed1, ENDCHAR);
+}
+
+void printAccel(char dest) {
+	printf("%c43%04x%04x%c", dest, accel0, accel1, ENDCHAR);
 }
 
 void printAbsDist(char dest) {
-	printf("%c%04x%04x%c", dest, accel0, accel1, ENDCHAR);
+	printf("%c44%04x%04x%c", dest, p_L, p_R, ENDCHAR);
 }
 
 void printRelDist(char dest) {
-
+	printf("%c%02x%04x%02x%04x%c", dest, p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, ENDCHAR);
 }
 
 void printSensors(char dest) {
-
+	printf("%c40%02x%02x%c", dest, p_LsensVal, p_RsensVal, ENDCHAR);
 }
 
