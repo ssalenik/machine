@@ -134,6 +134,7 @@ class CentralWidget(QWidget):
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
+        self.logSelect.closeButton.clicked.connect(self.stopLogging)
 
         # start gui update thread
         self.refreshThread = Thread(target=self.refreshGUI)
@@ -147,7 +148,8 @@ class CentralWidget(QWidget):
         for code in codes:
             self.logger.openLogFile(code)
 
-        self.logSelect.logInput.setText("")
+    def stopLogging(self):
+        self.logger.closeFiles()
 
     def sendCustom(self):
         self.controller.sendCustomMessage(self.command.commandInput.text())
@@ -961,9 +963,10 @@ class LogSelectFrame(QFrame):
         # widgets
         self.label = QLabel("Enter commands to log:")
         self.logInput = QLineEdit()
-        self.logInput.setMinimumWidth(300)
+        self.logInput.setMinimumWidth(200)
         self.logButton = QPushButton("log")
         self.explanation = QLabel("eg: >21, >22, <43")
+        self.closeButton = QPushButton("close log files")
 
         # layout
         layout = QGridLayout()
@@ -971,6 +974,7 @@ class LogSelectFrame(QFrame):
         layout.addWidget(self.logInput, 0, 1)
         layout.addWidget(self.logButton, 0, 2)
         layout.addWidget(self.explanation, 0, 3)
+        layout.addWidget(self.closeButton, 0, 5)    
 
         # make middle column stretch
         layout.setColumnStretch(4, 1)
@@ -1000,14 +1004,14 @@ class Logger():
         if code in self.writers :
             self.out("<font color=red>code already set for logging</font>")
 
-        filename = "log_" + strftime("%H-%M-%S") + ("%s" % code) + ".csv"
+        filename = "log_" + strftime("%H-%M-%S") + "_" + ("%s" % code) + ".csv"
 
         csvfile = open(filename, 'wb')
 
         csvwriter = csv.writer(csvfile, dialect='excel')
 
         self.writers[code] = csvwriter
-        self.files.append(csvwriter)
+        self.files.append(csvfile)
 
     def logData(self, code, data):
         try :
@@ -1020,6 +1024,9 @@ class Logger():
     def closeFiles(self):
         for csvfile in self.files:
             csvfile.close()
+
+        self.writers.clear()
+        self.files = []
 
 
 class Controller(QObject):
