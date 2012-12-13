@@ -963,15 +963,17 @@ class LogSelectFrame(QFrame):
         self.logInput = QLineEdit()
         self.logInput.setMinimumWidth(300)
         self.logButton = QPushButton("log")
+        self.explanation = QLabel("eg: >21, >22, <43")
 
         # layout
         layout = QGridLayout()
         layout.addWidget(self.label, 0, 0)
         layout.addWidget(self.logInput, 0, 1)
         layout.addWidget(self.logButton, 0, 2)
+        layout.addWidget(self.explanation, 0, 3)
 
         # make middle column stretch
-        layout.setColumnStretch(3, 1)
+        layout.setColumnStretch(4, 1)
 
         # make last row stretch
         layout.setRowStretch(1, 1)
