@@ -419,7 +419,7 @@ class Melanie(QMainWindow):
 
         # img
         self.melanieLabel = QLabel(self)
-        self.melanie_gif_01 = "melanie_01.gif"
+        self.melanie_gif_01 = "m01.gif"
         self.melanieMovie = QMovie(self.melanie_gif_01)
         self.melanieLabel.setMovie(self.melanieMovie)
 
