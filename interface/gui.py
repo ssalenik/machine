@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import serial
 import serial.tools
 import serial.tools.list_ports
 from struct import *
@@ -14,14 +13,11 @@ from threading import Lock
 from PySide.QtCore import *
 from PySide.QtGui import *
 import platform
-import csv
-from time import strftime
 
 # local source files
-from serialComm import *
 from controller import *
+from logger import *
 
-POLL_RATE = 20        # default serial poll rate
 MAX_POLL_RATE = 100    # max serial poll rate
 GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
@@ -1016,50 +1012,6 @@ class LogSelectFrame(QFrame):
 
     def disableButtons(self):
         self.setEnabled(False)
-
-class Logger():
-
-    def __init__(self, output, parent=None):
-        self.writers = {}
-        self.files = []
-        self.out = output
-
-    def openLogFile(self, code):
-        """
-        code should include the feedback delimeter
-        """
-        if code in self.writers :
-            self.out("<font color=red>code already set for logging</font>")
-
-        filecode = code.replace('>', 'p')
-        filecode = filecode.replace('<', 'm')
-
-        filename = "log_" + strftime("%H-%M-%S") + "_" + ("%s" % filecode) + ".csv"
-
-        csvfile = open(filename, 'wb')
-
-        csvwriter = csv.writer(csvfile, dialect='excel')
-
-        self.writers[code] = csvwriter
-        self.files.append(csvfile)
-
-    def logData(self, code, data):
-        try :
-            writer = self.writers[code]
-
-            writer.writerow(data)
-        except :
-            self.out("<font color=red>log: no such file, or file is closed</font>")
-
-    def closeFiles(self):
-        for csvfile in self.files:
-            csvfile.close()
-
-        self.writers.clear()
-        self.files = []
-
-
-
 
 if __name__ == '__main__':
     # create the app

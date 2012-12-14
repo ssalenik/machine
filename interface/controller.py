@@ -11,6 +11,10 @@ from PySide.QtGui import *
 # pyserial import
 import serial
 
+# local source files
+from serialcomm import *
+from logger import *
+
 POLL_RATE = 20        # default serial poll rate
 
 
@@ -65,12 +69,7 @@ class Controller(QObject):
             self.rate = rate
             self.port = port
             self.out("<font color=green>trying to connect to port <b>%s</b></font>" % self.port)
-            # self.serial.port =self.port
-            # self.serial.timeout = 0
-            # self.serial.baudrate = 9600
-            # self.serial.bytesize=serial.EIGHTBITS
-            # self.serial.stopbits=serial.STOPBITS_ONE
-            # try to connect a few times
+
             try:
                 #self.serial.open()
                 self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0)
