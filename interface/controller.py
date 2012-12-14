@@ -73,7 +73,7 @@ class Controller(QObject):
             # try to connect a few times
             try:
                 #self.serial.open()
-                self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE ) #timeout=0.1)
+                self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0)
             except serial.SerialException as e:
                 self.out("<font color=red>%s</font>" % e)
 
