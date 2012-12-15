@@ -223,8 +223,8 @@ void positionCorrection() {
  * Read track sensors.
  */
 void readTrackSensors() {
-    p_LsensVal = PINB & 0x01;
-    p_RsensVal = (PINB >> 1) & 0x01;
+    p_LsensVal = PINC & 0x01;
+    p_RsensVal = (PINC >> 1) & 0x01;
 }
 
 /**

@@ -56,7 +56,7 @@ int main(void) {
 			//if (debug1) printf(">21%02x\r", speed0 >> 4);
 			if (debug3) {
 				readTrackSensors();
-				printSensors('+');
+				printSensors(CPUCHAR);
 			}
             if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
             if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);

@@ -427,10 +427,10 @@ void printAbsDist(char dest) {
 }
 
 void printRelDist(char dest) {
-	printf("%c%02x%04x%02x%04x%c", dest, p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, ENDCHAR);
+	printf("%c45%02x%04x%02x%04x%c", dest, p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, ENDCHAR);
 }
 
 void printSensors(char dest) {
-	printf("%c40%02x%02x%c", dest, p_LsensVal, p_RsensVal, ENDCHAR);
+	printf("%c46%02x%02x%c", dest, p_LsensVal, p_RsensVal, ENDCHAR);
 }
 
