@@ -59,7 +59,7 @@ uint8_t xCalibration = 128;             // calibrates motor1 to motor0 using tic
 /* --------------*/
 
 /* --- Motor Control and PID variables --- */
-uint8_t pidOn = 0;                      // turns PID on or off
+uint8_t pidOn = 1;                      // turns PID on or off
 uint8_t ldir = FORWARD;                 // direction in which left Motor is set to rotate
 uint8_t rdir = FORWARD;                 // direction in which left Motor is set to rotate
 uint16_t targetSpeed0 = 0;              // target speed of motor 0
