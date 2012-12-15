@@ -39,6 +39,17 @@ void check_debug_uart(void) {
 					local_dump ^= 1;
 					break;
 					
+					case 'a': // magnet
+					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
+					if (inputbuf[1] == '0') {
+						clr_bit(FET1);
+						clr_bit(FET2);
+					} else {
+						set_bit(FET1);
+						set_bit(FET2);
+					}
+					break;
+					
 					case 'o': // PID on/off
 					pid_on ^= 1;
 					if(pid_on) { fprintf_P(&debug, PSTR("PID on!\r\n")); reset_pid(); }
