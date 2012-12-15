@@ -43,5 +43,9 @@
 
 # other
 *.csv
+NUL
+
+# folders
+**bin/
 
 
