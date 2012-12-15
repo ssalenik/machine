@@ -122,7 +122,7 @@ def getDataDecode(prepend, code):
 		return None
 
 	# make sure prepend and code are recognized at all, first of all
-	if not ((prepend in driver and hex_code in mainCPU) or (prepend in mainCPU and hex_code in mainCPU)):
+	if not ((prepend in driver and hex_code in driver) or (prepend in mainCPU and hex_code in mainCPU)):
 		return None
 
 	if prepend == driver['feedback'] :
