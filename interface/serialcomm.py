@@ -126,10 +126,10 @@ def getDataDecode(prepend, code):
 		return None
 
 	if prepend == driver['feedback'] :
-		unpackString = driver_decode[hex_code]
+		unpackString = driver_decode[driver[hex_code]]
 
 	elif prepend == mainCPU['feedback'] :
-		unpackString = mainCPU_decode[hex_code]
+		unpackString = mainCPU_decode[mainCPU[hex_code]]
 
 	return unpackString
 
