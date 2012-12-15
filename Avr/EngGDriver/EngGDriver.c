@@ -54,6 +54,10 @@ int main(void) {
         if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
             lastDebug += debugPeriod;
 			//if (debug1) printf(">21%02x\r", speed0 >> 4);
+			if (debug3) {
+				readTrackSensors();
+				printSensors('+');
+			}
             if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
             if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);
             if (debug5) printf("%d\t%d\r\n", speed0, speed1);
