@@ -31,7 +31,7 @@ class Logger():
         self.writers[code] = csvwriter
         self.files.append(csvfile)
 
-    def logData(message):
+    def logData(self, message):
         """
         message stripped of all white space chars
         assumes that its either a known encoding, or a signed int (of soe length)
