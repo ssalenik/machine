@@ -133,6 +133,7 @@ class CentralWidget(QWidget):
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
+        self.logSelect.logButton.returnPressed.connect(self.addLoggers)
         self.logSelect.closeButton.clicked.connect(self.stopLogging)
 
         # start gui update thread
@@ -146,6 +147,8 @@ class CentralWidget(QWidget):
 
         for code in codes:
             self.logger.openLogFile(code)
+
+        self.logSelect.logInput.clear()
 
     def stopLogging(self):
         self.logger.closeFiles()
