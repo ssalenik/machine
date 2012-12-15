@@ -31,7 +31,7 @@ class Logger():
         self.writers[code] = csvwriter
         self.files.append(csvfile)
 
-    def logData(self, message):
+    def logMessage(self, message):
         """
         message stripped of all white space chars
         assumes that its either a known encoding, or a signed int (of soe length)
@@ -71,6 +71,18 @@ class Logger():
                         logData(code=logCode, data=data_int)
                     except:
                         None
+
+    def logData(self, code, data):
+        """
+        code should be a string
+        data should be a list or a string
+        """
+        try :
+            writer = self.writers[code]
+
+            writer.writerow(data)
+        except :
+            self.out("<font color=red>log: no such file, or file is closed</font>")
                 
     def closeFiles(self):
         """
