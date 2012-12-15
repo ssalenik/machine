@@ -36,6 +36,11 @@
             if (valid) {
                 switch (cmd) {
                 // POWER & DIRECTION COMMANDS
+				case 0x00: // stop all motors;
+					targetSpeed0 = 0;
+					targetSpeed1 = 0;
+					setPower100(LMOTOR, 0);
+					setPower100(RMOTOR, 0);
                 case 0x01: // set power of left motor
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) setPower100(LMOTOR, arg1);
