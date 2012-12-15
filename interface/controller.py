@@ -274,7 +274,7 @@ class Controller(QObject):
             # decodes the data
             dataDecoded = getData(prepend, code, data)
 
-            if prpend == driver['feedback'] :
+            if prepend == driver['feedback'] :
 
 
 
