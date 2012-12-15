@@ -67,7 +67,7 @@ class Controller(QObject):
 
             try:
                 #self.serial.open()
-                self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0)
+                self.serial = serial.Serial(self.port, 9600, bytesize=serial.EIGHTBITS, stopbits=serial.STOPBITS_ONE, timeout=0.01)
             except serial.SerialException as e:
                 self.out("<font color=red>%s</font>" % e)
 
@@ -204,6 +204,7 @@ class Controller(QObject):
         delimited by newlines
         runs at full speed currently, no sleep
         """
+        line = ""
 
         self.out("<font color=green>listening to serial port </font>")
         while(self.connected):
@@ -212,8 +213,10 @@ class Controller(QObject):
                 #if performance gets bad, slow this guy down with a sleep
                 #self.receiveMessage
                 #self.parseMessage(self.receiveMessage())
-
-                self.parseMessage(self.serial.readline())
+                line += self.serial.readline()
+                if '\n' in line or EOL in line:
+                    self.parseMessage(line)
+                    line = ""
 
                 #time.sleep(0.1)
             else:
@@ -251,7 +254,7 @@ class Controller(QObject):
         if not message :
             return False
 
-        print message
+        #print message
         
         parseError = False # if there was an error during parsing
 

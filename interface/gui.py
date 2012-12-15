@@ -157,6 +157,8 @@ class CentralWidget(QWidget):
         else:
             self.controller.sendCustomMessage(self.command.commandInput.text())
 
+        self.command.commandInput.clear()
+
     def stopAll(self):
         self.controller.sendCustomMessage(STOP_ALL)
 
