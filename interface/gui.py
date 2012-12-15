@@ -133,7 +133,7 @@ class CentralWidget(QWidget):
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
-        self.logSelect.logButton.returnPressed.connect(self.addLoggers)
+        self.logSelect.logInput.returnPressed.connect(self.addLoggers)
         self.logSelect.closeButton.clicked.connect(self.stopLogging)
 
         # start gui update thread
