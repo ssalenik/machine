@@ -46,7 +46,7 @@ class Logger():
 
             if logCode in self.writers :
                 if isValidMessage(prepend, code, data):
-                    logData(code=logCode, data = getData(prepend, code, data))
+                    self.logData(code=logCode, data = getData(prepend, code, data))
                 else :
                     # assume we're getting an int of some sort
 
@@ -68,7 +68,7 @@ class Logger():
                             # should be 2 (32 bit) ints
                             data_int = unpack('!ii', hexValue)
 
-                        logData(code=logCode, data=data_int)
+                        self.logData(code=logCode, data=data_int)
                     except:
                         None
 

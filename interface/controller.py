@@ -348,6 +348,6 @@ class Controller(QObject):
             #unknown message, push to output as hex string in red
             self.out("<font color=black><b>%s</b></font>" % line)
 
-        self.logger.logData(message)
+        self.logger.logMessage(message)
 
         return True
