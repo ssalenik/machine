@@ -187,30 +187,30 @@ class CentralWidget(QWidget):
         None
 
     def setArmRef(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['arm_encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
 
     def setBaseRef(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
 
     def baseCCW(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
+        self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def baseCW(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
+        self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def stopBase(self):
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_ccw_up'], sendToDriver=False, data=0, encoding='u8')
-        self.controller.sendMessage(code=mainCPU['base']|mainCPU['power_cw_down'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=0, encoding='u8')
 
     def armUp(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
+        self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def armDown(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
+        self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def stopArm(self):
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_ccw_up'], sendToDriver=False, data=0, encoding='u8')
-        self.controller.sendMessage(code=mainCPU['arm']|mainCPU['power_cw_down'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=0, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=0, encoding='u8')
         
 
     def stopChassy(self):
