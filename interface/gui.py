@@ -215,65 +215,65 @@ class CentralWidget(QWidget):
 
     def stopChassy(self):
         if self.controls.chassy.PIDSwitch.isChecked() :
-            self.controller.sendMessage(code=driver['speed_both'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_both'], data=0, encoding='u8')
         else:
-            self.controller.sendMessage(code=driver['power_both'], data=0, encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_both'], data=0, encoding='u8')
 
     def chassyCCW(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD, encoding='u8')
-        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_left'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_right'], data=FORWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def chassyCW(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD, encoding='u8')
-        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_left'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_right'], data=BACKWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def backward(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=BACKWARD, encoding='u8')
-        self.controller.sendMessage(code=driver['dir_right'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_left'], data=BACKWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_right'], data=BACKWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
     def forward(self):
         # set direction
-        self.controller.sendMessage(code=driver['dir_left'], data=FORWARD, encoding='u8')
-        self.controller.sendMessage(code=driver['dir_right'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_left'], data=FORWARD, encoding='u8')
+        self.controller.sendMessage(code=driver['set_dir_right'], data=FORWARD, encoding='u8')
 
         if self.controls.chassy.PIDSwitch.isChecked() :
             # set speed
-            self.controller.sendMessage(code=driver['speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
         else :
             # set power
-            self.controller.sendMessage(code=driver['power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
-            self.controller.sendMessage(code=driver['power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
+            self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
 
     def PIDToggle(self, state):

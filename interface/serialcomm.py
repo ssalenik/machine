@@ -21,15 +21,15 @@ mainCPU = TwoWayDict()
 
 driver['cmd']				= 'p'
 driver['feedback']			= '>'
-driver['power_left']		= 0x01
-driver['power_right']		= 0x02
-driver['power_both']		= 0x05
-driver['dir_left']			= 0x03
-driver['dir_right']			= 0x04
+driver['set_power_left']	= 0x01
+driver['set_power_right']	= 0x02
+driver['set_power_both']	= 0x05
+driver['set_dir_left']		= 0x03
+driver['set_dir_right']		= 0x04
 driver['pid_toggle']		= 0x10
-driver['speed_left']		= 0x11
-driver['speed_right']		= 0x12
-driver['speed_both']		= 0x15
+driver['set_speed_left']	= 0x11
+driver['set_speed_right']	= 0x12
+driver['set_speed_both']	= 0x15
 driver['debug_off']			= 0x70
 driver['debug_1']			= 0x71
 driver['debug_2']			= 0x72
@@ -122,7 +122,7 @@ def getDataDecode(prepend, code):
 		return None
 
 	# make sure prepend and code are recognized at all, first of all
-	if not ((prepend in driver and code in mainCPU) or (prepend in mainCPU and code in mainCPU)):
+	if not ((prepend in driver and hex_code in mainCPU) or (prepend in mainCPU and hex_code in mainCPU)):
 		return None
 
 	if prepend == driver['feedback'] :
