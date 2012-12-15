@@ -250,6 +250,8 @@ class Controller(QObject):
         # check for empty message
         if not message :
             return False
+
+        print message
         
         parseError = False # if there was an error during parsing
 

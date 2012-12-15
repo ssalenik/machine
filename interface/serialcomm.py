@@ -110,11 +110,20 @@ def getDataDecode(prepend, code):
 	returns empty str if it could not decode the command
 	"""
 	unpackString = ""
-	hex_code  = ord((code.decode('hex'))) #converts to int
+
+	# for now code has to be 2 chars
+	if len(code) < 2 :
+		return None
+
+	try:
+		hex_code  = ord((code.decode('hex'))) #converts to int
+	except:
+		# non hex digit in code
+		return None
 
 	# make sure prepend and code are recognized at all, first of all
 	if not ((prepend in driver and code in mainCPU) or (prepend in mainCPU and code in mainCPU)):
-		return unpackString
+		return None
 
 	if prepend == driver['feedback'] :
 		unpackString = driver_decode[hex_code]
@@ -135,8 +144,8 @@ def getData(prepend, code, data):
 	decode = getDataDecode(prepend, code)
 
 	# make sure know the decoding, else return
-	if decode == "" :
-		return decodedData
+	if not decode :
+		return None
 
 	try:
 		hexValue = data.decode('hex')	# turn str in hex str

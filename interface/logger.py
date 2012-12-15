@@ -44,7 +44,7 @@ class Logger():
             code = message[1:3]
             data = message[3:]
 
-            if logCode in self.logger.writers :
+            if logCode in self.writers :
                 if isValidMessage(prepend, code, data):
                     logData(code=logCode, data = getData(prepend, code, data))
                 else :
