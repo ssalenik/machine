@@ -79,6 +79,17 @@ void check_debug_uart(void) {
 					inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
 					break;
 					
+					case 'a': // magnet
+					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
+					if (inputbuf[1] == '0') {
+						clr_bit(FET1);
+						clr_bit(FET2);
+					} else {
+						set_bit(FET1);
+						set_bit(FET2);
+					}
+					break;
+					
 					case '3': // turn motor commands
 					if(!isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
 					switch(inputbuf[1]) {
