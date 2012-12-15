@@ -4,7 +4,6 @@
 import sys
 import serial.tools
 import serial.tools.list_ports
-from struct import *
 #import io
 import time
 import copy
@@ -381,8 +380,8 @@ class CentralWidget(QWidget):
                 c = self.controller
                 # chassy
                 chassy = self.controls.chassy
-                chassy.lSpeedValue.setText("%i" % c.speed_act_left)
-                chassy.rSpeedValue.setText("%i" % c.speed_act_right)
+                chassy.lSpeedValue.setText("%i" % c.speed_left)
+                chassy.rSpeedValue.setText("%i" % c.speed_right)
                 chassy.lEncoderValue.setText("%i" % c.encoder_left)
                 chassy.rEncoderValue.setText("%i" % c.encoder_right)
                 chassy.lSensorValue.setText("%i" % c.sensor_left)

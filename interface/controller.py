@@ -3,6 +3,7 @@ from threading import Thread
 from threading import Lock
 import copy
 import time
+from struct import *
 
 # pyside imports
 from PySide.QtCore import *
@@ -38,17 +39,11 @@ class Controller(QObject):
         self.connectedToMainCPU = True
         self.printAll = False
 
-        # init controlled values
-        self.power_left = 0
-        self.power_right = 0
-        self.speed_right = 0
-        self.speed_left = 0
-
         # init feedback values
         self.encoder_left = 0
         self.encoder_right = 0
-        self.speed_act_left = 0
-        self.speed_act_right = 0
+        self.speed_left = 0
+        self.speed_right = 0
         self.position_left = 0
         self.position_right = 0
         self.sensor_left = 0
@@ -258,270 +253,96 @@ class Controller(QObject):
         
         parseError = False # if there was an error during parsing
 
-        # message must start with a feedback indicator and be long enough
-        # at least 5 because, 1 for start, 2 for code, and 2 for hex byte
-        if message[0] == driver['feedback'] or message[0] == mainCPU['feedback'] :
+        if len(message) < 4 :
+            parseError = True
+
+        else :
+
+            prepend = message[0]
+            code = message[1:3]
+            data = message[3:]
+
+        if not parseError and isValidMessage(prepend, code, data) :
             #feedback message, check if its one the gui 
-            code = ord((message[1:3].decode('hex'))) #converts to int
-            if message[0] == driver['feedback'] and code in driver :
-                #try unpacking the data in different ways:
-                data = message[3:]
-                logCode = message[0:3]
+            hex_code = ord((message[1:3].decode('hex'))) #converts to int
 
-                try :
-                    # expecting hex values
-                    hexValue = data.decode('hex')
+            # decodes the data
+            dataDecoded = getData(prepend, code, data)
 
-                    if len(hexValue) == 1 :
-                        # one byte
-                        data_int = unpack('!b', hexValue)
-                        data_uint = unpack('!B', hexValue)
-
-                    elif len(hexValue) == 2 :
-                        # two bytes
-                        data_int = unpack('!h', hexValue)
-                        data_uint = unpack('H', hexValue)
-
-                    elif len(hexValue) == 3 :
-                        # 3 bytes
-                        data_3_int = unpack('!b', hexValue)
-                        data_3_uint = unpack('B', hexValue)
-
-                    elif len(hexValue) == 4 :
-                        # four bytes
-                        data_int = unpack('!i', hexValue)
-                        data_uint = unpack('!I', hexValue)
-
-                        # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', hexValue)
-                        data_2_uint = unpack('!HH', hexValue)
+            if prpend == driver['feedback'] :
 
 
-                    elif len(hexValue) == 6 :
-                        # u8, s16, u8, s16
-                        data_mix = unpack('!BhBh', hexValue)
 
-                    elif len(hexValue) == 8 :
-                        # 8 bytes
-                        # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', hexValue)
-                        data_2_uint = unpack('!II', hexValue)
-                    else :
-                        # does not match expected data format
-                        parseError = True
-                except error:
-                    # some error trying to unpack
-                    parseError = True
+                if hex_code == driver['dir_power_both'] :
+                    #TODO
+                    None
 
-                # now match the data to the value
-                if not parseError :
+                elif hex_code == driver['encoder_both'] :
+                    self.encoder_left = dataDecoded[0]
+                    self.encoder_right = dataDecoded[1]
 
-                    if code == driver['dir_power_both'] :
-                        #TODO
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_3_uint)
+                elif hex_code == driver['speed_both'] :
+                    self.speed_left = dataDecoded[0]
+                    self.speed_right = dataDecoded[1]
 
-                    elif code == driver['encoder_both'] :
-                        self.encoder_left = data_2_int[0]
-                        self.encoder_right = data_2_int[1]
+                elif hex_code == driver['acc_both'] :
+                    #TODO
+                    None
 
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+                elif hex_code == driver['pos_both'] :
+                    self.position_left = dataDecoded[0]
+                    self.position_right = dataDecoded[1]
 
-                    elif code == driver['speed_both'] :
-                        self.speed_left = data_2_int[0]
-                        self.speed_right = data_2_int[1]
+                elif hex_code == driver['transition'] :
+                    #TODO
+                    None
 
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+                elif hex_code == driver['sensor_both'] :
+                    self.sensor_left = dataDecoded[0]
+                    self.sensor_right = dataDecoded[1]
 
-                    elif code == driver['acc_both'] :
-                        #TODO
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+                elif hex_code == driver['pos_err_both'] :
+                    #TODO
+                    None
 
-                    elif code == driver['pos_both'] :
-                        self.position_left = data_2_int[0]
-                        self.position_right = data_2_int[1]
+            elif prepend == mainCPU['feedback'] :
 
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+                if feedback == mainCPU['base_encoder']:
+                    self.encoder_base = dataDecoded[0]
 
-                    elif code == driver['transition'] :
-                        #TODO
+                elif feedback == mainCPU['base_pid_p']:
+                    self.p_base = dataDecoded[0]
 
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_mix)
+                elif feedback == mainCPU['base_pid_i']:
+                    self.i_base = dataDecoded[0]
 
-                    elif code == driver['sensor_both'] :
-                        self.sensor_left = data_2_uint[0]
-                        self.sensor_right = data_2_uint[1]
+                elif feedback == mainCPU['base_pid_d']:
+                    self.d_base = dataDecoded[0]
 
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_uint)
+                elif feedback == mainCPU['arm_encoder']:
+                    self.encoder_arm = dataDecoded[0]
 
-                    elif code == driver['pos_err_both'] :
-                        #TODO
-                        
-                        if logCode in self.logger.writers :
-                            self.logger.logData(code=("".join(logCode)), data=data_2_int)
+                elif feedback == mainCPU['arm_pid_p']:
+                    self.p_arm = dataDecoded[0]
 
-                    else :
-                        # should not happed, but just in case
-                        parseError = True
+                elif feedback == mainCPU['arm_pid_i']:
+                    self.i_arm = dataDecoded[0]
 
-                # log
-                logCode = message[0:3]
-                if logCode in self.logger.writers :
-                    self.logger.logData(code=("".join(logCode)), data=data_int)
+                elif feedback == mainCPU['arm_pid_d']:
+                    self.d_arm = dataDecoded[0]
 
-            elif message[0] == mainCPU['feedback'] and code&0xF0 in mainCPU and code&0x0F in mainCPU:
-                #try unpacking the data in different ways:
-                data = message[3:]
+            else :
+                # should not happed, but just in case
+                parseError = True
 
-                try :
-                    # expecting hex values
-                    hexValue = data.decode('hex')
+        else :
+            parseError = True
 
-                    if len(hexValue) == 1 :
-                        # one byte
-                        data_int = unpack('!b', hexValue)
-                        data_uint = unpack('!B', hexValue)
-                    elif len(hexValue) == 2 :
-                        # two bytes
-                        data_int = unpack('!h', hexValue)
-                        data_uint = unpack('H', hexValue)
-                    elif len(hexValue) == 4 :
-                        # four bytes
-                        data_int = unpack('!i', hexValue)
-                        data_uint = unpack('!I', hexValue)
 
-                        # maybe 2 (16 bit) ints?
-                        data_2_int = unpack('!hh', hexValue)
-                        data_2_uint = unpack('!HH', hexValue)
-
-                    elif len(hexValue) == 8 :
-                        # 8 bytes
-                        # should be 2 (32 bit) ints
-                        data_2_int = unpack('!ii', hexValue)
-                        data_2_uint = unpack('!II', hexValue)
-                    else :
-                        # does not match expected data format
-                        parseError = True
-                except error:
-                    # some error trying to unpack
-                    parseError = True
-                    print "parse error in decoding data"
-
-                # now match the data to the value
-                if not parseError :
-                    motor = code&0xF0
-                    feedback = code&0x0F
-                    logCode = message[0:3]
-
-                    if motor == mainCPU['base'] :
-
-                        if feedback == mainCPU['encoder']:
-                            self.encoder_base = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_p']:
-                            self.p_base = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_i']:
-                            self.i_base = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_d']:
-                            self.d_base = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-                        else:
-                            parseError = True
-
-                    elif motor == mainCPU['arm'] :
-
-                        if feedback == mainCPU['encoder']:
-                            self.encoder_arm = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_p']:
-                            self.p_arm = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_i']:
-                            self.i_arm = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        elif feedback == mainCPU['pid_d']:
-                            self.d_arm = data_int[0]
-
-                            if logCode in self.logger.writers :
-                                self.logger.logData(code=("".join(logCode)), data=data_int)
-
-                        else:
-                            parseError = True
-
-                    else :
-                        # should not happed, but just in case
-                        parseError = True
-
-                
-
-            # print the message if print all is enabled
-            # or if there was a parsing error
-            if self.printAll or parseError :
-                # else just print it in hex
-                self.out("<font color=black><b>%s</b></font>" % message)
-
-        else:
+        if self.printAll or parseError:
             #unknown message, push to output as hex string in red
             self.out("<font color=black><b>%s</b></font>" % line)
 
-        if parseError :
-            # didn't understand
+        self.logger.logData(message)
 
-            # assume all unknown stuff is logged as a signed int
-            if len(message) > 3 :
-                # log
-                logCode = message[0:3]
-                data = message[3:]
-
-                if logCode in self.logger.writers :
-                    try :
-                        # expecting hex values
-                        hexValue = data.decode('hex')
-
-                        if len(hexValue) == 1 :
-                            # one byte
-                            data_int = unpack('!b', hexValue)
-                        elif len(hexValue) == 2 :
-                            # two bytes
-                            data_int = unpack('!h', hexValue)
-                        elif len(hexValue) == 4 :
-                            # four bytes
-                            data_int = unpack('!i', hexValue)
-                        elif len(hexValue) == 8 :
-                            # 8 bytes
-                            # should be 2 (32 bit) ints
-                            data_int = unpack('!ii', hexValue)
-
-                        self.logger.logData(code=("".join(logCode)), data=data_int)
-                    except:
-                        None
-        
         return True
