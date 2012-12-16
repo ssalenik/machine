@@ -48,6 +48,8 @@ class Controller(QObject):
         self.position_right = 0
         self.sensor_left = 0
         self.sensor_right = 0
+        self.pos_err_left = 0
+        self.pos_err_right = 0
 
         # main cpu
         self.encoder_base = 0
@@ -128,9 +130,9 @@ class Controller(QObject):
 
         self.out("<font color=green>stoped polling for feedback</font>")
 
-    def sendMessage(self, code, data=0, sendToDriver=True, encoding='none'):
+    def composeMessage(self, code, data=0, sendToDriver=True, encoding='none'):
         """
-        sends message
+        composes message without EOL
         valid encodings:
             *none - when no data
             *u8
@@ -143,7 +145,7 @@ class Controller(QObject):
         if not self.serial.isOpen:
             # make sure connection is open
             self.out("<font color=red>send error : no connection</font>")
-            return
+            return None
 
         message = ""
         if self.connectedToMainCPU and sendToDriver :
@@ -166,6 +168,26 @@ class Controller(QObject):
                 message += "%08X" % (int(data)&0xFFFFFFFF)
             if encoding == 'u32' :
                 message += "%08X" % (int(data)&0xFFFFFFFF)
+
+        return message
+
+    def sendMessage(self, code, data=0, sendToDriver=True, encoding='none'):
+        """
+        sends message
+        valid encodings:
+            *none - when no data
+            *u8
+            *s8
+            *u16
+            *s16
+            *u32
+            *s32
+        """
+
+        message = self.composeMessage(code, data, sendToDriver, encoding)
+
+        if not message :
+            return
 
         #before we append the EOL
         if self.printAll :
@@ -307,33 +329,33 @@ class Controller(QObject):
                     self.sensor_right = dataDecoded[1]
 
                 elif hex_code == driver['pos_err_both'] :
-                    #TODO
-                    None
+                    self.pos_err_left = dataDecoded[0]
+                    self.pos_err_right = dataDecoded[1]
 
             elif prepend == mainCPU['feedback'] :
 
-                if feedback == mainCPU['base_encoder']:
+                if hex_code == mainCPU['base_encoder']:
                     self.encoder_base = dataDecoded[0]
 
-                elif feedback == mainCPU['base_pid_p']:
+                elif hex_code == mainCPU['base_pid_p']:
                     self.p_base = dataDecoded[0]
 
-                elif feedback == mainCPU['base_pid_i']:
+                elif hex_code == mainCPU['base_pid_i']:
                     self.i_base = dataDecoded[0]
 
-                elif feedback == mainCPU['base_pid_d']:
+                elif hex_code == mainCPU['base_pid_d']:
                     self.d_base = dataDecoded[0]
 
-                elif feedback == mainCPU['arm_encoder']:
+                elif hex_code == mainCPU['arm_encoder']:
                     self.encoder_arm = dataDecoded[0]
 
-                elif feedback == mainCPU['arm_pid_p']:
+                elif hex_code == mainCPU['arm_pid_p']:
                     self.p_arm = dataDecoded[0]
 
-                elif feedback == mainCPU['arm_pid_i']:
+                elif hex_code == mainCPU['arm_pid_i']:
                     self.i_arm = dataDecoded[0]
 
-                elif feedback == mainCPU['arm_pid_d']:
+                elif hex_code == mainCPU['arm_pid_d']:
                     self.d_arm = dataDecoded[0]
 
             else :

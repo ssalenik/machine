@@ -83,8 +83,6 @@ mainCPU_decode = {
 	'base_pid_p'		: '!h',
 	'base_pid_i'		: '!i',
 	'base_pid_d'		: '!h',
-	'arm_power_up'		: '!h',
-	'arm_power_down'	: '!h',
 	'arm_encoder'		: '!h',
 	'arm_pid_p'			: '!h',
 	'arm_pid_i'			: '!i',
