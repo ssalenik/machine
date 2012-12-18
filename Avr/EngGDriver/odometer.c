@@ -45,8 +45,8 @@ void runOdometer() {
     sei();
     
     // calculate change in distance and update absolute position
-    p_Lfull += deltaLticks * DISTTOTICKS_L;
-    p_Rfull += deltaRticks * DISTTOTICKS_R;
+    p_Lfull += deltaLticks * TICKSTODIST_L;
+    p_Rfull += deltaRticks * TICKSTODIST_R;
     p_L = p_Lfull >> 10;
     p_R = p_Rfull >> 10;
     
@@ -239,7 +239,7 @@ int16_t absoluteToRelativePos_L(int16_t absPosL, int8_t *pTransition) {
         if (absPosL >= p_transLlist[(3 * TRANSITIONS) / 4]) {
             trans = (3 * TRANSITIONS) / 4;
             // special case, location >= Last Transition 
-            if (p_transLlist[TRANSITIONS - 1] >= absPosL) {
+            if (absPosL >= p_transLlist[TRANSITIONS - 1] ) {
                 *pTransition = TRANSITIONS - 1;
                 return absPosL - p_transLlist[TRANSITIONS - 1];
             }
@@ -275,7 +275,7 @@ int16_t absoluteToRelativePos_R(int16_t absPosR, int8_t *pTransition) {
         if (absPosR >= p_transRlist[(3 * TRANSITIONS) / 4]) {
             trans = (3 * TRANSITIONS) / 4;
             // special case, location >= Rast Transition 
-            if (p_transRlist[TRANSITIONS - 1] >= absPosR) {
+            if (absPosR >= p_transRlist[TRANSITIONS - 1]) {
                 *pTransition = TRANSITIONS - 1;
                 return absPosR - p_transRlist[TRANSITIONS - 1];
             }

@@ -45,7 +45,7 @@ int8_t posCorrectionOn = 0;             // toggle position correction
 /* --------------*/
 
 /* --- PID parameters --- */
-uint8_t kP = 50;                     	// P Constant
+uint8_t kP = 255;                     	// P Constant
 uint8_t kI = 60;                        // I Constant
 uint8_t kD = 64;                        // D Constant
 uint8_t kX = 0;                        	// Cross dependency between both motor displacements
@@ -82,6 +82,10 @@ typedef enum {
     NAV_RCHK = 6
 } NavCom;
 NavCom navCom = NAV_NONE;
+int16_t n_targetLpos = 0;
+int16_t n_targetRpos = 0;
+uint8_t n_Ldone;
+uint8_t n_Rdone;
 int16_t heading = 0;                    // current heading of the robot as recieved from master
 int16_t n_ticks = 0;                    // target distance in ticks to travel by navigator when in mode NAV_DIST
 int16_t n_slowTicks = 100;              // distance in ticks before slowing down to n_slowSpeed if targetSpeed > n_slowSpeed

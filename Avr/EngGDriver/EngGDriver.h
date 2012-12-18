@@ -64,10 +64,10 @@
 /* --- Odometer --- */
     // conversions between ticks and distance 
     // basically, 1 tick = 0.11 mm
-#define DISTTOTICKS_L 2327  // DIST in mm -> TICKS / 256 (Left Motor)
-#define TICKSTODIST_L 112   // TICKS -> DIST in 1/1024th of a mm (Left Motor)
-#define DISTTOTICKS_R 2327  // DIST in mm -> TICKS / 256 (Right Motor)
-#define TICKSTODIST_R 112   // TICKS -> DIST in 1/1024th of a mm (Right Motor)
+#define DISTTOTICKS_L 2497  // DIST in mm -> TICKS / 256 (Left Motor)
+#define TICKSTODIST_L 105   // TICKS -> DIST in 1/1024th of a mm (Left Motor)
+#define DISTTOTICKS_R 2497  // DIST in mm -> TICKS / 256 (Right Motor)
+#define TICKSTODIST_R 105   // TICKS -> DIST in 1/1024th of a mm (Right Motor)
 #define TRANSITIONS (24 * 2)// Number Track Sensor Transition points
                             // 2 transition points per transversal plank
 #define TRANS_L_LIST \
@@ -88,16 +88,25 @@
     4787, 4889, 5016, 5117, 5244, 5346, 5473, 5575}
 
 /* --- Track Sensor and pos correction --- */
-#define MAX_CORR_ERROR 30   // maximum allowable pos correction (in mm)
+#define MAX_CORR_ERROR 30           // maximum allowable pos correction (in mm)
+        
+/* --- Navigation --- */        
+#define RAMPDOWN_MIN_SPEED 320      // minimum speed set for ramp-down
+#define RAMPDOWN_REF_DIST 40        // distance at which the speed is capped at RAMPDOWN_MIN_SPEED
+#define RAMPDOWN_STOP_DIST 3        // distance at which to stop the robot completely
+#define RAMPDOWN_RATE 20            // target speed = RAMPDOWN_RATE * (dist left - RAMPDOWN_REF_DIST)
+                                    // slows down until RAMPDOWN_MIN_SPEED
+#define RAMPDOWN_CHECK_DIST 200     // distance at which to check for rampdown
+                                    
 
 /* OBOSLETE> */
     // basically, 1 ticks = 0.64 degrees
-#define ANGLETOTICKS 400    // OBSOLETE
-    // Slip adjustment
-#define SLIPADJ0 136        // OBSOLETE
-#define SLIPADJ90 280       // OBSOLETE
-#define SLIPADJ180 120      // OBSOLETE
-#define SLIPADJ270 248      // OBSOLETE
+#define ANGLETOTICKS 400        // OBSOLETE
+    // Slip adjustment  
+#define SLIPADJ0 136            // OBSOLETE
+#define SLIPADJ90 280           // OBSOLETE
+#define SLIPADJ180 120          // OBSOLETE
+#define SLIPADJ270 248          // OBSOLETE
 /* <OBSOLETE */
 
 #define ANG_CW 0
@@ -173,12 +182,21 @@ int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition);
 
 /* --- navigation.c: all navigation related stuff. To be modified --- */
 void navigator();
+int16_t calculateTargetSpeed(int16_t dist_Left, int16_t curTargetSpeed);
+int16_t getDistLeft(uint8_t dir, int16_t target, int16_t current);
+void navDest(int16_t speed, int16_t posL, int16_t posR);
+void navDestRel(int16_t speed, uint8_t transL, int16_t offsetL, 
+    uint8_t transR, int16_t offsetR);
+void setTargetSpeed(uint8_t motor, int16_t speed);
+
+// OBSOLETE:
 void navSync(int16_t speed, uint8_t dirL, uint8_t dirR);
 void navDist(int16_t speed, uint8_t dir, int16_t distance);
 void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR);
 void navRot1(int16_t speed, int16_t angle, uint8_t dir);
 void navRot2(int16_t speed, int16_t tHeading);
-void setTargetSpeed(uint8_t motor, int16_t speed);
+// /OBSOLETE:
+
 
 int16_t deltaAng(int16_t startAng, int16_t endAng, uint8_t direction);
 int16_t adjustAng(int16_t angle);

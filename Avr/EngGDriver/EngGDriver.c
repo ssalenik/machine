@@ -45,6 +45,7 @@ int main(void) {
             }
 			if (debug1) printSpeed(CPUCHAR);
             runOdometer();      // odometer.c
+            navigator();
         }
         
         // read sensors and apply position correction
@@ -54,15 +55,14 @@ int main(void) {
         if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
             lastDebug += debugPeriod;
 			//if (debug1) printf(">21%02x\r", speed0 >> 4);
-			if (debug3) {
-				readTrackSensors();
-				printSensors(CPUCHAR);
-			}
-            if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
-            if (debug4) printf("%ld\t%ld\r\n", ticks0, ticks1);
-            if (debug5) printf("%d\t%d\r\n", speed0, speed1);
-            if (debug6) printf("%d\t%d\r\n", accel0, accel1);
-            if (debug7) printf("%u\t%u\r\n", power0, power1);
+            //if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
+			if (debug2) printf_P(PSTR("%d\t%d\r\n"), p_L, p_R);
+			if (debug3) printf_P(PSTR("%d, %d\t%d, %d / %d, %d\r\n"), 
+				p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, p_Lerr, p_Rerr);
+            if (debug4) printf_P(PSTR("%ld\t%ld\r\n"), ticks0, ticks1);
+            //if (debug5) printf_P(PSTR("%d\t%d\r\n"), speed0, speed1);
+            //if (debug6) printf_P(PSTR("%d\t%d\r\n"), accel0, accel1);
+            if (debug7) printf_P(PSTR("%u\t%u\r\n"), power0, power1);
         }
     }
     

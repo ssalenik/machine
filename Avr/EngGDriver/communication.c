@@ -41,6 +41,7 @@
 					targetSpeed1 = 0;
 					setPower100(LMOTOR, 0);
 					setPower100(RMOTOR, 0);
+                    navCom = NAV_NONE;
                 case 0x01: // set power of left motor
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) setPower100(LMOTOR, arg1);
@@ -129,65 +130,40 @@
                         resetPID();
                     }
                     break;
-                // NAVIGATOR COMMANDS
-                /*case 0x30: // break, put navigator to idle
-                    navFree(0, 0, ldir, rdir);
+				case 0x1a: // set position
+					arg1i = readInt(&buf[2], &valid);
+                    if (valid) {
+                        setOdometerTo(arg1i, arg1i);
+                    }
                     break;
-                case 0x31: // navigator in NAV_SYNC mode
-                    // byte1: speed | byte2H: dirL | byte2L: dirR
+				case 0x1b: // set relative position
                     arg1 = readByte(&buf[2], &valid);
                     arg2 = readByte(&buf[4], &valid);
-                    if (valid) navSync(arg1 * 2, arg2 >> 4, arg2 & 0x0f);
+                    if (valid) {
+                        setOdometerTo(p_transLlist[arg1] + arg2, p_transRlist[arg1] + arg2);
+                    }
                     break;
-                case 0x32: // navigator in NAV_DIST mode, going forward
+				case 0x1f: // toggle pos correction on/off
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) {
+                        posCorrectionOn = arg1;
+                    }
+                    break;
+                // NAVIGATOR COMMANDS
+                case 0x31: // navigator in NAV_DIST mode, goto position
                     // byte1: speed | byte2-3: distance in mm
                     arg1 = readByte(&buf[2], &valid);
                     arg1i = readInt(&buf[4], &valid);
-                    if (valid) navDist(arg1 * 2, FORWARD, arg1i);
+                    if (valid) navDest(arg1 * 16, arg1i, arg1i);
                     break;
-                case 0x33: // navigator in NAV_DIST mode, going backward
-                    // byte1: speed | byte2-3: distance in mm
-                    arg1 = readByte(&buf[2], &valid);
-                    arg1i = readInt(&buf[4], &valid);
-                    if (valid) navDist(arg1 * 2, BACKWARD, arg1i);
-                    break;
-                case 0x34: // navigator in NAV_FREE mode
-                    // byte1: speedL | byte2: speedR | byte3H: dirL | byte3L: dirR
+                case 0x32: // navigator in NAV_DIST mode, goto position
+                    // byte1: speed | byte2: transition num | byte3: offset in mm
                     arg1 = readByte(&buf[2], &valid);
                     arg2 = readByte(&buf[4], &valid);
                     arg3 = readByte(&buf[6], &valid);
-                    if (valid) navFree(arg1 * 2, arg2 * 2, arg3 >> 4, arg3 & 0x0f);
+                    if (valid) navDestRel(arg1 * 16, arg2, arg3, arg2, arg3);
                     break;
-                case 0x35: // navigator in NAV_ROT mode, turn CCW by Angle
-                    // byte1: speed | byte2-3: angle in degrees (positive ang)
-                    arg1 = readByte(&buf[2], &valid);
-                    arg1i = readInt(&buf[4], &valid);
-                    if (valid) navRot1(arg1 * 2, arg1i, ANG_CCW);
-                    break;
-                case 0x36: // navigator in NAV_ROT mode, turn CW by Angle
-                    // byte1: speed | byte2-3: angle in degrees (positive ang)
-                    arg1 = readByte(&buf[2], &valid);
-                    arg1i = readInt(&buf[4], &valid);
-                    if (valid) navRot1(arg1 * 2, arg1i, ANG_CW);
-                    break;
-                case 0x37: // navigator in NAV_ROT mode, turn to targer heading
-                    // byte1: speed | byte2-3: heading in degrees
-                    arg1 = readByte(&buf[2], &valid);
-                    arg1i = readInt(&buf[4], &valid);
-                    if (valid) navRot2(arg1 * 2, arg1i);
-                    break;
-                case 0x41: // read heading (-180 to 180)
-                    arg1i = readInt(&buf[2], &valid);
-                    if (valid) heading = arg1i;
-                    //if (debug3) printf("%d\r\n", heading);
-                    break;
-                case 0x42: // send distance travelled
-                    sendDist();
-                    break;
-                case 0x43: // toggle rotation angle adjustment
-                    arg1 = readByte(&buf[2], &valid);
-                    if (valid) rotAdjOn = arg1;
-                    break;*/
+
 				
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
@@ -404,7 +380,7 @@ void printParams2() {
 }*/
 
 void printDirection(char dest) {
-	printf("%c40%02x%02x%c", dest, ldir, rdir, ENDCHAR);
+	printf_P(PSTR("%c40%02x%02x%c"), dest, ldir, rdir, ENDCHAR);
 }
 
 void printTicks(char dest) {
@@ -416,26 +392,26 @@ void printTicks(char dest) {
 	ticks1_cached = ticks1;
 	cli();
 	
-	printf("%c41%08lx%08lx%c", dest, ticks0_cached, ticks1_cached, ENDCHAR);
+	printf_P(PSTR("%c41%08lx%08lx%c"), dest, ticks0_cached, ticks1_cached, ENDCHAR);
 }
 
 void printSpeed(char dest) {
-	printf("%c42%04x%04x%c", dest, speed0, speed1, ENDCHAR);
+	printf_P(PSTR("%c42%04x%04x%c"), dest, speed0, speed1, ENDCHAR);
 }
 
 void printAccel(char dest) {
-	printf("%c43%04x%04x%c", dest, accel0, accel1, ENDCHAR);
+	printf_P(PSTR("%c43%04x%04x%c"), dest, accel0, accel1, ENDCHAR);
 }
 
 void printAbsDist(char dest) {
-	printf("%c44%04x%04x%c", dest, p_L, p_R, ENDCHAR);
+	printf_P(PSTR("%c44%04x%04x%c"), dest, p_L, p_R, ENDCHAR);
 }
 
 void printRelDist(char dest) {
-	printf("%c45%02x%04x%02x%04x%c", dest, p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, ENDCHAR);
+	printf_P(PSTR("%c45%02x%04x%02x%04x%c"), dest, p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, ENDCHAR);
 }
 
 void printSensors(char dest) {
-	printf("%c46%02x%02x%c", dest, p_LsensVal, p_RsensVal, ENDCHAR);
+	printf_P(PSTR("%c46%02x%02x%c"), dest, p_LsensVal, p_RsensVal, ENDCHAR);
 }
 
