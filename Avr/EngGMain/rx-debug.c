@@ -81,13 +81,8 @@ void check_debug_uart(void) {
 					
 					case 'a': // magnet
 					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
-					if (inputbuf[1] == '0') {
-						clr_bit(FET1);
-						clr_bit(FET2);
-					} else {
-						set_bit(FET1);
-						set_bit(FET2);
-					}
+					if(inputbuf[1] == '0') { clr_bit(FET1); clr_bit(FET2); }
+					else                   { set_bit(FET1); set_bit(FET2); }
 					break;
 					
 					case '3': // turn motor commands
@@ -115,6 +110,7 @@ void check_debug_uart(void) {
 						pid_speed[MOTOR3] = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
+						/*
 						case '4': // set P (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ENC3_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
@@ -134,6 +130,7 @@ void check_debug_uart(void) {
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
+						*/
 						
 						default:
 						cmd_err();
@@ -165,6 +162,7 @@ void check_debug_uart(void) {
 						pid_speed[MOTOR4] = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
+						/*
 						case '4': // set P (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ACTU_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
@@ -184,6 +182,7 @@ void check_debug_uart(void) {
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ACTU_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
+						*/
 						
 						default:
 						cmd_err();

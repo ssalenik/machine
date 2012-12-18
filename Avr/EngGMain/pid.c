@@ -1,14 +1,10 @@
-/*
-#define ENC3_P 10
-#define ENC3_I  0
-#define ENC3_D  0
+#define ENC3_P  20
+#define ENC3_I   3
+#define ENC3_D 160
 
-#define ACTU_P  4
-#define ACTU_I  0
-#define ACTU_D  0
-*/
-
-int16_t ENC3_P = 10, ENC3_I = 0, ENC3_D = 0, ENC3_NOISE_GATE = 20, ACTU_P = 4, ACTU_I = 0, ACTU_D = 0, ACTU_NOISE_GATE = 15;
+#define ACTU_P  96
+#define ACTU_I   5
+#define ACTU_D 160
 
 #define ENC3_P_SH 0
 #define ENC3_I_SH 0
@@ -18,10 +14,11 @@ int16_t ENC3_P = 10, ENC3_I = 0, ENC3_D = 0, ENC3_NOISE_GATE = 20, ACTU_P = 4, A
 #define ACTU_I_SH 0
 #define ACTU_D_SH 0
 
-/*
 #define ENC3_NOISE_GATE 20
 #define ACTU_NOISE_GATE 10
-*/
+
+#define ENC3_MIN_SPEED 8
+#define ACTU_MIN_SPEED 2
 
 #define ENC3_INT_CAP 10000
 #define ACTU_INT_CAP 10000
@@ -84,7 +81,8 @@ void update_pid_vals(void) {
 	
 	// PID for motor 3 (turn)
 	int16_t enc3_pro = pid_ref[MOTOR3] - enc3;
-	if(abs(pid_target[MOTOR3] - enc3) < ENC3_NOISE_GATE) enc3_pro = enc3_int = 0;
+	uint8_t enc3_der_active = 1;
+	if(abs(pid_target[MOTOR3] - enc3) < ENC3_NOISE_GATE) enc3_pro = enc3_int = enc3_der_active = 0;
 	enc3_int += enc3_pro;
 	if(labs(enc3_int) > ENC3_INT_CAP) {
 		if(enc3_int < 0) enc3_int = -ENC3_INT_CAP;
@@ -92,14 +90,15 @@ void update_pid_vals(void) {
 	}
 	int32_t enc3_out = ((int32_t)enc3_pro * ENC3_P) >> ENC3_P_SH;
 	enc3_out += (enc3_int * ENC3_I) >> ENC3_I_SH;
-	enc3_der = enc3_pro - enc3_error_last;
-	if((enc3_der < 0 && enc3_out > 0) || (enc3_der > 0 && enc3_out < 0)) enc3_der = 0; // HACK
+	enc3_der = enc3_der_active ? enc3_pro - enc3_error_last : 0;
+	//if((enc3_der < 0 && enc3_out > 0) || (enc3_der > 0 && enc3_out < 0)) enc3_der = 0; // HACK
 	enc3_out += ((int32_t)enc3_der * ENC3_D) >> ENC3_D_SH;
 	enc3_error_last = enc3_pro;
 	
 	// PID for motor 4 (lift)
 	int16_t actu_pro = pid_ref[MOTOR4] - actu;
-	if(abs(pid_target[MOTOR4] - actu) < ACTU_NOISE_GATE) actu_pro = actu_int = 0;
+	uint8_t actu_der_active = 1;
+	if(abs(pid_target[MOTOR4] - actu) < ACTU_NOISE_GATE) actu_pro = actu_int = actu_der_active = 0;
 	actu_int += actu_pro;
 	if(labs(actu_int) > ACTU_INT_CAP) {
 		if(actu_int < 0) actu_int = -ACTU_INT_CAP;
@@ -107,7 +106,7 @@ void update_pid_vals(void) {
 	}
 	int32_t actu_out = ((int32_t)actu_pro * ACTU_P) >> ACTU_P_SH;
 	actu_out += (actu_int * ACTU_I) >> ACTU_I_SH;
-	enc3_der = actu_pro - actu_error_last;
+	enc3_der = actu_der_active ? actu_pro - actu_error_last : 0;
 	actu_out += ((int32_t)actu_der * ACTU_D) >> ACTU_D_SH;
 	actu_error_last = actu_pro;
 	
