@@ -45,7 +45,7 @@ int main(void) {
             if (pidOn) {    
                 runPID();       // motors.c
             }
-			if (debug1) printSpeed(CPUCHAR);
+			//if (debug1) printSpeed(CPUCHAR);
             runOdometer();      // odometer.c
             navigator();
         }
@@ -57,11 +57,12 @@ int main(void) {
         if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
             lastDebug += debugPeriod;
 			//if (debug1) printf(">21%02x\r", speed0 >> 4);
-			if (debug1) printf(">21%04x\r>22%04x\r", readADC(0), readADC(1));
+			//if (debug1) printf(">21%04x\r>22%04x\r", readADC(0), readADC(1));
+            if (debug1) printSpeed(CPUCHAR);
             //if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
 			if (debug2) printf_P(PSTR("%d\t%d\r\n"), p_L, p_R);
-			if (debug3) printf_P(PSTR("%d, %d\t%d, %d / %d, %d\r\n"), 
-				p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, p_Lerr, p_Rerr);
+			if (debug3) printf_P(PSTR("%d, %d / %d, %d / %d, %d / %u, %u\r\n"), 
+				p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, p_Lerr, p_Rerr, posCorrLeftFailed, posCorrRightFailed);
             if (debug4) printf_P(PSTR("%ld\t%ld\r\n"), ticks0, ticks1);
             //if (debug5) printf_P(PSTR("%d\t%d\r\n"), speed0, speed1);
             //if (debug6) printf_P(PSTR("%d\t%d\r\n"), accel0, accel1);

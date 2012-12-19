@@ -187,7 +187,8 @@ void positionCorrection() {
         } else {
             // mucho problemo
             // TODO: send a notification
-            if (debug1) printf("posL correction failed!\n");
+            posCorrLeftFailed++;
+            //if (debug1) printf("posL correction failed!\r");
         }
     }
 
@@ -214,7 +215,8 @@ void positionCorrection() {
         } else {
             // mucho problemo
             // TODO: send a notification
-            if (debug1) printf("posR correction failed!\n");
+            posCorrRightFailed++;
+            //if (debug1) printf("posR correction failed!\r");
         }
     }    
 }

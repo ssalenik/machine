@@ -75,6 +75,8 @@
 #define TICKSTODIST_R 105   // TICKS -> DIST in 1/1024th of a mm (Right Motor)
 #define TRANSITIONS (24 * 2)// Number Track Sensor Transition points
                             // 2 transition points per transversal plank
+
+// TODO: increase plank width by 2 mm to account for sensor detection angle
 #define TRANS_L_LIST \
     {64, 165, 292, 394, 521, 622, 749, 851, \
     978, 1080, 1207, 1308, 1435, 1537, 1664, 1765, \
@@ -83,7 +85,7 @@
     3721, 3823, 3950, 4051, 4178, 4280, 4407, 4509, \
     4595, 4697, 4824, 4925, 5052, 5154, 5281, 5382}
 
-
+// TODO: increase plank width by 2 mm to account for sensor detection angle
 #define TRANS_R_LIST \
     {64, 165, 292, 394, 521, 622, 749, 851, \
     978, 1080, 1207, 1308, 1435, 1537, 1664, 1765, \
