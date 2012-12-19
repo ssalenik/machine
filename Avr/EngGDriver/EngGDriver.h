@@ -56,6 +56,11 @@
 #define PORTM1IN1 PORTB
 #define PORTM1IN2 PORTD
 
+#define DDRARR  DDRC
+#define PORTARR PORTC
+#define ARRF 2
+#define ARRB 3
+
 #define FORWARD 0           // High-Low
 #define BACKWARD 1          // Low-High 
 #define BRAKE 2             // High-High
@@ -89,6 +94,7 @@
 
 /* --- Track Sensor and pos correction --- */
 #define MAX_CORR_ERROR 30           // maximum allowable pos correction (in mm)
+#define POS_SENSOR_THR 300          // analog sensor plank detection threshold: no plank < 300 < plank
         
 /* --- Navigation --- */        
 #define RAMPDOWN_MIN_SPEED 320      // minimum speed set for ramp-down
@@ -120,6 +126,7 @@
 /* --- EngGDriver.c: Main function, system timer --- */
     // init all modules and system timer
 void initAll();
+void initADC();
 void initTimer0();
     // Interrupt vector of EngGDriver.c:
 // --> ISR(TIMER0_COMPA_vect)
@@ -135,6 +142,7 @@ void setPower(uint8_t motor, uint16_t power);
 void setPower100(uint8_t motor, uint8_t power100);
 void setPower800(uint8_t motor, uint16_t power800);
 void setDirection(uint8_t motor, uint8_t direction);
+void updateArrows();
     // calculate speed and acceleration and run PID
 void calculateSpeeds();
 void resetPID();

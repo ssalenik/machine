@@ -12,6 +12,8 @@
 /* --------------*/
 
 /* --- insert modules --- */
+#include "delay.c"
+#include "adc.c"
 #include "variables.c"          // contains all the public variables
 #include "motors.c"
 #include "communication.c"
@@ -55,6 +57,7 @@ int main(void) {
         if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
             lastDebug += debugPeriod;
 			//if (debug1) printf(">21%02x\r", speed0 >> 4);
+			if (debug1) printf(">21%04x\r>22%04x\r", readADC(0), readADC(1));
             //if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
 			if (debug2) printf_P(PSTR("%d\t%d\r\n"), p_L, p_R);
 			if (debug3) printf_P(PSTR("%d, %d\t%d, %d / %d, %d\r\n"), 
@@ -73,7 +76,9 @@ int main(void) {
  * Initialize all modules
  */
 void initAll() {
-   
+    // initialize ADC
+    initADC();
+    
     // initialize system timer
     initTimer0();
     

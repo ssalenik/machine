@@ -65,6 +65,14 @@
                         setPower100(RMOTOR, arg1);
                     }
                     break;
+                case 0x06: // forward arrow on/off
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) arg1 ? sbi(PORTARR, ARRF) : cbi(PORTARR, ARRF);
+                    break;
+                case 0x07: // reverse arrow on/off
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) arg1 ? sbi(PORTARR, ARRB) : cbi(PORTARR, ARRB);
+                    break;
                 // PID COMMANDS
                 case 0x10: // toggle PID on/off
                     arg1 = readByte(&buf[2], &valid);

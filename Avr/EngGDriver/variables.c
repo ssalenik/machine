@@ -66,6 +66,7 @@ uint16_t targetSpeed0 = 0;              // target speed of motor 0
 uint16_t targetSpeed1 = 0;              // target speed of motor 1
 int16_t errI0 = 0, errI1 = 0;           // Accumulator for the PID I part
 uint16_t power0 = 0, power1 = 0;        // power (0 to 100 * 256) applied to each motor
+uint8_t moving0 = 0, moving1 = 0;       // presence of power on each motor (used for arrow indicators)
 uint8_t adjXOn = 0;                     // enable or disable cross adjustment
 int16_t adjustX = 0;                    // current cross adjustment
 /* --------------*/
@@ -111,7 +112,7 @@ uint8_t debug4 = 0;
 uint8_t debug5 = 0;
 uint8_t debug6 = 0;
 uint8_t debug7 = 0;
-uint16_t debugPeriod = 1000;
+uint16_t debugPeriod = 100;
 /* --------------*/
 
 /* This statement allows printf to work with serial com

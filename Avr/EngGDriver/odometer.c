@@ -223,9 +223,19 @@ void positionCorrection() {
  * Read track sensors.
  */
 void readTrackSensors() {
+    cli();
+    uint16_t tmpL = p_LsensADC;
+    uint16_t tmpR = p_RsensADC;
+    sei();
+    p_LsensVal = tmpL > POS_SENSOR_THR ? 1 : 0;
+    p_RsensVal = tmpR > POS_SENSOR_THR ? 1 : 0;
+}
+/*
+void readTrackSensors() {
     p_LsensVal = PINC & 0x01;
     p_RsensVal = (PINC >> 1) & 0x01;
 }
+*/
 
 /**
  * Convert absolute position to relative position for left motor

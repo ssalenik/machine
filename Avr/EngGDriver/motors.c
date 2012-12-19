@@ -58,13 +58,15 @@ ISR(INT1_vect) {
 
  
  /**
-  * set motor pins as output.
+  * set motor and arrow pins as output.
   */
  void initMotorPins() {
     sbi(DDRM0IN1, M0IN1);
     sbi(DDRM0IN2, M0IN2);
     sbi(DDRM1IN1, M1IN1);
     sbi(DDRM1IN2, M1IN2);
+    sbi(DDRARR, ARRF);
+    sbi(DDRARR, ARRB);
 }
 
 /**
@@ -113,9 +115,12 @@ void setPower(uint8_t motor, uint16_t power) {
     if (power > MAXPOWER) power = MAXPOWER;
     if (motor) {
         OCR1B = MAXTIMER - power; // opposite phase
+        moving1 = power ? 1 : 0;
     } else {
         OCR1A = power;
-    }   
+        moving0 = power ? 1 : 0;
+    }
+    updateArrows();
 }
 
 /**
@@ -125,9 +130,12 @@ void setPower100(uint8_t motor, uint8_t power100) {
     if (power100 > MAXPOW100) power100 = MAXPOW100;
     if (motor) {
         OCR1B = MAXTIMER - (uint16_t)power100 * (MAXTIMER/100); // opposite phase
+        moving1 = power100 ? 1 : 0;
     } else {
         OCR1A = (uint16_t)power100 * (MAXTIMER/100);
+        moving0 = power100 ? 1 : 0;
     }   
+    updateArrows();
 } 
 
 /**
@@ -137,9 +145,12 @@ void setPower800(uint8_t motor, uint16_t power800) {
     if (power800 > MAXPOW800) power800 = MAXPOW800;
     if (motor) {
         OCR1B = MAXTIMER - power800 * (MAXTIMER/800); // opposite phase
+        moving1 = power800 ? 1 : 0;
     } else {
         OCR1A = power800 * (MAXTIMER/800);
-    }   
+        moving0 = power800 ? 1 : 0;
+    }
+    updateArrows();
 }
 
 /**
@@ -191,6 +202,31 @@ void setDirection(uint8_t motor, uint8_t direction) {
             cbi(PORTM0IN2, M0IN2);
         }
     }
+}
+
+/**
+ * Update state of arrow direction indicators depending on
+ * last power and direction commands given.
+ * Called from setPowerXXX() and setDirection()
+ */
+void updateArrows() {
+    uint8_t arrFwd = 0, arrRev = 0;
+    
+    if (moving0) {
+        if      (ldir == FORWARD) { arrFwd = 1; }
+        else if (ldir == BACKWARD) { arrRev = 1; }
+    }
+    
+    if (moving1) {
+        if      (rdir == FORWARD) { arrFwd = 1; }
+        else if (rdir == BACKWARD) { arrRev = 1; }
+    }
+    
+    if (arrFwd) { sbi(PORTARR, ARRF); }
+    else        { cbi(PORTARR, ARRF); }
+    
+    if (arrRev) { sbi(PORTARR, ARRB); }
+    else        { cbi(PORTARR, ARRB); }
 }
 
 /**
@@ -436,3 +472,4 @@ void runPID() {
 
     setPower800(1, power1);
 }
+
