@@ -1,16 +1,16 @@
-/** 
- * communication.c: 
+/**
+ * communication.c:
  * Reads serial port and dispatches status & commands
  * DO NOT COMPILE, ONLY INCLUDE IN EngGDriver.c
  * For function prototypes and defines, see EngGDriver.h
  * For public variables, see variables.c
  */
- 
+
  /**
   * Serial port dispatcher. Uses a buffered serial port.
   * See uart.c for the buffered serial port implementation.
   */
- void readCommand() {
+void readCommand() {
     static char buf[32];
     static uint8_t index = 0;
     //static char tst[] = "0128\rxxx"; // ***debug***
@@ -19,7 +19,7 @@
     uint8_t arg1, arg2, arg3, arg4;
     int16_t arg1i;
     uint8_t valid;
-
+    
     while(uart_available()) {
         c = uart_get();
     //while (1) { // ***debug***
@@ -171,8 +171,7 @@
                     arg3 = readByte(&buf[6], &valid);
                     if (valid) navDestRel(arg1 * 16, arg2, arg3, arg2, arg3);
                     break;
-
-				
+                
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
                     arg1 = readByte(&buf[2], &valid);
@@ -212,7 +211,7 @@
                         errIMax = arg1i;
                         errIMin = -arg1i;
                     }
-                    break;  
+                    break;
                 case 0x65: // set adjustMax/Min
                     arg1i = readInt(&buf[2], &valid);
                     if (valid) {
@@ -325,7 +324,7 @@
     }
 }
 
-/** 
+/**
  * Convert 2 hex characters into a byte and return it.
  * If the ascii chars are not hex symbols, set valid to 0.
  * see hex.c for more info about parsing.
@@ -335,11 +334,11 @@ inline uint8_t readByte(char *buf, uint8_t *valid) {
     return htoi(buf[0], buf[1]);
 }
 
-/** 
+/**
  * Return 16-bit unsigned int. See readByte for more info.
  */
 inline uint16_t readUInt(char *buf, uint8_t *valid) {
-    *valid = *valid & isHex(buf[0]) & isHex(buf[1]) & 
+    *valid = *valid & isHex(buf[0]) & isHex(buf[1]) &
         isHex(buf[2]) & isHex(buf[3]);
     return htoi(buf[0], buf[1]) << 8 | htoi(buf[2], buf[3]);
 }
@@ -348,15 +347,15 @@ inline uint16_t readUInt(char *buf, uint8_t *valid) {
  * Return 16-bit signed int. See readByte for more info.
  */
 inline int16_t readInt(char *buf, uint8_t *valid) {
-    *valid = *valid & isHex(buf[0]) & isHex(buf[1]) & 
+    *valid = *valid & isHex(buf[0]) & isHex(buf[1]) &
         isHex(buf[2]) & isHex(buf[3]);
     return htoi(buf[0], buf[1]) << 8 | htoi(buf[2], buf[3]);
 }
 
 /* --- OBSOLETE functions below --- */
 
-/** 
- * Sends done acknowledgement. 
+/**
+ * Sends done acknowledgement.
  */
 void sendDone() {
     uart_put('D', NULL);
@@ -365,12 +364,12 @@ void sendDone() {
 
 void printParams() {
     printf_P(PSTR("PIDX:\t%u\t%u\t%u\t%u\r\n"), kP, kI, kD, kX);
-    printf_P(PSTR("errI, adj, adjX, xCal:\t%d\t%d\t%d\t%u\r\n"), 
+    printf_P(PSTR("errI, adj, adjX, xCal:\t%d\t%d\t%d\t%u\r\n"),
         errIMax, adjustMax, adjustXMax, xCalibration);
 }
 
 void printParams2() {
-    printf_P(PSTR("slipAdjF, slipAdjS, adjXOn, adjustX:\t%d\t%d\t%d\r\n"), 
+    printf_P(PSTR("slipAdjF, slipAdjS, adjXOn, adjustX:\t%d\t%d\t%d\r\n"),
         slipAdjFOn, slipAdjSOn, adjXOn, adjustX);
 }
 
@@ -394,12 +393,12 @@ void printDirection(char dest) {
 void printTicks(char dest) {
 	int32_t ticks0_cached;
 	int32_t ticks1_cached;
-	
+    
 	sei();
 	ticks0_cached = ticks0;
 	ticks1_cached = ticks1;
 	cli();
-	
+    
 	printf_P(PSTR("%c41%08lx%08lx%c"), dest, ticks0_cached, ticks1_cached, ENDCHAR);
 }
 

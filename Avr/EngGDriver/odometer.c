@@ -224,6 +224,13 @@ void positionCorrection() {
 /**
  * Read track sensors.
  */
+// digital version
+void readTrackSensors() {
+    p_LsensVal = PINC & 0x01;
+    p_RsensVal = (PINC >> 1) & 0x01;
+}
+/*
+// analog version
 void readTrackSensors() {
     cli();
     uint16_t tmpL = p_LsensADC;
@@ -231,11 +238,6 @@ void readTrackSensors() {
     sei();
     p_LsensVal = tmpL > POS_SENSOR_THR ? 1 : 0;
     p_RsensVal = tmpR > POS_SENSOR_THR ? 1 : 0;
-}
-/*
-void readTrackSensors() {
-    p_LsensVal = PINC & 0x01;
-    p_RsensVal = (PINC >> 1) & 0x01;
 }
 */
 

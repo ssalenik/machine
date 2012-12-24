@@ -14,9 +14,9 @@
 #include "hex.c"
 #include "ports.c"
 #include "uart.c"
+#include "timer.c"
 #include "adc.c"
 #include "enc.c"
-#include "timer.c"
 #include "pid.c"
 
 // for use in "immediate-return" tasks:
@@ -68,6 +68,7 @@ void init(void) {
 	delay_ms(T_MS * 10); // wait for devices to initialize
 	
 	reset_pid();
+	set_bit(SPWR); // power on servos
 }
 
 int main(void) {

@@ -39,12 +39,6 @@ void check_debug_uart(void) {
 					local_dump ^= 1;
 					break;
 					
-					case 'o': // PID on/off
-					pid_on ^= 1;
-					if(pid_on) { fprintf_P(&debug, PSTR("PID on!\r\n")); reset_pid(); }
-					else       { fprintf_P(&debug, PSTR("PID off!\r\n")); }
-					break;
-					
 					case 's': // start/stop main thread
 					run_main ^= 1;
 					if(run_main) { fprintf_P(&debug, PSTR("Main thread started!\r\n")); }
@@ -79,10 +73,16 @@ void check_debug_uart(void) {
 					inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
 					break;
 					
-					case 'a': // magnet
+					case 'a': // magnets
 					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
-					if(inputbuf[1] == '0') { clr_bit(FET1); clr_bit(FET2); }
-					else                   { set_bit(FET1); set_bit(FET2); }
+					if(inputbuf[1] == '0') { clr_bit(FET1); clr_bit(FET2); fprintf_P(&debug, PSTR("Magnets off!\r\n")); }
+					else                   { set_bit(FET1); set_bit(FET2); fprintf_P(&debug, PSTR("Magnets on!\r\n"));  }
+					break;
+					
+					case '1': // PID on/off
+					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
+					if(inputbuf[1] == '0') { pid_on = 0; fprintf_P(&debug, PSTR("PID off!\r\n")); }
+					else                   { pid_on = 1; fprintf_P(&debug, PSTR("PID on!\r\n")); reset_pid(); }
 					break;
 					
 					case '3': // turn motor commands
@@ -94,7 +94,7 @@ void check_debug_uart(void) {
 						set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
 						break;
 						
-						case '1': // backwards (uint8_t speed)
+						case '1': // reverse (uint8_t speed)
 						if(inputptr != 4) { cmd_err(); break; }
 						motor3_rev();
 						set_speed_3(htoa(inputbuf[2], inputbuf[3]) * 40);
@@ -110,22 +110,22 @@ void check_debug_uart(void) {
 						pid_speed[MOTOR3] = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
-						/*
 						case '4': // set P (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ENC3_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ENC3_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
 						case '5': // set I (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ENC3_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ENC3_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
 						case '6': // set D (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ENC3_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ENC3_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
+                        /*
 						case '7': // set noise gate (int16_t level)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
@@ -146,7 +146,7 @@ void check_debug_uart(void) {
 						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
 						break;
 						
-						case '1': // backwards (uint8_t speed)
+						case '1': // reverse (uint8_t speed)
 						if(inputptr != 4) { cmd_err(); break; }
 						motor4_rev();
 						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
@@ -162,22 +162,22 @@ void check_debug_uart(void) {
 						pid_speed[MOTOR4] = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
-						/*
 						case '4': // set P (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ACTU_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ACTU_P = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
 						case '5': // set I (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ACTU_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ACTU_I = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
 						case '6': // set D (int16_t factor)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ACTU_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ACTU_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
+                        /*
 						case '7': // set noise gate (int16_t level)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						ACTU_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);

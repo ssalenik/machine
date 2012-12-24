@@ -10,14 +10,16 @@ void check_sys_state(void) {
 }
 
 void check_print_stat(void) {
-	set_interval(500);
+	set_interval(250);
 	
 	if(local_dump) {
-		//fprintf_P(&debug, PSTR("E%+d\tR%+d\tP%+d\tI%+ld\tD%+d\t\t"), read_enc(),        pid_ref[MOTOR3], enc3_pro, enc3_int, enc3_der);
-		//fprintf_P(&debug, PSTR("E%+d\tR%+d\tP%+d\tI%+ld\tD%+d\r\n"), read_adc(LIFT_FB), pid_ref[MOTOR4], actu_pro, actu_int, actu_der);
+		//fprintf_P(&debug, PSTR("E%+d\tR%+d\tP%+d\tI%+ld\tD%+d\t\t"), read_enc(),  pid_ref[MOTOR3], enc3_pro, enc3_int, enc3_der);
+		//fprintf_P(&debug, PSTR("E%+d\tR%+d\tP%+d\tI%+ld\tD%+d\r\n"), read_actu(), pid_ref[MOTOR4], actu_pro, actu_int, actu_der);
 		
-		fprintf_P(&debug, PSTR("<32%04x\r\n<33%04x\r\n<34%08lx\r\n<35%04x\r\n"), read_enc(),        enc3_pro, enc3_int, enc3_der);
-		fprintf_P(&debug, PSTR("<42%04x\r\n<43%04x\r\n<44%08lx\r\n<45%04x\r\n"), read_adc(LIFT_FB), actu_pro, actu_int, actu_der);
+		//fprintf_P(&debug, PSTR("<32%04x\r\n<33%04x\r\n<34%08lx\r\n<35%04x\r\n"), read_enc(),        enc3_pro, enc3_int, enc3_der);
+		//fprintf_P(&debug, PSTR("<42%04x\r\n<43%04x\r\n<44%08lx\r\n<45%04x\r\n"), read_adc(LIFT_FB), actu_pro, actu_int, actu_der);
+		fprintf_P(&debug, PSTR("<32%04x\r\n"), read_enc());
+		fprintf_P(&debug, PSTR("<42%04x\r\n"), read_actu());
 		
 		//fprintf_P(&debug, PSTR("R%+d\tR%+d\r\n"), V_enc3_ref, V_actu_ref);
 	}

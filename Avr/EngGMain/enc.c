@@ -1,4 +1,3 @@
-volatile int16_t V_encoder = 0;
 uint8_t last_qio, last_qint;
 
 int16_t read_enc(void) {
@@ -28,6 +27,8 @@ SIGNAL(INT2_vect) {
 		else                        { V_encoder--; }
 	}
 	
+	V_encoder_time = V_uptime32;
+	
 	EIMSK = 0;
 	PCICR = 1 << PCIE1;
 }
@@ -43,6 +44,8 @@ SIGNAL(PCINT1_vect) {
 		if(last_qio & 1 << Q3_IO) { V_encoder--; }
 		else                      { V_encoder++; }
 	}
+	
+	V_encoder_time = V_uptime32;
 	
 	PCICR = 0;
 	EIMSK = 1 << INT2;

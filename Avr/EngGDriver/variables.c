@@ -35,7 +35,7 @@ int32_t p_Lticks = 0, p_Rticks = 0;     // tacho count on last odometer run
 int8_t p_Ltrans = 0, p_Rtrans = 0;      // Which transition region we are located in
 int16_t p_Lrel = 0, p_Rrel = 0;         // position, relative to section
     // List of absolute positions for each track sensor transition
-int16_t p_transLlist[TRANSITIONS] = TRANS_L_LIST;   
+int16_t p_transLlist[TRANSITIONS] = TRANS_L_LIST;
 int16_t p_transRlist[TRANSITIONS] = TRANS_R_LIST;
     // position correction
 uint8_t p_LsensVal = 0, p_RsensVal = 0; // last track sensor value (0 | 1)
@@ -47,10 +47,10 @@ uint16_t posCorrRightFailed = 0;        // failed position correction right coun
 /* --------------*/
 
 /* --- PID parameters --- */
-uint8_t kP = 255;                     	// P Constant
+uint8_t kP = 255;                       // P Constant
 uint8_t kI = 60;                        // I Constant
 uint8_t kD = 64;                        // D Constant
-uint8_t kX = 0;                        	// Cross dependency between both motor displacements
+uint8_t kX = 0;                         // Cross dependency between both motor displacements
 int16_t errIMax = 800;                  // Max Integer value
 int16_t errIMin = -800;         
 int16_t adjustMax = 30;                 // Max power adjustment factor
