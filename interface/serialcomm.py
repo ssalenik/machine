@@ -54,18 +54,22 @@ mainCPU['servo0']			= 0x5
 mainCPU['servo1']			= 0x6
 mainCPU['servo2']			= 0x7
 mainCPU['servo3']			= 0x8
+mainCPU['arm_pid_off']		= 0x10
+mainCPU['arm_pid_on']		= 0x11 
 mainCPU['base_power_up']	= 0x30
 mainCPU['base_power_down']	= 0x31
 mainCPU['base_encoder']		= 0x32
-mainCPU['base_pid_p']		= 0x33
-mainCPU['base_pid_i']		= 0x34
-mainCPU['base_pid_d']		= 0x35
+mainCPU['base_pid_s']		= 0x33
+mainCPU['base_pid_p']		= 0x34
+mainCPU['base_pid_i']		= 0x35
+mainCPU['base_pid_d']		= 0x36
 mainCPU['arm_power_up']		= 0x40
 mainCPU['arm_power_down']	= 0x41
 mainCPU['arm_encoder']		= 0x42
-mainCPU['arm_pid_p']		= 0x43
-mainCPU['arm_pid_i']		= 0x44
-mainCPU['arm_pid_d']		= 0x45
+mainCPU['arm_pid_s']		= 0x43
+mainCPU['arm_pid_p']		= 0x44
+mainCPU['arm_pid_i']		= 0x45
+mainCPU['arm_pid_d']		= 0x46
 
 driver_decode = {
 	'dir_power_both'	: '!BBB',
@@ -83,10 +87,12 @@ mainCPU_decode = {
 	'base_pid_p'		: '!h',
 	'base_pid_i'		: '!i',
 	'base_pid_d'		: '!h',
+	'base_pid_s'		: '!h',
 	'arm_encoder'		: '!h',
 	'arm_pid_p'			: '!h',
 	'arm_pid_i'			: '!i',
-	'arm_pid_d'			: '!h'
+	'arm_pid_d'			: '!h',
+	'arm_pid_s'			: '!h'
 }
 
 # old way:
