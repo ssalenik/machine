@@ -95,7 +95,7 @@ class CentralWidget(QWidget):
         self.controls.stopAllButton.clicked.connect(self.stopAll)
 
         # chassy signals
-        self.controls.chassy.PIDSwitch.stateChanged.connect(self.PIDToggle)
+        self.controls.chassy.PIDSwitchMotors.stateChanged.connect(self.PIDToggleMotors)
         self.controls.chassy.forwardButton.pressed.connect(self.forward)
         self.controls.chassy.forwardButton.released.connect(self.stopChassy)
         self.controls.chassy.backwardButton.pressed.connect(self.backward)
@@ -106,6 +106,7 @@ class CentralWidget(QWidget):
         self.controls.chassy.ccwButton.released.connect(self.stopChassy)
 
         # arm signals
+        self.controls.arm.PIDSwitchArm.stateChanged.connect(self.setArmPID)
         self.controls.arm.ccwButton.pressed.connect(self.baseCCW)
         self.controls.arm.ccwButton.released.connect(self.stopBase)
         self.controls.arm.cwButton.pressed.connect(self.baseCW)
@@ -189,43 +190,68 @@ class CentralWidget(QWidget):
         #TODO
         None
 
+    def setArmPID(self, state):
+        if state == Qt.CheckState.Checked:
+            self.controller.sendMessage(code=mainCPU['arm_pid_on'], sendToDriver=False)
+            self.controls.arm.ccwButton.setEnabled(False) 
+            self.controls.arm.cwButton.setEnabled(False) 
+            self.controls.arm.upButton.setEnabled(False) 
+            self.controls.arm.downButton.setEnabled(False) 
+        else:
+            self.controller.sendMessage(code=mainCPU['arm_pid_off'], sendToDriver=False)
+            self.controls.arm.ccwButton.setEnabled(True) 
+            self.controls.arm.cwButton.setEnabled(True) 
+            self.controls.arm.upButton.setEnabled(True) 
+            self.controls.arm.downButton.setEnabled(True) 
+            
     def setArmRef(self):
-        self.controller.sendMessage(code=mainCPU['arm_pid_p'], sendToDriver=False, data=self.controls.arm.linActPValue.value(), encoding='s16')
-        self.controller.sendMessage(code=mainCPU['arm_pid_i'], sendToDriver=False, data=self.controls.arm.linActIValue.value(), encoding='s16')
-        self.controller.sendMessage(code=mainCPU['arm_pid_d'], sendToDriver=False, data=self.controls.arm.linActDValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['arm_pid_p'], sendToDriver=False, data=self.controls.arm.linActPValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['arm_pid_i'], sendToDriver=False, data=self.controls.arm.linActIValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['arm_pid_d'], sendToDriver=False, data=self.controls.arm.linActDValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['arm_pid_s'], sendToDriver=False, data=self.controls.arm.linActSValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['arm_encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
 
     def setBaseRef(self):
-        self.controller.sendMessage(code=mainCPU['base_pid_p'], sendToDriver=False, data=self.controls.arm.basePValue.value(), encoding='s16')
-        self.controller.sendMessage(code=mainCPU['base_pid_i'], sendToDriver=False, data=self.controls.arm.baseIValue.value(), encoding='s16')
-        self.controller.sendMessage(code=mainCPU['base_pid_d'], sendToDriver=False, data=self.controls.arm.baseDValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['base_pid_p'], sendToDriver=False, data=self.controls.arm.basePValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['base_pid_i'], sendToDriver=False, data=self.controls.arm.baseIValue.value(), encoding='s16')
+        # self.controller.sendMessage(code=mainCPU['base_pid_d'], sendToDriver=False, data=self.controls.arm.baseDValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['base_pid_s'], sendToDriver=False, data=self.controls.arm.baseSValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
 
     def baseCCW(self):
-        self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
+        if not self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def baseCW(self):
-        self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
+        if not self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=self.controls.arm.basePowerInput.value(), encoding='u8')
 
     def stopBase(self):
-        self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=0, encoding='u8')
-        self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=0, encoding='u8')
+        if self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['base_pid_s'], sendToDriver=False, data=0, encoding='s16')
+            self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=0, encoding='s16')
+        else :
+            self.controller.sendMessage(code=mainCPU['base_power_up'], sendToDriver=False, data=0, encoding='u8')
+            self.controller.sendMessage(code=mainCPU['base_power_down'], sendToDriver=False, data=0, encoding='u8')
 
     def armUp(self):
-        self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
+        if not self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def armDown(self):
-        self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
+        if not self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=self.controls.arm.linActPowerInput.value(), encoding='u8')
 
     def stopArm(self):
-        self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=0, encoding='u8')
-        self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=0, encoding='u8')
+        if self.controls.arm.PIDSwitchArm.isChecked() :
+            self.controller.sendMessage(code=mainCPU['arm_pid_s'], sendToDriver=False, data=0, encoding='s16')
+            self.controller.sendMessage(code=mainCPU['arm_encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
+        else:
+            self.controller.sendMessage(code=mainCPU['arm_power_up'], sendToDriver=False, data=0, encoding='u8')
+            self.controller.sendMessage(code=mainCPU['arm_power_down'], sendToDriver=False, data=0, encoding='u8')
         
-
     def stopChassy(self):
-        if self.controls.chassy.PIDSwitch.isChecked() :
+        if self.controls.chassy.PIDSwitchMotors.isChecked() :
             self.controller.sendMessage(code=driver['set_speed_both'], data=0, encoding='u8')
         else:
             self.controller.sendMessage(code=driver['set_power_both'], data=0, encoding='u8')
@@ -235,7 +261,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=driver['set_dir_left'], data=BACKWARD, encoding='u8')
         self.controller.sendMessage(code=driver['set_dir_right'], data=FORWARD, encoding='u8')
 
-        if self.controls.chassy.PIDSwitch.isChecked() :
+        if self.controls.chassy.PIDSwitchMotors.isChecked() :
             # set speed
             self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
             self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
@@ -249,7 +275,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=driver['set_dir_left'], data=FORWARD, encoding='u8')
         self.controller.sendMessage(code=driver['set_dir_right'], data=BACKWARD, encoding='u8')
 
-        if self.controls.chassy.PIDSwitch.isChecked() :
+        if self.controls.chassy.PIDSwitchMotors.isChecked() :
             # set speed
             self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
             self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
@@ -263,7 +289,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=driver['set_dir_left'], data=BACKWARD, encoding='u8')
         self.controller.sendMessage(code=driver['set_dir_right'], data=BACKWARD, encoding='u8')
 
-        if self.controls.chassy.PIDSwitch.isChecked() :
+        if self.controls.chassy.PIDSwitchMotors.isChecked() :
             # set speed
             self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
             self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
@@ -277,7 +303,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=driver['set_dir_left'], data=FORWARD, encoding='u8')
         self.controller.sendMessage(code=driver['set_dir_right'], data=FORWARD, encoding='u8')
 
-        if self.controls.chassy.PIDSwitch.isChecked() :
+        if self.controls.chassy.PIDSwitchMotors.isChecked() :
             # set speed
             self.controller.sendMessage(code=driver['set_speed_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
             self.controller.sendMessage(code=driver['set_speed_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
@@ -287,7 +313,7 @@ class CentralWidget(QWidget):
             self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
 
-    def PIDToggle(self, state):
+    def PIDToggleMotors(self, state):
         if state == Qt.CheckState.Checked:
             # set speed instead of power
             self.controls.chassy.inputLabel.setText("speed:")
@@ -302,7 +328,7 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.lMotorInput.setValue(0)
             self.controls.chassy.rMotorInput.setValue(0)
-
+          
     def refreshRequest(self):
         self.controller.requestFeedback()
 
@@ -405,12 +431,12 @@ class CentralWidget(QWidget):
                 arm = self.controls.arm
                 arm.baseEncoderValue.setText("%i" % c.encoder_base)
                 arm.linActEncoderValue.setText("%i" % c.encoder_arm)
-                # arm.basePValue.setText("%i" % c.p_base)
-                # arm.baseIValue.setText("%i" % c.i_base)
-                # arm.baseDValue.setText("%i" % c.d_base)
-                # arm.linActPValue.setText("%i" % c.p_arm)
-                # arm.linActIValue.setText("%i" % c.i_arm)
-                # arm.linActDValue.setText("%i" % c.d_arm)
+                arm.basePValue.setText("%i" % c.p_base)
+                arm.baseIValue.setText("%i" % c.i_base)
+                arm.baseDValue.setText("%i" % c.d_base)
+                arm.linActPValue.setText("%i" % c.p_arm)
+                arm.linActIValue.setText("%i" % c.i_arm)
+                arm.linActDValue.setText("%i" % c.d_arm)
                 # claw
                 # claw = self.controls.claw
                 # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
@@ -642,7 +668,7 @@ class ChassyFrame(QFrame):
         self.ccwButton.setFixedWidth(110)
         self.cwButton = QPushButton("CW")
         self.cwButton.setFixedWidth(110)
-        self.PIDSwitch = QCheckBox("PID on")
+        self.PIDSwitchMotors = QCheckBox("PID on")
 
         # left/right
         self.lMotorLabel = QLabel("left:")
@@ -716,7 +742,7 @@ class ChassyFrame(QFrame):
         bottomLayout.addWidget(self.inputLabel, 1, 0)
         bottomLayout.addWidget(self.lMotorInput, 1, 1)
         bottomLayout.addWidget(self.rMotorInput, 1, 2)
-        bottomLayout.addWidget(self.PIDSwitch, 2, 1, 1, 2, Qt.AlignHCenter)
+        bottomLayout.addWidget(self.PIDSwitchMotors, 2, 1, 1, 2, Qt.AlignHCenter)
         bottomLayout.addWidget(self.speedLabel, 3, 0)
         bottomLayout.addWidget(self.lSpeedValue, 3, 1)
         bottomLayout.addWidget(self.rSpeedValue, 3, 2)
@@ -767,6 +793,10 @@ class ArmFrame(QFrame):
         self.upButton.setFixedWidth(90)
         self.downButton = QPushButton("down")
         self.downButton.setFixedWidth(90)
+        
+        # pid switch
+        self.PIDSwitchArm = QCheckBox("PID on")
+        
         # power
         self.powerLabel = QLabel("power:")
         self.basePowerInput = QSpinBox()
@@ -785,40 +815,65 @@ class ArmFrame(QFrame):
         self.linActEncoderValue = QLineEdit()
         self.linActEncoderValue.setReadOnly(True)
         self.linActEncoderValue.setFixedWidth(75)
+        
         # pid
         self.pLabel = QLabel("P :")
-        self.basePValue = QSpinBox()
+        
+        self.basePValue = QLineEdit()
         self.basePValue.setFixedWidth(75)
-        self.linActPValue = QSpinBox()
+        self.basePValue.setReadOnly(True)
+        
+        self.linActPValue = QLineEdit()
         self.linActPValue.setFixedWidth(75)
+        self.linActPValue.setReadOnly(True)
+        
         self.iLabel = QLabel("I  :")
-        self.baseIValue = QSpinBox()
+        
+        self.baseIValue = QLineEdit()
         self.baseIValue.setFixedWidth(75)
-        self.linActIValue = QSpinBox()
+        self.baseIValue.setReadOnly(True)
+        
+        self.linActIValue = QLineEdit()       
         self.linActIValue.setFixedWidth(75)
+        self.linActIValue.setReadOnly(True)
+        
         self.dLabel = QLabel("D :")
-        self.baseDValue = QSpinBox()
+        
+        self.baseDValue = QLineEdit()      
         self.baseDValue.setFixedWidth(75)
-        self.linActDValue = QSpinBox()
+        self.baseDValue.setReadOnly(True)
+        
+        self.linActDValue = QLineEdit()       
         self.linActDValue.setFixedWidth(75)
+        self.linActDValue.setReadOnly(True)
+		
         self.sLabel = QLabel("speed :")
+		
         self.baseSValue = QSpinBox()
-        # TODO: insert max/min for base speed
+        self.baseSValue.setMinimum(0)
+        self.baseSValue.setMaximum(100)
         self.baseSValue.setFixedWidth(75)
+		
         self.linActSValue = QSpinBox()
-        # TODO: insert max/min for actuator speed
+        self.linActSValue.setMinimum(0)
+        self.linActSValue.setMaximum(100)
         self.linActSValue.setFixedWidth(75)
+		
         self.refLabel = QLabel("ref value:")
+		
         self.baseRefInput = QSpinBox()
         self.baseRefInput.setMinimum(-4256)
         self.baseRefInput.setMaximum(4256)
         self.baseRefInput.setFixedWidth(75)
+		
         self.linActRefInput = QSpinBox()
-        self.linActRefInput.setMinimum(160)
+        self.linActRefInput.setMinimum(20)
         self.linActRefInput.setMaximum(750)
         self.linActRefInput.setFixedWidth(75)
+		
         self.setBaseRef = QPushButton("set")
         self.setBaseRef.setFixedWidth(90)
+		
         self.setLinActRef = QPushButton("set")
         self.setLinActRef.setFixedWidth(90)
 
@@ -847,35 +902,37 @@ class ArmFrame(QFrame):
         layout.addWidget(self.powerLabel, 5, 0, Qt.AlignRight)
         layout.addWidget(self.basePowerInput, 5, 1)
         layout.addWidget(self.linActPowerInput, 5, 2)
+        # pid switch
+        layout.addWidget(self.PIDSwitchArm, 6, 1, 1, 2, Qt.AlignHCenter)        
         # encoder
-        layout.addWidget(self.encoderLabel, 6, 0, Qt.AlignRight)
-        layout.addWidget(self.baseEncoderValue, 6, 1)
-        layout.addWidget(self.linActEncoderValue, 6, 2)
+        layout.addWidget(self.encoderLabel, 7, 0, Qt.AlignRight)
+        layout.addWidget(self.baseEncoderValue, 7, 1)
+        layout.addWidget(self.linActEncoderValue, 7, 2)
         # P val
-        layout.addWidget(self.pLabel, 7, 0, Qt.AlignRight)
-        layout.addWidget(self.basePValue, 7, 1)
-        layout.addWidget(self.linActPValue, 7, 2)
+        layout.addWidget(self.pLabel, 8, 0, Qt.AlignRight)
+        layout.addWidget(self.basePValue, 8, 1)
+        layout.addWidget(self.linActPValue, 8, 2)
         # I val
-        layout.addWidget(self.iLabel, 8, 0, Qt.AlignRight)
-        layout.addWidget(self.baseIValue, 8, 1)
-        layout.addWidget(self.linActIValue, 8, 2)
+        layout.addWidget(self.iLabel, 9, 0, Qt.AlignRight)
+        layout.addWidget(self.baseIValue, 9, 1)
+        layout.addWidget(self.linActIValue, 9, 2)
         # D val
-        layout.addWidget(self.dLabel, 9, 0, Qt.AlignRight)
-        layout.addWidget(self.baseDValue, 9, 1)
-        layout.addWidget(self.linActDValue, 9, 2)
+        layout.addWidget(self.dLabel, 10, 0, Qt.AlignRight)
+        layout.addWidget(self.baseDValue, 10, 1)
+        layout.addWidget(self.linActDValue, 10, 2)
         # speed
-        layout.addWidget(self.sLabel, 10, 0, Qt.AlignRight)
-        layout.addWidget(self.baseSValue, 10, 1)
-        layout.addWidget(self.linActSValue, 10, 2)
+        layout.addWidget(self.sLabel, 11, 0, Qt.AlignRight)
+        layout.addWidget(self.baseSValue, 11, 1)
+        layout.addWidget(self.linActSValue, 11, 2)
         # ref
-        layout.addWidget(self.refLabel, 11, 0, Qt.AlignRight)
-        layout.addWidget(self.baseRefInput, 11, 1)
-        layout.addWidget(self.linActRefInput, 11, 2)
-        layout.addWidget(self.setBaseRef, 12, 1)
-        layout.addWidget(self.setLinActRef, 12, 2)
+        layout.addWidget(self.refLabel, 12, 0, Qt.AlignRight)
+        layout.addWidget(self.baseRefInput, 12, 1)
+        layout.addWidget(self.linActRefInput, 12, 2)
+        layout.addWidget(self.setBaseRef, 13, 1)
+        layout.addWidget(self.setLinActRef, 13, 2)
 
         # make row at the end stretch
-        layout.setRowStretch(12, 1)
+        layout.setRowStretch(14, 1)
 
         self.setLayout(layout)
 
