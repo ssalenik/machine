@@ -190,9 +190,17 @@ class CentralWidget(QWidget):
         None
 
     def setArmRef(self):
+        self.controller.sendMessage(code=mainCPU['arm_pid_p'], sendToDriver=False, data=self.controls.arm.linActPValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['arm_pid_i'], sendToDriver=False, data=self.controls.arm.linActIValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['arm_pid_d'], sendToDriver=False, data=self.controls.arm.linActDValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['arm_pid_s'], sendToDriver=False, data=self.controls.arm.linActSValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['arm_encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
 
     def setBaseRef(self):
+        self.controller.sendMessage(code=mainCPU['base_pid_p'], sendToDriver=False, data=self.controls.arm.basePValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['base_pid_i'], sendToDriver=False, data=self.controls.arm.baseIValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['base_pid_d'], sendToDriver=False, data=self.controls.arm.baseDValue.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['base_pid_s'], sendToDriver=False, data=self.controls.arm.baseSValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
 
     def baseCCW(self):
@@ -397,12 +405,12 @@ class CentralWidget(QWidget):
                 arm = self.controls.arm
                 arm.baseEncoderValue.setText("%i" % c.encoder_base)
                 arm.linActEncoderValue.setText("%i" % c.encoder_arm)
-                arm.basePValue.setText("%i" % c.p_base)
-                arm.baseIValue.setText("%i" % c.i_base)
-                arm.baseDValue.setText("%i" % c.d_base)
-                arm.linActPValue.setText("%i" % c.p_arm)
-                arm.linActIValue.setText("%i" % c.i_arm)
-                arm.linActDValue.setText("%i" % c.d_arm)
+                # arm.basePValue.setText("%i" % c.p_base)
+                # arm.baseIValue.setText("%i" % c.i_base)
+                # arm.baseDValue.setText("%i" % c.d_base)
+                # arm.linActPValue.setText("%i" % c.p_arm)
+                # arm.linActIValue.setText("%i" % c.i_arm)
+                # arm.linActDValue.setText("%i" % c.d_arm)
                 # claw
                 # claw = self.controls.claw
                 # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
@@ -779,38 +787,38 @@ class ArmFrame(QFrame):
         self.linActEncoderValue.setFixedWidth(75)
         # pid
         self.pLabel = QLabel("P :")
-        self.basePValue = QLineEdit()
-        self.basePValue.setReadOnly(True)
+        self.basePValue = QSpinBox()
         self.basePValue.setFixedWidth(75)
-        self.linActPValue = QLineEdit()
-        self.linActPValue.setReadOnly(True)
+        self.linActPValue = QSpinBox()
         self.linActPValue.setFixedWidth(75)
         self.iLabel = QLabel("I  :")
-        self.baseIValue = QLineEdit()
-        self.baseIValue.setReadOnly(True)
+        self.baseIValue = QSpinBox()
         self.baseIValue.setFixedWidth(75)
-        self.linActIValue = QLineEdit()
-        self.linActIValue.setReadOnly(True)
+        self.linActIValue = QSpinBox()
         self.linActIValue.setFixedWidth(75)
         self.dLabel = QLabel("D :")
-        self.baseDValue = QLineEdit()
-        self.baseDValue.setReadOnly(True)
+        self.baseDValue = QSpinBox()
         self.baseDValue.setFixedWidth(75)
-        self.linActDValue = QLineEdit()
-        self.linActDValue.setReadOnly(True)
+        self.linActDValue = QSpinBox()
         self.linActDValue.setFixedWidth(75)
-        # ref
+        self.sLabel = QLabel("speed :")
+        self.baseSValue = QSpinBox()
+        # TODO: insert max/min for base speed
+        self.baseSValue.setFixedWidth(75)
+        self.linActSValue = QSpinBox()
+        # TODO: insert max/min for actuator speed
+        self.linActSValue.setFixedWidth(75)
         self.refLabel = QLabel("ref value:")
         self.baseRefInput = QSpinBox()
         self.baseRefInput.setMinimum(-4256)
         self.baseRefInput.setMaximum(4256)
         self.baseRefInput.setFixedWidth(75)
-        self.setBaseRef = QPushButton("set")
-        self.setBaseRef.setFixedWidth(90)
         self.linActRefInput = QSpinBox()
         self.linActRefInput.setMinimum(160)
         self.linActRefInput.setMaximum(750)
         self.linActRefInput.setFixedWidth(75)
+        self.setBaseRef = QPushButton("set")
+        self.setBaseRef.setFixedWidth(90)
         self.setLinActRef = QPushButton("set")
         self.setLinActRef.setFixedWidth(90)
 
@@ -855,12 +863,16 @@ class ArmFrame(QFrame):
         layout.addWidget(self.dLabel, 9, 0, Qt.AlignRight)
         layout.addWidget(self.baseDValue, 9, 1)
         layout.addWidget(self.linActDValue, 9, 2)
+        # speed
+        layout.addWidget(self.sLabel, 10, 0, Qt.AlignRight)
+        layout.addWidget(self.baseSValue, 10, 1)
+        layout.addWidget(self.linActSValue, 10, 2)
         # ref
-        layout.addWidget(self.refLabel, 10, 0, Qt.AlignRight)
-        layout.addWidget(self.baseRefInput, 10, 1)
-        layout.addWidget(self.linActRefInput, 10, 2)
-        layout.addWidget(self.setBaseRef, 11, 1)
-        layout.addWidget(self.setLinActRef, 11, 2)
+        layout.addWidget(self.refLabel, 11, 0, Qt.AlignRight)
+        layout.addWidget(self.baseRefInput, 11, 1)
+        layout.addWidget(self.linActRefInput, 11, 2)
+        layout.addWidget(self.setBaseRef, 12, 1)
+        layout.addWidget(self.setLinActRef, 12, 2)
 
         # make row at the end stretch
         layout.setRowStretch(12, 1)

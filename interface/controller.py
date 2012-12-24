@@ -57,9 +57,11 @@ class Controller(QObject):
         self.p_base = 0
         self.i_base = 0
         self.d_base = 0
+		self.s_base = 0
         self.p_arm = 0
         self.i_arm = 0
         self.d_arm = 0
+		self.s_arm = 0
 
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
