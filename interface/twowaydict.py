@@ -1,7 +1,6 @@
 class TwoWayDict(dict):
 	"""
 	two way dictionary class taken from http://stackoverflow.com/questions/1456373/two-way-reverse-map
-
 	this way we can look up the code and what its for
 	"""
 

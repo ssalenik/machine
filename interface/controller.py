@@ -18,7 +18,6 @@ from logger import *
 
 POLL_RATE = 20        # default serial poll rate
 
-
 class Controller(QObject):
 
     # define slots
@@ -89,7 +88,6 @@ class Controller(QObject):
         else:
             self.out("<font color=red>already connected</font>")
             return True
-
 
     def disconnect(self):
         if self.serial.isOpen() :
@@ -265,8 +263,6 @@ class Controller(QObject):
         print message
         return message    
 
-
-    # not the most clever implementation, but should be more readable/maintainable
     def parseMessage(self, line):
         """returns True if a message was receive, False if it was empty"""
 
@@ -286,7 +282,6 @@ class Controller(QObject):
             parseError = True
 
         else :
-
             prepend = message[0]
             code = message[1:3]
             data = message[3:]
@@ -299,8 +294,6 @@ class Controller(QObject):
             dataDecoded = getData(prepend, code, data)
 
             if prepend == driver['feedback'] :
-
-
 
                 if hex_code == driver['dir_power_both'] :
                     #TODO
@@ -339,26 +332,26 @@ class Controller(QObject):
                 if hex_code == mainCPU['base_encoder']:
                     self.encoder_base = dataDecoded[0]
 
-                elif hex_code == mainCPU['base_pid_p']:
-                    self.p_base = dataDecoded[0]
+                #elif hex_code == mainCPU['base_pid_p']:
+                #    self.p_base = dataDecoded[0]
 
-                elif hex_code == mainCPU['base_pid_i']:
-                    self.i_base = dataDecoded[0]
+                #elif hex_code == mainCPU['base_pid_i']:
+                #    self.i_base = dataDecoded[0]
 
-                elif hex_code == mainCPU['base_pid_d']:
-                    self.d_base = dataDecoded[0]
+                #elif hex_code == mainCPU['base_pid_d']:
+                #    self.d_base = dataDecoded[0]
 
                 elif hex_code == mainCPU['arm_encoder']:
                     self.encoder_arm = dataDecoded[0]
 
-                elif hex_code == mainCPU['arm_pid_p']:
-                    self.p_arm = dataDecoded[0]
+                #elif hex_code == mainCPU['arm_pid_p']:
+                #    self.p_arm = dataDecoded[0]
 
-                elif hex_code == mainCPU['arm_pid_i']:
-                    self.i_arm = dataDecoded[0]
+                #elif hex_code == mainCPU['arm_pid_i']:
+                #    self.i_arm = dataDecoded[0]
 
-                elif hex_code == mainCPU['arm_pid_d']:
-                    self.d_arm = dataDecoded[0]
+                #elif hex_code == mainCPU['arm_pid_d']:
+                #    self.d_arm = dataDecoded[0]
 
             else :
                 # should not happed, but just in case

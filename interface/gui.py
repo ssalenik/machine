@@ -17,7 +17,7 @@ import platform
 from controller import *
 from logger import *
 
-MAX_POLL_RATE = 100    # max serial poll rate
+MAX_POLL_RATE = 100   # max serial poll rate
 GUI_RATE = 25         # max gui refresh rate
 MAX_LINES = 1000      # max lines in output window
 
@@ -66,6 +66,9 @@ class CentralWidget(QWidget):
 
         # melanie
         self.melanie = Melanie()
+        
+        # kate
+        self.kate = Kate()
 
         # layout
         self.layout = QGridLayout()
@@ -118,15 +121,17 @@ class CentralWidget(QWidget):
         self.controls.arm.setBaseRef.clicked.connect(self.setBaseRef)
         self.controls.arm.setLinActRef.clicked.connect(self.setArmRef)
 
-        # claw signals
-        self.controls.claw.openButton.pressed.connect(self.clawOpen)
-        self.controls.claw.openButton.released.connect(self.stopClaw)
-        self.controls.claw.closeButton.pressed.connect(self.clawClose)
-        self.controls.claw.closeButton.released.connect(self.stopClaw)
-        self.controls.claw.raiseButton.pressed.connect(self.clawRaise)
-        self.controls.claw.raiseButton.released.connect(self.stopHeight)
-        self.controls.claw.lowerButton.pressed.connect(self.clawLower)
-        self.controls.claw.lowerButton.released.connect(self.stopHeight)
+        # servo signals
+        self.controls.claw.openButton.clicked.connect(self.clawOpen)
+        self.controls.claw.closeButton.clicked.connect(self.clawClose)
+        self.controls.claw.raiseButton.clicked.connect(self.clawRaise)
+        self.controls.claw.lowerButton.clicked.connect(self.clawLower)
+        self.controls.claw.initLaserButton.clicked.connect(self.laserInit)
+        self.controls.claw.midWayButton.clicked.connect(self.laserMid)
+        self.controls.claw.fullButton.clicked.connect(self.laserFull)
+        self.controls.claw.initPingPongButton.clicked.connect(self.pingPongInit)
+        self.controls.claw.shootButton.clicked.connect(self.pingPongShoot)
+        self.controls.claw.magnetSwitch.stateChanged.connect(self.MagnetToggle)
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
@@ -157,6 +162,9 @@ class CentralWidget(QWidget):
     def sendCustom(self):
         if self.command.commandInput.text() == 'melanie' :
             self.melanie.showMelanie()
+        
+        elif self.command.commandInput.text() == 'kate' :
+            self.kate.showKate()
 
         else:
             self.controller.sendCustomMessage(self.command.commandInput.text())
@@ -167,28 +175,31 @@ class CentralWidget(QWidget):
         self.controller.sendCustomMessage(STOP_ALL)
 
     def clawOpen(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['claw_servo_2'], data=0x00, sendToDriver=False, encoding='u8')
 
     def clawClose(self):
-        #TODO
-        None
-
-    def stopClaw(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['claw_servo_2'], data=0xA0, sendToDriver=False, encoding='u8')
 
     def clawRaise(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['claw_servo_1'], data=0x60, sendToDriver=False, encoding='u8')
 
     def clawLower(self):
-        #TODO
-        None
+        self.controller.sendMessage(code=mainCPU['claw_servo_1'], data=0xA0, sendToDriver=False, encoding='u8')
+        
+    def laserInit(self):
+        self.controller.sendMessage(code=mainCPU['laser_servo'], data=0x04, sendToDriver=False, encoding='u8')
 
-    def stopHeight(self):
-        #TODO
-        None
+    def laserMid(self):
+        self.controller.sendMessage(code=mainCPU['laser_servo'], data=0x3A, sendToDriver=False, encoding='u8')
+
+    def laserFull(self):
+        self.controller.sendMessage(code=mainCPU['laser_servo'], data=0x60, sendToDriver=False, encoding='u8')
+
+    def pingPongInit(self):
+        self.controller.sendMessage(code=mainCPU['ping_pong_servo'], data=0x00, sendToDriver=False, encoding='u8')
+
+    def pingPongShoot(self):
+        self.controller.sendMessage(code=mainCPU['ping_pong_servo'], data=0x32, sendToDriver=False, encoding='u8')
 
     def setArmPID(self, state):
         if state == Qt.CheckState.Checked:
@@ -205,6 +216,7 @@ class CentralWidget(QWidget):
             self.controls.arm.downButton.setEnabled(True) 
             
     def setArmRef(self):
+        # used before to tweak PID manually for the actuator
         # self.controller.sendMessage(code=mainCPU['arm_pid_p'], sendToDriver=False, data=self.controls.arm.linActPValue.value(), encoding='s16')
         # self.controller.sendMessage(code=mainCPU['arm_pid_i'], sendToDriver=False, data=self.controls.arm.linActIValue.value(), encoding='s16')
         # self.controller.sendMessage(code=mainCPU['arm_pid_d'], sendToDriver=False, data=self.controls.arm.linActDValue.value(), encoding='s16')
@@ -212,6 +224,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=mainCPU['arm_encoder'], sendToDriver=False, data=self.controls.arm.linActRefInput.value(), encoding='s16')
 
     def setBaseRef(self):
+        # used before to tweak PID manually for the base
         # self.controller.sendMessage(code=mainCPU['base_pid_p'], sendToDriver=False, data=self.controls.arm.basePValue.value(), encoding='s16')
         # self.controller.sendMessage(code=mainCPU['base_pid_i'], sendToDriver=False, data=self.controls.arm.baseIValue.value(), encoding='s16')
         # self.controller.sendMessage(code=mainCPU['base_pid_d'], sendToDriver=False, data=self.controls.arm.baseDValue.value(), encoding='s16')
@@ -312,7 +325,6 @@ class CentralWidget(QWidget):
             self.controller.sendMessage(code=driver['set_power_left'], data=self.controls.chassy.lMotorInput.value(), encoding='u8')
             self.controller.sendMessage(code=driver['set_power_right'], data=self.controls.chassy.rMotorInput.value(), encoding='u8')
 
-
     def PIDToggleMotors(self, state):
         if state == Qt.CheckState.Checked:
             # set speed instead of power
@@ -328,23 +340,28 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.lMotorInput.setValue(0)
             self.controls.chassy.rMotorInput.setValue(0)
+
+    def MagnetToggle(self, state):
+        if state == Qt.CheckState.Checked:
+            self.controller.sendMessage(code=mainCPU['magnets_on'], sendToDriver=False)
+        else:
+            self.controller.sendMessage(code=mainCPU['magnets_off'], sendToDriver=False)
           
     def refreshRequest(self):
         self.controller.requestFeedback()
 
     def debugRequest(self, state):
         if state == Qt.CheckState.Checked:
-            # turn on all teh debugs
+            # turn on all the debugs
             self.controller.sendMessage(code=driver['debug_1'], data=1, encoding='u8')
             self.controller.sendMessage(code=driver['debug_2'], data=1, encoding='u8')
-            # self.controller.sendMessage(code=driver['debug_3'], data=1)
-            # self.controller.sendMessage(code=driver['debug_4'], data=1)
-            # self.controller.sendMessage(code=driver['debug_5'], data=1)
-            # self.controller.sendMessage(code=driver['debug_6'], data=1)
-            # self.controller.sendMessage(code=driver['debug_7'], data=1)
+            self.controller.sendMessage(code=driver['debug_3'], data=1, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_4'], data=1, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_5'], data=1, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_6'], data=1, encoding='u8')
+            self.controller.sendMessage(code=driver['debug_7'], data=1, encoding='u8')
         else:
             # turn off debug
-            # self.controller.sendMessage(code=driver['debug_off'])
             self.controller.sendMessage(code=driver['debug_1'], data=0, encoding='u8')
             self.controller.sendMessage(code=driver['debug_2'], data=0, encoding='u8')
             self.controller.sendMessage(code=driver['debug_3'], data=0, encoding='u8')
@@ -381,7 +398,6 @@ class CentralWidget(QWidget):
             self.disableButtons()
             self.connected = False
             #self.refreshThread.join()
-            #self.controller.disconnect()
             self.controller.disconnect()
             self.settings.connectButton.setText("connect")
             self.settings.statusLabel.setPixmap(self.settings.redFill)
@@ -417,6 +433,7 @@ class CentralWidget(QWidget):
         while(self.refresh):
             if self.connected :
                 c = self.controller
+                
                 # chassy
                 chassy = self.controls.chassy
                 chassy.lSpeedValue.setText("%i" % c.speed_left)
@@ -427,6 +444,7 @@ class CentralWidget(QWidget):
                 chassy.rSensorValue.setText("%i" % c.sensor_right)
                 chassy.lPositionValue.setText("%i" % c.position_left)
                 chassy.rPositionValue.setText("%i" % c.position_right)
+                
                 # arm
                 arm = self.controls.arm
                 arm.baseEncoderValue.setText("%i" % c.encoder_base)
@@ -437,11 +455,7 @@ class CentralWidget(QWidget):
                 arm.linActPValue.setText("%i" % c.p_arm)
                 arm.linActIValue.setText("%i" % c.i_arm)
                 arm.linActDValue.setText("%i" % c.d_arm)
-                # claw
-                # claw = self.controls.claw
-                # claw.clawEncoderValue.setText("%i" % c.encoder_claw)
-                # claw.heightEncoderValue.setText("%i" % c.encoder_claw_height)
-
+                
             # output
             self.output.refresh()
 
@@ -463,6 +477,25 @@ class Melanie(QMainWindow):
     def showMelanie(self):
         if self.isVisible() == False :
             self.melanieMovie.start()
+            self.show()
+            self.raise_()
+
+class Kate(QMainWindow):
+    def __init__(self, parent=None):
+        super(Kate, self).__init__(parent)
+        self.setWindowTitle("Kate Upton")        
+
+        # img
+        self.kateLabel = QLabel(self)
+        self.kate_gif_01 = "kate.gif"
+        self.kateMovie = QMovie(self.kate_gif_01)
+        self.kateLabel.setMovie(self.kateMovie)
+
+        self.setCentralWidget(self.kateLabel)
+
+    def showKate(self):
+        if self.isVisible() == False :
+            self.kateMovie.start()
             self.show()
             self.raise_()
         
@@ -524,7 +557,7 @@ class Settings(QFrame):
         self.portLabel = QLabel("port: ")
         self.portSelect = QComboBox()
         self.portSelect.addItem("select or enter port")
-        #get all serial ports
+        # get all serial ports
         if platform.system() == 'Linux' :
             self.portSelect.addItem('/dev/rfcomm0')
         else:
@@ -535,7 +568,7 @@ class Settings(QFrame):
         self.portSelect.setEditable(True)
         self.portSelect.setToolTip("serial port should be in the form of \"COM#\" on windows and \"/dev/tty.*\" on linux/osx")
         self.refreshButton = QPushButton("refresh all")
-        self.refreshButton.setFixedWidth(110)
+        self.refreshButton.setFixedWidth(60)
         self.rateSwitch = QCheckBox("auto refresh at")
         self.rateSwitch.setCheckState(Qt.Checked)
         self.rateInput = QSpinBox()
@@ -546,11 +579,11 @@ class Settings(QFrame):
         self.rateUnits = QLabel("Hz")
         self.mcuLabel = QLabel("connected to:")
         self.mcuSelect = QComboBox()
-        self.mcuSelect.setFixedWidth(100)
+        self.mcuSelect.setFixedWidth(75)
         self.mcuSelect.addItem("main CPU")
         self.mcuSelect.addItem("driver")
         self.connectButton = QPushButton("connect")
-        self.connectButton.setFixedWidth(110)
+        self.connectButton.setFixedWidth(60)
         self.debugSelect = QCheckBox("debug")
         self.printSelect = QCheckBox("print all")
         
@@ -599,7 +632,6 @@ class Settings(QFrame):
         self.refreshButton.setEnabled(False)
         self.debugSelect.setEnabled(False)
 
-
 class ControlsFrame(QFrame):
     
     def __init__(self, parent=None):
@@ -616,7 +648,7 @@ class ControlsFrame(QFrame):
         self.vLine2.setLineWidth(2)
         self.chassy = ChassyFrame()
         self.arm = ArmFrame()
-        self.claw = ClawFrame()
+        self.claw = ServoFrame()
         self.stopAllButton = QPushButton("STOP ALL MOTORS")
         font = self.stopAllButton.font()
         font.setPointSize(15)
@@ -661,14 +693,14 @@ class ChassyFrame(QFrame):
         self.hLine = QFrame()
         self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.forwardButton = QPushButton("forward")
-        self.forwardButton.setFixedWidth(110)
+        self.forwardButton.setFixedWidth(75)
         self.backwardButton = QPushButton("backward")
-        self.backwardButton.setFixedWidth(110)
+        self.backwardButton.setFixedWidth(75)
         self.ccwButton = QPushButton("CCW")
-        self.ccwButton.setFixedWidth(110)
+        self.ccwButton.setFixedWidth(75)
         self.cwButton = QPushButton("CW")
-        self.cwButton.setFixedWidth(110)
-        self.PIDSwitchMotors = QCheckBox("PID on")
+        self.cwButton.setFixedWidth(75)
+        self.PIDSwitchMotors = QCheckBox("PID motors on")
 
         # left/right
         self.lMotorLabel = QLabel("left:")
@@ -680,47 +712,47 @@ class ChassyFrame(QFrame):
         self.lMotorInput = QSpinBox()
         self.lMotorInput.setMinimum(0)
         self.lMotorInput.setMaximum(100) #100 for power
-        self.lMotorInput.setFixedWidth(75)
+        self.lMotorInput.setFixedWidth(60)
         self.rMotorInput = QSpinBox()
         self.rMotorInput.setMinimum(0)
         self.rMotorInput.setMaximum(100) #100 for power
-        self.rMotorInput.setFixedWidth(75)
+        self.rMotorInput.setFixedWidth(60)
         # actual speed
         self.speedLabel = QLabel("speed:")
         #self.speedLabel.setAlignment(Qt.AlignHCenter)
         self.lSpeedValue = QLineEdit()
         self.lSpeedValue.setReadOnly(True)
-        self.lSpeedValue.setFixedWidth(75)
+        self.lSpeedValue.setFixedWidth(60)
         self.rSpeedValue = QLineEdit()
         self.rSpeedValue.setReadOnly(True)
-        self.rSpeedValue.setFixedWidth(75)
+        self.rSpeedValue.setFixedWidth(60)
         # encoder
         self.encoderLabel = QLabel("encoder:")
         #self.encoderLabel.setAlignment(Qt.AlignHCenter)
         self.lEncoderValue = QLineEdit()
         self.lEncoderValue.setReadOnly(True)
-        self.lEncoderValue.setFixedWidth(75)
+        self.lEncoderValue.setFixedWidth(60)
         self.rEncoderValue = QLineEdit()
         self.rEncoderValue.setReadOnly(True)
-        self.rEncoderValue.setFixedWidth(75)
+        self.rEncoderValue.setFixedWidth(60)
         # sensor
         self.sensorLabel = QLabel("sensor:")
         #self.sensorLabel.setAlignment(Qt.AlignHCenter)
         self.lSensorValue = QLineEdit()
         self.lSensorValue.setReadOnly(True)
-        self.lSensorValue.setFixedWidth(75)
+        self.lSensorValue.setFixedWidth(60)
         self.rSensorValue = QLineEdit()
         self.rSensorValue.setReadOnly(True)
-        self.rSensorValue.setFixedWidth(75)
+        self.rSensorValue.setFixedWidth(60)
         # position
         self.positionLabel = QLabel("position:")
         #self.positionLabel.setAlignment(Qt.AlignHCenter)
         self.lPositionValue = QLineEdit()
         self.lPositionValue.setReadOnly(True)
-        self.lPositionValue.setFixedWidth(75)
+        self.lPositionValue.setFixedWidth(60)
         self.rPositionValue = QLineEdit()
         self.rPositionValue.setReadOnly(True)
-        self.rPositionValue.setFixedWidth(75)
+        self.rPositionValue.setFixedWidth(60)
 
         # main layout
         layout = QGridLayout()
@@ -778,112 +810,97 @@ class ArmFrame(QFrame):
         self.setFrameStyle(QFrame.NoFrame)
 
         # widgets
-        self.label = QLabel("Arm")
+        self.label = QLabel("Arm control")
         self.hLine = QFrame()
         self.hLine.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.baseLabel = QLabel("base")
         self.linActLabel = QLabel("actuator")
+        
         # ccw, cw
         self.ccwButton = QPushButton("CCW")
-        self.ccwButton.setFixedWidth(90)
+        self.ccwButton.setFixedWidth(60)
         self.cwButton = QPushButton("CW")
-        self.cwButton.setFixedWidth(90)
+        self.cwButton.setFixedWidth(60)
+        
         # up, down
         self.upButton = QPushButton("up")
-        self.upButton.setFixedWidth(90)
+        self.upButton.setFixedWidth(60)
         self.downButton = QPushButton("down")
-        self.downButton.setFixedWidth(90)
+        self.downButton.setFixedWidth(60)
         
         # pid switch
-        self.PIDSwitchArm = QCheckBox("PID on")
+        self.PIDSwitchArm = QCheckBox("PID arm on")
         
         # power
         self.powerLabel = QLabel("power:")
         self.basePowerInput = QSpinBox()
         self.basePowerInput.setMinimum(0)
         self.basePowerInput.setMaximum(100) #100 for power
-        self.basePowerInput.setFixedWidth(75)
+        self.basePowerInput.setFixedWidth(60)
         self.linActPowerInput = QSpinBox()
         self.linActPowerInput.setMinimum(0)
         self.linActPowerInput.setMaximum(100) #100 for power
-        self.linActPowerInput.setFixedWidth(75)
+        self.linActPowerInput.setFixedWidth(60)
+        
         # encoder
         self.encoderLabel = QLabel("encoder:")
         self.baseEncoderValue = QLineEdit()
         self.baseEncoderValue.setReadOnly(True)
-        self.baseEncoderValue.setFixedWidth(75)
+        self.baseEncoderValue.setFixedWidth(60)
         self.linActEncoderValue = QLineEdit()
         self.linActEncoderValue.setReadOnly(True)
-        self.linActEncoderValue.setFixedWidth(75)
+        self.linActEncoderValue.setFixedWidth(60)
         
         # pid
         self.pLabel = QLabel("P :")
-        
         self.basePValue = QLineEdit()
-        self.basePValue.setFixedWidth(75)
+        self.basePValue.setFixedWidth(60)
         self.basePValue.setReadOnly(True)
-        
         self.linActPValue = QLineEdit()
-        self.linActPValue.setFixedWidth(75)
+        self.linActPValue.setFixedWidth(60)
         self.linActPValue.setReadOnly(True)
         
         self.iLabel = QLabel("I  :")
-        
         self.baseIValue = QLineEdit()
-        self.baseIValue.setFixedWidth(75)
+        self.baseIValue.setFixedWidth(60)
         self.baseIValue.setReadOnly(True)
-        
         self.linActIValue = QLineEdit()       
-        self.linActIValue.setFixedWidth(75)
+        self.linActIValue.setFixedWidth(60)
         self.linActIValue.setReadOnly(True)
         
         self.dLabel = QLabel("D :")
-        
         self.baseDValue = QLineEdit()      
-        self.baseDValue.setFixedWidth(75)
+        self.baseDValue.setFixedWidth(60)
         self.baseDValue.setReadOnly(True)
-        
         self.linActDValue = QLineEdit()       
-        self.linActDValue.setFixedWidth(75)
+        self.linActDValue.setFixedWidth(60)
         self.linActDValue.setReadOnly(True)
 		
         self.sLabel = QLabel("speed :")
-		
         self.baseSValue = QSpinBox()
         self.baseSValue.setMinimum(0)
         self.baseSValue.setMaximum(100)
-        self.baseSValue.setFixedWidth(75)
-		
+        self.baseSValue.setFixedWidth(60)
         self.linActSValue = QSpinBox()
         self.linActSValue.setMinimum(0)
         self.linActSValue.setMaximum(100)
-        self.linActSValue.setFixedWidth(75)
+        self.linActSValue.setFixedWidth(60)
 		
         self.refLabel = QLabel("ref value:")
-		
         self.baseRefInput = QSpinBox()
         self.baseRefInput.setMinimum(-4256)
         self.baseRefInput.setMaximum(4256)
-        self.baseRefInput.setFixedWidth(75)
-		
+        self.baseRefInput.setFixedWidth(60)
         self.linActRefInput = QSpinBox()
         self.linActRefInput.setMinimum(20)
         self.linActRefInput.setMaximum(750)
-        self.linActRefInput.setFixedWidth(75)
+        self.linActRefInput.setFixedWidth(60)
 		
         self.setBaseRef = QPushButton("set")
-        self.setBaseRef.setFixedWidth(90)
+        self.setBaseRef.setFixedWidth(60)
 		
         self.setLinActRef = QPushButton("set")
-        self.setLinActRef.setFixedWidth(90)
-
-        # sensor
-        # self.baseSensorLabel = QLabel("sensor:")
-        # self.baseSensorValue = QLineEdit()
-        # self.baseSensorValue.setReadOnly(True)
-        # self.baseSensorValue.setFixedWidth(75)
-        # magnet
-        # self.magnetSwitchSwitch = QCheckBox("electro magnet on")
+        self.setLinActRef.setFixedWidth(60)
 
         # layout
         layout = QGridLayout()
@@ -942,69 +959,89 @@ class ArmFrame(QFrame):
     def disableButtons(self):
         None
 
-class ClawFrame(QFrame):
+class ServoFrame(QFrame):
 
     def __init__(self, parent=None):
-        super(ClawFrame, self).__init__(parent)
+        super(ServoFrame, self).__init__(parent)
 
         self.setFrameStyle(QFrame.NoFrame)
 
         # widgets
-        self.label = QLabel("Claw")
+        self.label1 = QLabel("Claw servos")
         self.hLine1= QFrame()
         self.hLine1.setFrameStyle(QFrame.HLine | QFrame.Sunken)
-        self.otherLabel = QLabel("Other")
+        
+        # open/close
         self.openButton = QPushButton("open")
-        self.openButton.setFixedWidth(110)
+        self.openButton.setFixedWidth(60)
         self.closeButton = QPushButton("close")
-        self.closeButton.setFixedWidth(110)
-        self.clawPowerLabel = QLabel("power:")
-        self.clawPowerInput = QSpinBox()
-        self.clawPowerInput.setMinimum(0)
-        self.clawPowerInput.setMaximum(100) #100 for power
-        self.clawPowerInput.setFixedWidth(75)
-        self.clawEncoderLabel = QLabel("encoder:")
-        self.clawEncoderValue = QLineEdit()
-        self.clawEncoderValue.setReadOnly(True)
-        self.clawEncoderValue.setFixedWidth(75)
+        self.closeButton.setFixedWidth(60)
+        
+        # raise/lower
         self.raiseButton = QPushButton("raise")
-        self.raiseButton.setFixedWidth(110)
+        self.raiseButton.setFixedWidth(60)
         self.lowerButton = QPushButton("lower")
-        self.lowerButton.setFixedWidth(110)
-        self.heightPowerLabel = QLabel("power:")
-        self.heightPowerInput = QSpinBox()
-        self.heightPowerInput.setMinimum(0)
-        self.heightPowerInput.setMaximum(100) #100 for power
-        self.heightPowerInput.setFixedWidth(75)
-        self.heightEncoderLabel = QLabel("encoder:")
-        self.heightEncoderValue = QLineEdit()
-        self.heightEncoderValue.setReadOnly(True)
-        self.heightEncoderValue.setFixedWidth(75)
-
+        self.lowerButton.setFixedWidth(60)
+        
+        # widgets
+        self.label2 = QLabel("Laser servo")
         self.hLine2= QFrame()
         self.hLine2.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        
+        # init/midWay/full
+        self.initLaserButton = QPushButton("init")
+        self.initLaserButton.setFixedWidth(45)
+        self.midWayButton = QPushButton("mid")
+        self.midWayButton.setFixedWidth(45)
+        self.fullButton = QPushButton("full")
+        self.fullButton.setFixedWidth(45)
+        
+        # widgets
+        self.label3 = QLabel("Ping pong servo")
+        self.hLine3= QFrame()
+        self.hLine3.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        
+        # init/midWay/full
+        self.initPingPongButton = QPushButton("reload")
+        self.initPingPongButton.setFixedWidth(60)
+        self.shootButton = QPushButton("shoot")
+        self.shootButton.setFixedWidth(60)
+        
+        # widgets
+        self.label4 = QLabel("Electro Magnet")
+        self.hLine4= QFrame()
+        self.hLine4.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        
+        # magnet
+        self.magnetSwitch = QCheckBox("Electro magnet on")
 
         # layout
         layout = QGridLayout()
-        layout.addWidget(self.label, 0, 0, 1, 4, Qt.AlignHCenter)
+        
+        layout.addWidget(self.label1, 0, 0, 1, 4, Qt.AlignHCenter)
         layout.addWidget(self.hLine1, 1, 0, 1, 4)
         layout.addWidget(self.openButton, 2, 0, 1, 2, Qt.AlignHCenter)
         layout.addWidget(self.closeButton, 2, 2, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.clawPowerLabel, 3, 0)
-        layout.addWidget(self.clawPowerInput, 3, 1, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.clawEncoderLabel, 4, 0)
-        layout.addWidget(self.clawEncoderValue, 4, 1, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.raiseButton, 5, 0, 1, 4, Qt.AlignHCenter)
-        layout.addWidget(self.lowerButton, 6, 0, 1, 4, Qt.AlignHCenter)
-        layout.addWidget(self.heightPowerLabel, 7, 0)
-        layout.addWidget(self.heightPowerInput, 7, 1, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.heightEncoderLabel, 8, 0)
-        layout.addWidget(self.heightEncoderValue, 8, 1, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.otherLabel, 9, 0, 1, 4, Qt.AlignHCenter)
-        layout.addWidget(self.hLine2, 10, 0, 1, 4)
+        layout.addWidget(self.raiseButton, 5, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.lowerButton, 5, 2, 1, 2, Qt.AlignHCenter)
+        
+        layout.addWidget(self.label2, 6, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine2, 7, 0, 1, 4)
+        layout.addWidget(self.initLaserButton, 8, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.midWayButton, 8, 1, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.fullButton, 8, 2, 1, 2, Qt.AlignHCenter)
+        
+        layout.addWidget(self.label3, 9, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine3, 10, 0, 1, 4)
+        layout.addWidget(self.initPingPongButton, 11, 0, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.shootButton, 11, 2, 1, 2, Qt.AlignHCenter)
+        
+        layout.addWidget(self.label4, 12, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine4, 13, 0, 1, 4)
+        layout.addWidget(self.magnetSwitch, 14, 1, 1, 2)
 
         # make row at the end stretch
-        layout.setRowStretch(11, 1)
+        layout.setRowStretch(15, 1)
 
         self.setLayout(layout)
 
@@ -1094,5 +1131,6 @@ if __name__ == '__main__':
     main = MainWindow()
     main.show()
     main.raise_()
+    main.move(0, 0)
     # run the main loop
     sys.exit(app.exec_())

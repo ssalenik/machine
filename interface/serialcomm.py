@@ -6,7 +6,6 @@ from struct import *
 contains definitions for serial communication delimiters, commands, etc
 """
 
-
 # new line, always ends all commands and requests
 EOL = '\r'
 STOP_ALL = ' '
@@ -50,10 +49,6 @@ driver['pos_err_both']		= 0x47
 mainCPU['feedback']			= '<'
 mainCPU['base']				= 0x30 # OR this with other commands
 mainCPU['arm']				= 0x40 # OR this with other commands
-mainCPU['servo0']			= 0x5
-mainCPU['servo1']			= 0x6
-mainCPU['servo2']			= 0x7
-mainCPU['servo3']			= 0x8
 mainCPU['arm_pid_off']		= 0x10
 mainCPU['arm_pid_on']		= 0x11 
 mainCPU['base_power_up']	= 0x30
@@ -70,6 +65,12 @@ mainCPU['arm_pid_s']		= 0x43
 mainCPU['arm_pid_p']		= 0x44
 mainCPU['arm_pid_i']		= 0x45
 mainCPU['arm_pid_d']		= 0x46
+mainCPU['ping_pong_servo']	= 0x50
+mainCPU['laser_servo']		= 0x60
+mainCPU['claw_servo_1']		= 0x70  # upward/downward
+mainCPU['claw_servo_2']		= 0x80  # open/close
+mainCPU['magnets_off']		= 0x90
+mainCPU['magnets_on']		= 0x91
 
 driver_decode = {
 	'dir_power_both'	: '!BBB',
@@ -96,16 +97,15 @@ mainCPU_decode = {
 }
 
 # old way:
-# mainCPU['feedback']			= '<'
-# mainCPU['base']				= 0x30 # OR this with other commands
-# mainCPU['arm']				= 0x40 # OR this with other commands
-# mainCPU['power_ccw_up']		= 0x00
+# mainCPU['feedback']		= '<'
+# mainCPU['base']			= 0x30 # OR this with other commands
+# mainCPU['arm']			= 0x40 # OR this with other commands
+# mainCPU['power_ccw_up']	= 0x00
 # mainCPU['power_cw_down']	= 0x01
-# mainCPU['encoder']			= 0x02
+# mainCPU['encoder']		= 0x02
 # mainCPU['pid_p']			= 0x03
 # mainCPU['pid_i']			= 0x04
 # mainCPU['pid_d']			= 0x05
-
 
 def getDataDecode(prepend, code):
 	"""
@@ -169,7 +169,3 @@ def isValidMessage(prepend, code, data):
 		return True
 	else :
 		return False
-
-
-
-
