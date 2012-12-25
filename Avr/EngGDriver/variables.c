@@ -44,6 +44,8 @@ int16_t p_Lerr = 0, p_Rerr = 0;          // last track sensor position correctio
 int8_t posCorrectionOn = 0;             // toggle position correction
 uint16_t posCorrLeftFailed = 0;         // failed position correction left counter
 uint16_t posCorrRightFailed = 0;        // failed position correction right counter
+uint8_t posCorrLready = 0;              // determines if left sensor will trigger on next plank
+uint8_t posCorrRready = 0;              // determines if right sensor will trigger on next plank
 /* --------------*/
 
 /* --- PID parameters --- */
@@ -114,7 +116,7 @@ uint8_t debug4 = 0;
 uint8_t debug5 = 0;
 uint8_t debug6 = 0;
 uint8_t debug7 = 0;
-uint16_t debugPeriod = 200;
+uint16_t debugPeriod = 500;
 /* --------------*/
 
 /* This statement allows printf to work with serial com

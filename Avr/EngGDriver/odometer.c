@@ -86,7 +86,41 @@ void updateRelativePos() {
         if (p_Rrel + p_transRlist[p_Rtrans] >= p_transRlist[p_Rtrans + 1]) {
             p_Rrel = absoluteToRelativePos_R(p_R, &p_Rtrans);
         }
-    }  
+    }
+    
+    /**
+     * With the new position correction algorithm, position corrections are
+     * only applied when a sensor passes from a gap to a plank, due to false
+     * negative readings. Therefore, make sensors ready to detect planks only
+     * in gaps (odd sections) and make them not ready when they pass to planks
+     * (even sections). This eliminates multiple triggering and false negatives.
+     */
+    
+    // make left sensor ready when necessary, depending on left motor direction
+    if (p_Ltrans & 1) {
+        if (ldir == FORWARD) {
+            if (p_Lrel > p_transLlist[p_Ltrans+1] - p_transLlist[p_Ltrans] - MAX_CORR_ERROR) {
+                posCorrLready = 1;
+            }
+        } else if (ldir == BACKWARD) {
+            if (p_Rrel < MAX_CORR_ERROR) {
+                posCorrLready = 1;
+            }
+        }
+    }
+    
+    // make right sensor ready when necessary, depending on right motor direction
+    if (p_Rtrans & 1) {
+        if (rdir == FORWARD) {
+            if (p_Rrel > p_transRlist[p_Rtrans+1] - p_transRlist[p_Rtrans] - MAX_CORR_ERROR) {
+                posCorrRready = 1;
+            }
+        } else if (rdir == BACKWARD) {
+            if (p_Rrel < MAX_CORR_ERROR) {
+                posCorrRready = 1;
+            }
+        }
+    }
 }
 
 /**
@@ -124,6 +158,7 @@ void resetPosCorrection() {
     readTrackSensors();
     // clear correction errors
     p_Lerr = p_Rerr = 0;
+    posCorrLready = posCorrRready = 0;
 }
 
 /**
@@ -146,11 +181,12 @@ void positionCorrection() {
     
     // exit if correction is turned off
     if (!posCorrectionOn) {
+        posCorrLready = posCorrRready = 0;
         return;
     }
     
-    // check for transitions
-    if ((lastLval != p_LsensVal) || (lastRval != p_RsensVal)) {
+    // check for transitions from hole to plank
+    if ((posCorrLready && lastLval && !p_LsensVal) || (posCorrRready && lastRval && !p_RsensVal)) {
         /* make sure we have the updated position values if we need to
          * run the correction algorithm. Note that since the digital
          * sensor has a very fast smapling rate of about 2.5 ms, the 
@@ -161,9 +197,10 @@ void positionCorrection() {
     }
     
     // check left side
-    if (lastLval != p_LsensVal) {
+    if (posCorrLready && lastLval && !p_LsensVal) {
         // check if we are closer to the next transition than to the 
         // one in whose zone we are
+		posCorrLready = 0;
         transL = p_Ltrans;
         if (p_Ltrans < TRANSITIONS - 1) {
             p_Lerr = (p_transLlist[p_Ltrans] + p_Lrel) - p_transLlist[p_Ltrans + 1];
@@ -184,6 +221,7 @@ void positionCorrection() {
             p_Lrel = 0;
             p_L = p_transLlist[transL];
             p_Lfull = ((int32_t)p_L) << 10;
+			printf("posL corr OK! sect %u\r", transL);
         } else {
             // mucho problemo
             // TODO: send a notification
@@ -193,7 +231,8 @@ void positionCorrection() {
     }
 
     // check right side
-    if (lastRval != p_RsensVal) {
+    if (posCorrRready && lastRval && !p_RsensVal) {
+        posCorrRready = 0;
         transR = p_Rtrans;
         if (p_Rtrans < TRANSITIONS - 1) {
             p_Rerr = (p_transRlist[p_Rtrans] + p_Rrel) - p_transRlist[p_Rtrans + 1];
@@ -212,6 +251,7 @@ void positionCorrection() {
             p_Rrel = 0;
             p_R = p_transRlist[transR];
             p_Rfull = ((int32_t)p_R) << 10;
+			printf("posR corr OK! sect %u\r", transR);
         } else {
             // mucho problemo
             // TODO: send a notification

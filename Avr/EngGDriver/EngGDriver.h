@@ -95,7 +95,7 @@
     4787, 4889, 5016, 5117, 5244, 5346, 5473, 5575}
 
 /* --- Track Sensor and pos correction --- */
-#define MAX_CORR_ERROR 30           // maximum allowable pos correction (in mm)
+#define MAX_CORR_ERROR 50           // maximum allowable pos correction (in mm)
 #define POS_SENSOR_THR 300          // analog sensor plank detection threshold: no plank < 300 < plank
         
 /* --- Navigation --- */        

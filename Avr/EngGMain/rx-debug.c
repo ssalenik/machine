@@ -73,7 +73,7 @@ void check_debug_uart(void) {
 					inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
 					break;
 					
-					case 'a': // magnets
+					case '9': // magnets
 					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
 					if(inputbuf[1] == '0') { clr_bit(FET1); clr_bit(FET2); fprintf_P(&debug, PSTR("Magnets off!\r\n")); }
 					else                   { set_bit(FET1); set_bit(FET2); fprintf_P(&debug, PSTR("Magnets on!\r\n"));  }
@@ -140,13 +140,13 @@ void check_debug_uart(void) {
 					case '4': // lift motor commands
 					if(!isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
 					switch(inputbuf[1]) {
-						case '0': // forward (uint8_t speed)
+						case '0': // up (uint8_t speed)
 						if(inputptr != 4) { cmd_err(); break; }
 						motor4_fwd();
 						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
 						break;
 						
-						case '1': // reverse (uint8_t speed)
+						case '1': // down (uint8_t speed)
 						if(inputptr != 4) { cmd_err(); break; }
 						motor4_rev();
 						set_speed_4(htoa(inputbuf[2], inputbuf[3]) * 40);
@@ -190,26 +190,26 @@ void check_debug_uart(void) {
 					break;
 					
 					case '5': // servo5 commands
-					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
-					servo5(htoa(inputbuf[1], inputbuf[2]));
+					if(inputptr != 4 || !isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					servo5(htoa(inputbuf[2], inputbuf[3]));
 					//OCR0A = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '6': // servo6 commands
-					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
-					servo6(htoa(inputbuf[1], inputbuf[2]));
+					if(inputptr != 4 || !isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					servo6(htoa(inputbuf[2], inputbuf[3]));
 					//OCR0B = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '7': // servo7 commands
-					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
-					servo7(htoa(inputbuf[1], inputbuf[2]));
+					if(inputptr != 4 || !isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					servo7(htoa(inputbuf[2], inputbuf[3]));
 					//OCR2A = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
 					case '8': // servo8 commands
-					if(inputptr != 3 || !isHex(inputbuf[1]) || !isHex(inputbuf[2])) { cmd_err(); break; }
-					servo8(htoa(inputbuf[1], inputbuf[2]));
+					if(inputptr != 4 || !isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					servo8(htoa(inputbuf[2], inputbuf[3]));
 					//OCR2B = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
