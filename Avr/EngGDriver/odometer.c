@@ -103,7 +103,7 @@ void updateRelativePos() {
                 posCorrLready = 1;
             }
         } else if (ldir == BACKWARD) {
-            if (p_Rrel < MAX_CORR_ERROR) {
+            if (p_Lrel < MAX_CORR_ERROR) {
                 posCorrLready = 1;
             }
         }
@@ -118,6 +118,32 @@ void updateRelativePos() {
         } else if (rdir == BACKWARD) {
             if (p_Rrel < MAX_CORR_ERROR) {
                 posCorrRready = 1;
+            }
+        }
+    }
+    
+    // make left sensor not ready when necessary, depending on left motor direction
+    if (~p_Ltrans & 1) {
+        if (ldir == FORWARD) {
+            if (p_Lrel > MAX_CORR_ERROR) {
+                posCorrLready = 0;
+            }
+        } else if (ldir == BACKWARD) {
+            if (p_Lrel < p_transLlist[p_Ltrans+1] - p_transLlist[p_Ltrans] - MAX_CORR_ERROR) {
+                posCorrLready = 0;
+            }
+        }
+    }
+    
+    // make right sensor not ready when necessary, depending on left motor direction
+    if (~p_Rtrans & 1) {
+        if (rdir == FORWARD) {
+            if (p_Rrel > MAX_CORR_ERROR) {
+                posCorrRready = 0;
+            }
+        } else if (rdir == BACKWARD) {
+            if (p_Rrel < p_transRlist[p_Rtrans+1] - p_transRlist[p_Rtrans] - MAX_CORR_ERROR) {
+                posCorrRready = 0;
             }
         }
     }
