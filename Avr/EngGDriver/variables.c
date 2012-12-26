@@ -24,7 +24,6 @@ int16_t speed0 = 0, speed1 = 0;         // speed of motor in ticks / sec
 int16_t accel0 = 0, accel1 = 0;         // acceleration of motor in ticks / sec^2
 int16_t lastSpeed0[8], lastSpeed1[8];   // values used by calculateSpeeds() for acceleration
 int16_t lastSpeedInd = 0;               // index for the current value in lastSpeed buffer
-int32_t lastSpeedCalc = 0;              // SpeedCalculation and PID timer
 /* --------------*/
 
 /* --- Odometry and position correction --- */
@@ -126,4 +125,8 @@ uint16_t debugPeriod = 500;
  */
 static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
 
+/* ======================== */
+
+/* ======== Functions for EngGDriver.c ======== */
+int32_t uptime();   // return the value of timer (interrupt safe)
 /* ======================== */

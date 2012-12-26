@@ -12,9 +12,9 @@
 /* --------------*/
 
 /* --- insert modules --- */
+#include "variables.c"          // contains all the public variables
 #include "delay.c"
 #include "adc.c"
-#include "variables.c"          // contains all the public variables
 #include "motors.c"
 #include "communication.c"
 #include "odometer.c"
@@ -25,12 +25,13 @@
  * Main loop.
  */
 int main(void) {
+    int32_t lastSpeedCalc = 0;
     int32_t lastDebug = 0;
     
     // initalize all modules
     initAll();
     
-    // enable interrupts
+    // enable interrupts (i.e timers start from here)
     sei();
     
     // The LOOP
@@ -39,9 +40,8 @@ int main(void) {
         readCommand();          // communication.c
         
         // apply speed calculation and run odometer
-        // FIXME: "timer" can get trashed by ISR. Create a function "uptime()" to read timer
-        if (timer >= lastSpeedCalc + SPEED_CALC_PERIOD) {
-            lastSpeedCalc = timer; // FIXME: lastSpeedCalc += SPEED_CALC_PERIOD; // "timer" can get trashed by ISR
+        if (uptime() >= lastSpeedCalc + SPEED_CALC_PERIOD) {
+            lastSpeedCalc += SPEED_CALC_PERIOD;
             calculateSpeeds();  // motors.c
             if (pidOn) {
                 runPID();       // motors.c
@@ -55,9 +55,8 @@ int main(void) {
         positionCorrection();   // odometer.c
         
         // print debug
-        // FIXME: "timer" can get trashed by ISR. Create a function "uptime()" to read timer
-        if ((debugPeriod) && timer >= (lastDebug + debugPeriod)) {
-            lastDebug += debugPeriod; // FIXME: lastDebug += debugPeriod; // "timer" can get trashed by ISR
+        if ((debugPeriod) && uptime() >= (lastDebug + debugPeriod)) {
+            lastDebug += debugPeriod;
             //if (debug1) printf(">21%02x\r", speed0 >> 4);
             //if (debug1) printf(">21%04x\r>22%04x\r", readADC(0), readADC(1));
             if (debug1) printSpeed(CPUCHAR);
@@ -128,5 +127,13 @@ ISR(TIMER0_COMPA_vect) {
     timer16++;
     timerPrescaler++;
     if (!(timerPrescaler & 0x0f)) timer++;
+}
+
+int32_t uptime() {
+    int32_t timer_cached;
+    cli();
+    timer_cached = timer;
+    sei();
+    return timer_cached;
 }
 

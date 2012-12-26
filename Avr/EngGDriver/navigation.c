@@ -5,7 +5,7 @@
  * For function prototypes and defines, see EngGDriver.h
  * For public variables, see variables.c
  *
- * NOTE: THIS MODULE IS OBSOLETE AND NEEDS REWORKING
+ * NOTE: THIS MODULE NEEDS CLEANING
  */
  
  /* function that decides where the robot goes by setting target speed of motors
