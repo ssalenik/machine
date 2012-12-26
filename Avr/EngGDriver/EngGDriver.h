@@ -28,7 +28,7 @@
 /* --- Speed calculation related --- */
 #define SPEED_CALC_PERIOD 10 // Period of PID and Speed calculations in ms
 #define NULL_PERIOD_THRESHOLD (16 * 20) // speeds of less than about 5.5 mm/s are deemed as 0 mm/s
-#define TIMER16_FREQ 16000  // Frequency of timer16 (i.e. 16 kHz)
+#define TIMER20_FREQ 20000  // Frequency of timer16 (i.e. 20 kHz)
 
 /* --- Motor PINOUT --- */
  

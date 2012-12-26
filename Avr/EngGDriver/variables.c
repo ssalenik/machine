@@ -2,7 +2,7 @@
 /* ======== Variables for EngGDriver.c ======== */
 
 /* --- Timers ---*/
-volatile int32_t timer16 = 0;           // timer in 1/16th of a millisecond
+volatile int32_t timer20 = 0;           // timer in 1/20th of a millisecond
 volatile uint8_t timerPrescaler = 0;    // used to increment timer
 volatile int32_t timer = 0;             // timer in milliseconds
 /* --------------*/
