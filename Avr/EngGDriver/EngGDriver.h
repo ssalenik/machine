@@ -122,14 +122,13 @@
 /* -------- */
 
 
-
-/* ========== Function Prototypes ========== */
-
+/* ======================== */
 /* --- EngGDriver.c: Main function, system timer --- */
     // init all modules and system timer
 void initAll();
 void initADC();
 void initTimer0();
+int32_t uptime();   // return the value of timer (interrupt safe)
     // Interrupt vector of EngGDriver.c:
 // --> ISR(TIMER0_COMPA_vect)
 

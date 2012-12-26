@@ -109,7 +109,3 @@ uint16_t debugPeriod = 500;
 static FILE uart_stdout = FDEV_SETUP_STREAM(uart_put, NULL, _FDEV_SETUP_WRITE);
 
 /* ======================== */
-
-/* ======== Functions for EngGDriver.c ======== */
-int32_t uptime();   // return the value of timer (interrupt safe)
-/* ======================== */
