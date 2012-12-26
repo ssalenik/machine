@@ -68,6 +68,13 @@ int main(void) {
             //if (debug5) printf_P(PSTR("%d\t%d\r\n"), speed0, speed1);
             //if (debug6) printf_P(PSTR("%d\t%d\r\n"), accel0, accel1);
             if (debug7) printf_P(PSTR("%u\t%u\r\n"), power0, power1);
+            // debug for GUI
+            printTicks(CPUCHAR);
+            printSpeed(CPUCHAR);
+            printAccel(CPUCHAR);
+            printAbsDist(CPUCHAR);
+            printRelDist(CPUCHAR);
+            printSensors(CPUCHAR);
         }
     }
     
