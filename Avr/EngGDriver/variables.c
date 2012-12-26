@@ -55,7 +55,8 @@ uint8_t kX = 0;                         // Cross dependency between both motor d
 int16_t errIMax = 800;                  // Max Integer value
 int16_t errIMin = -800;         
 int16_t adjustMax = 30;                 // Max power adjustment factor
-int16_t adjustMin = -20;            
+int16_t adjustMin = -20;
+    // legacy code, used for cross-adjustment:
 int16_t adjustXMax = 50;                // Max power adjustment from kX
 int16_t adjustXMin = -50;           
 uint8_t xCalibration = 128;             // calibrates motor1 to motor0 using ticks. 128 for no calibration
@@ -70,42 +71,23 @@ uint16_t targetSpeed1 = 0;              // target speed of motor 1
 int16_t errI0 = 0, errI1 = 0;           // Accumulator for the PID I part
 uint16_t power0 = 0, power1 = 0;        // power (0 to 100 * 256) applied to each motor
 uint8_t moving0 = 0, moving1 = 0;       // presence of power on each motor (used for arrow indicators)
+    // legacy code, used for cross-adjustment:
 uint8_t adjXOn = 0;                     // enable or disable cross adjustment
 int16_t adjustX = 0;                    // current cross adjustment
 /* --------------*/
 
-// TODO: Change all this navigation stuff
 /* --- Navigation variables --- */
 typedef enum {
     NAV_NONE = 0,
-    NAV_SYNC = 1,
-    NAV_DIST = 2,
-    NAV_FREE = 3,
-    NAV_ROT  = 4,
-    NAV_DCHK = 5,
-    NAV_RCHK = 6
-} NavCom;
-NavCom navCom = NAV_NONE;
-int16_t n_targetLpos = 0;
-int16_t n_targetRpos = 0;
-uint8_t n_Ldone;
-uint8_t n_Rdone;
-int16_t heading = 0;                    // current heading of the robot as recieved from master
-int16_t n_ticks = 0;                    // target distance in ticks to travel by navigator when in mode NAV_DIST
-int16_t n_slowTicks = 100;              // distance in ticks before slowing down to n_slowSpeed if targetSpeed > n_slowSpeed
-int16_t n_stopTicks = 8;                // distance in ticks when to stop if targetSpeed = n_slowSpeed
-int16_t n_slowSpeed = 50;
-int16_t n_targetHeading = 0;            // target heading to travel by navigator when in mode NAV_ROT
-int16_t n_stopAngle = 2;                // angle from target heading when to stop if targetSpeed = n_slowASpeed
-int16_t n_slowATicks = 50;
-int16_t n_stopATicks = 8;
-int16_t n_slowASpeed = 35;
-int16_t n_wait = 500;                   // wait in ms before checking that heading is same as target
-int32_t n_timer = 0;
-uint8_t n_rot_dir = ANG_CW;             // direction of rotation for NAV_ROT
-uint8_t slipAdjFOn = 0;
-uint8_t slipAdjSOn = 0;
-uint8_t rotAdjOn = 1;
+    NAV_DIST,
+    NAV_FREE,
+} NavCom;                               // enum for possible navigation states
+NavCom navCom = NAV_NONE;               // navigator state
+    // NAV_DIST mode variables:
+int16_t n_targetLpos = 0;               // target L destination
+int16_t n_targetRpos = 0;               // target R destination
+uint8_t n_Ldone, n_Rdone;               // set to 1 when L/R side reached destination
+/* --------------*/
 
 /* --- Debug --- */
 uint8_t debug1 = 0;

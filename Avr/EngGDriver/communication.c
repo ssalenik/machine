@@ -117,21 +117,7 @@ void readCommand() {
                     setDirection(LMOTOR, ldir);
                     setDirection(RMOTOR, rdir);
                     break;
-                case 0x17: // toggle adjX on/off (auto, this one is preferred)
-                    arg1 = readByte(&buf[2], &valid);
-                    if (valid) {
-                        slipAdjFOn = arg1;
-                        resetPID();
-                    }
-                    break;
-                case 0x18: // toggle adjX on/off (auto, this one is preferred)
-                    arg1 = readByte(&buf[2], &valid);
-                    if (valid) {
-                        slipAdjSOn = arg1;
-                        resetPID();
-                    }
-                    break;
-                case 0x19: // toggle adjX on/off (manual)
+                case 0x19: // toggle cross-adjustment on/off
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) {
                         adjXOn = arg1;
@@ -158,20 +144,29 @@ void readCommand() {
                     }
                     break;
                 // NAVIGATOR COMMANDS
-                case 0x31: // navigator in NAV_DIST mode, goto position
+                case 0x30: // set navigator to idle mode (i.e. turn off navigation)
+                    navFree(0, 0, FORWARD, FORWARD);
+                    break;
+                case 0x31: // navigator in NAV_DIST mode, goto absolute position
                     // byte1: speed | byte2-3: distance in mm
                     arg1 = readByte(&buf[2], &valid);
                     arg1i = readInt(&buf[4], &valid);
                     if (valid) navDest(arg1 * 16, arg1i, arg1i);
                     break;
-                case 0x32: // navigator in NAV_DIST mode, goto position
+                case 0x32: // navigator in NAV_DIST mode, goto relative position
                     // byte1: speed | byte2: transition num | byte3: offset in mm
                     arg1 = readByte(&buf[2], &valid);
                     arg2 = readByte(&buf[4], &valid);
                     arg3 = readByte(&buf[6], &valid);
                     if (valid) navDestRel(arg1 * 16, arg2, arg3, arg2, arg3);
                     break;
-                
+                case 0x33: // navigator in NAV_FREE mode, just set speeds and go
+					// byte1: speedL | byte2: speedR | byte3H: dirL | byte3L: dirR
+					arg1 = readByte(&buf[2], &valid);
+					arg2 = readByte(&buf[4], &valid);
+					arg3 = readByte(&buf[6], &valid);
+					if (valid) navFree(arg1 * 2, arg2 * 2, arg3 >> 4, arg3 & 0x0f);
+					break;
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
                     arg1 = readByte(&buf[2], &valid);
@@ -369,8 +364,7 @@ void printParams() {
 }
 
 void printParams2() {
-    printf_P(PSTR("slipAdjF, slipAdjS, adjXOn, adjustX:\t%d\t%d\t%d\r\n"),
-        slipAdjFOn, slipAdjSOn, adjXOn, adjustX);
+    printf_P(PSTR("adjXOn, adjustX:\t%d\t%d\t%d\r\n"), adjXOn, adjustX);
 }
 
 // sends travelled distance in mm for each track
