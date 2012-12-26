@@ -14,6 +14,7 @@
 
 #define ENDCHAR '\r'
 #define CPUCHAR '>'
+#define MAINCHAR '@'
 
 /* --- Motor driver constants --- */
     // This is the max value to be placed in the OC1x register
@@ -159,11 +160,11 @@ inline uint8_t readByte(char *buf, uint8_t *valid);
 inline int16_t readInt(char *buf, uint8_t *valid);
 inline uint16_t readUInt(char *buf, uint8_t *valid);
     // functions called by dispatcher
-void sendDone();
 void sendDist();
 void printParams();
 void printParams2();
 
+void sendDone(char dest);
 void printDirection(char dest);
 void printTicks(char dest);
 void printSpeed(char dest);

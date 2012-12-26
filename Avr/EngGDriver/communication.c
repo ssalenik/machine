@@ -356,9 +356,8 @@ inline int16_t readInt(char *buf, uint8_t *valid) {
 /**
  * Sends done acknowledgement.
  */
-void sendDone() {
-    uart_put('D', NULL);
-    uart_put('\r', NULL);
+void sendDone(char dest) {
+    printf_P(PSTR("%c10%c"), dest, ENDCHAR);
 }
 
 void printParams() {

@@ -34,7 +34,10 @@ void navigator() {
             targetSpeed1 = calculateTargetSpeed(distLeft, targetSpeed1);
             if (targetSpeed1 == 0) n_Rdone = 1;
         }
-        if (n_Ldone && n_Rdone) navCom = NAV_NONE;
+        if (n_Ldone && n_Rdone) {
+            navCom = NAV_NONE;
+            sendDone(MAINCHAR);
+        }
         break;
     case NAV_FREE:
         // do nothing
