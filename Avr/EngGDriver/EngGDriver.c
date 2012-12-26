@@ -60,7 +60,7 @@ int main(void) {
             //if (debug1) printf(">21%02x\r", speed0 >> 4);
             //if (debug1) printf(">21%04x\r>22%04x\r", readADC(0), readADC(1));
             if (debug1) printSpeed(CPUCHAR);
-            //if (debug2) printf("%ld\t%ld\r\n", timer, timer16);
+            //if (debug2) printf("%ld\t%ld\r\n", timer, timer20);
             if (debug2) printf_P(PSTR("%d\t%d\r\n"), p_L, p_R);
             if (debug3) printf_P(PSTR("%d, %d / %d, %d / %d, %d / %u, %u\r\n"),
                 p_Ltrans, p_Lrel, p_Rtrans, p_Rrel, p_Lerr, p_Rerr, posCorrLeftFailed, posCorrRightFailed);
@@ -115,18 +115,20 @@ void initTimer0() {
     TCCR0A = 0b00000010;    // set timer to CTC mode
     TCCR0B = 0b00000010;    // set clock prescaler to 8
     OCR0A = 124;            // set to 124 + 1 timer ticks per interrupt
-    // total frequency is 8kHz at 20Mhz clock (20M / 125 / 8 = 16k)
+    // total frequency is 8kHz at 20Mhz clock (20M / 125 / 8 = 20k)
     TIMSK0 |= 1 << OCIE0A;  // enable compare A interupt
-    // NOTE: actual frequency with these settings is 20MHz / 8 / (124+1) = 20kHz for "timer16" and 1.25kHz for "timer"
 }
 
 /**
  * Timer0 COMPARE A interrupt used for system timer
  */
 ISR(TIMER0_COMPA_vect) {
-    timer16++;
+    timer20++;
     timerPrescaler++;
-    if (!(timerPrescaler & 0x0f)) timer++;
+    if (timerPrescaler == 20) {
+        timer++;
+        timerPrescaler = 0;
+    }
 }
 
 int32_t uptime() {

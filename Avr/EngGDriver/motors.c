@@ -30,7 +30,7 @@ ISR(INT0_vect) {
     
     // update the timestamp of the latest tick and the one before
     int0Time1 = int0Time0;
-    int0Time0 = timer16;
+    int0Time0 = timer20;
     
 }
 
@@ -53,7 +53,7 @@ ISR(INT1_vect) {
     
     // update the timestamp of the latest tick and the one before
     int1Time1 = int1Time0;
-    int1Time0 = timer16;
+    int1Time0 = timer20;
 }
 
  
@@ -240,7 +240,7 @@ void calculateSpeeds() {
     int32_t int1Time0_cached, int1Time1_cached;
     int32_t ticks0_cached, ticks1_cached;
     int8_t int0dir_cached, int1dir_cached;
-    int32_t timer16_cached;
+    int32_t timer20_cached;
     
     
     // cache volatile variables
@@ -253,7 +253,7 @@ void calculateSpeeds() {
     ticks1_cached = ticks1;
     int0dir_cached = int0dir;
     int1dir_cached = int1dir;
-    timer16_cached = timer16;
+    timer20_cached = timer20;
     sei();
     
     /* CALCULATE SPEED
@@ -261,40 +261,40 @@ void calculateSpeeds() {
      * if speed is slow, ticks# == ticks#CS, thus
      *   simply use the timestamps of the last 2 crosses.
      * if speed is very slow or null, ticks# == ticks#CS
-     *   and (timer16 - int#Time0) > NULL_PERIOD_THRESHOLD,
+     *   and (timer20 - int#Time0) > NULL_PERIOD_THRESHOLD,
      *   then just set speed to 0.
      * if speed is fast enough, then ticks# != ticks#CS
      */
     
     if (ticks0_cached == ticks0CS) {
         // speed is slow
-        if ((timer16_cached - int0Time0_cached) > NULL_PERIOD_THRESHOLD) {
+        if ((timer20_cached - int0Time0_cached) > NULL_PERIOD_THRESHOLD) {
             // speed is very slow or null
             speed0 = 0;
         } else {
             // calculate slow speed using last 2 ticks' timestamps
-            speed0 = TIMER16_FREQ / (int0Time0_cached - int0Time1_cached);
+            speed0 = TIMER20_FREQ / (int0Time0_cached - int0Time1_cached);
             if (int0dir_cached == BACKWARD) speed0 = -speed0;
         }
     } else {
         // speed is faster
-        speed0 = ((long)TIMER16_FREQ * (ticks0_cached - ticks0CS)) /
+        speed0 = ((long)TIMER20_FREQ * (ticks0_cached - ticks0CS)) /
             (int0Time0_cached - int0TimeCS);
     }
     
     if (ticks1_cached == ticks1CS) {
         // speed is slow
-        if ((timer16_cached - int1Time0_cached) > NULL_PERIOD_THRESHOLD) {
+        if ((timer20_cached - int1Time0_cached) > NULL_PERIOD_THRESHOLD) {
             // speed is very slow or null
             speed1 = 0;
         } else {
             // calculate slow speed using last 2 ticks' timestamps
-            speed1 = TIMER16_FREQ / (int1Time0_cached - int1Time1_cached);
+            speed1 = TIMER20_FREQ / (int1Time0_cached - int1Time1_cached);
             if (int1dir_cached == BACKWARD) speed1 = -speed1;
         }
     } else {
         // speed is faster
-        speed1 = ((long)TIMER16_FREQ * (ticks1_cached - ticks1CS)) /
+        speed1 = ((long)TIMER20_FREQ * (ticks1_cached - ticks1CS)) /
             (int1Time0_cached - int1TimeCS);
     }
     
