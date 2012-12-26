@@ -211,6 +211,7 @@ void setDirection(uint8_t motor, uint8_t direction) {
  */
 void updateArrows() {
     uint8_t arrFwd = 0, arrRev = 0;
+    if (arrowsAuto == 0) return;    // check if arrows are in automatic mode
     
     if (moving0) {
         if      (ldir == FORWARD) { arrFwd = 1; }

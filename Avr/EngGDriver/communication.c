@@ -73,6 +73,10 @@ void readCommand() {
                     arg1 = readByte(&buf[2], &valid);
                     if (valid) arg1 ? sbi(PORTARR, ARRB) : cbi(PORTARR, ARRB);
                     break;
+                case 0x08: // toggle arrows between auto (1) and manual (0) (i.e on/off)
+                    arg1 = readByte(&buf[2], &valid);
+                    if (valid) arrowsAuto = arg1;
+                    break;
                 // PID COMMANDS
                 case 0x10: // toggle PID on/off
                     arg1 = readByte(&buf[2], &valid);
