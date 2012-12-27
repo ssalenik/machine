@@ -18,12 +18,19 @@ void check_debug_uart(void) {
 			if(inputptr) {
 				switch(inputbuf[0]) {
 					case '?': // print drive command list
-					fprintf_P(&debug, PSTR("stop() ......................... | p30\r\n"));
-					fprintf_P(&debug, PSTR("forward(speed) ................. | p31%%02x00\r\n"));
-					fprintf_P(&debug, PSTR("backwards(speed) ............... | p31%%02x11\r\n"));
-					fprintf_P(&debug, PSTR("forward_dist(speed, dist) ...... | p32%%02x%%04x\r\n"));
-					fprintf_P(&debug, PSTR("backwards_dist(speed, dist) .... | p33%%02x%%04x\r\n"));
-					fprintf_P(&debug, PSTR("freedrive(speedL, speedR, dir) . | p34%%02x%%02x%%02x\r\n"));
+					fprintf_P(&debug, PSTR("stop() ........................ | p00\r\n"));
+					fprintf_P(&debug, PSTR("fwd_both(speed) ............... | p0300, p0400, p15 u8\r\n"));
+					fprintf_P(&debug, PSTR("rev_both(speed) ............... | p0301, p0401, p15 u8\r\n"));
+					fprintf_P(&debug, PSTR("forward(Lspeed, Rspeed) ....... | p0300, p0400, p11 u8, p12 u8\r\n"));
+					fprintf_P(&debug, PSTR("reverse(Lspeed, Rspeed) ....... | p0301, p0401, p11 u8, p12 u8\r\n"));
+					fprintf_P(&debug, PSTR("turnCCW(Lspeed, Rspeed) ....... | p0301, p0400, p11 u8, p12 u8\r\n"));
+					fprintf_P(&debug, PSTR("turnCW (Lspeed, Rspeed) ....... | p0300, p0401, p11 u8, p12 u8\r\n"));
+					fprintf_P(&debug, PSTR("set_abs_pos(pos) .............. | p1a s16\r\n"));
+					fprintf_P(&debug, PSTR("set_rel_pos(sect, pos) ........ | p1b u8 u8\r\n"));
+					fprintf_P(&debug, PSTR("pos_corr_on() ................. | p1f01\r\n"));
+					fprintf_P(&debug, PSTR("pos_corr_off() ................ | p1f00\r\n"));
+					fprintf_P(&debug, PSTR("nav_abs_pos(speed, pos) ....... | p31 u8 s16\r\n"));
+					fprintf_P(&debug, PSTR("nav_rel_pos(speed, sect, pos) . | p32 u8 u8 u8\r\n"));
 					break;
 					
 					case 'p': // passthrough to DRIVE MCU
@@ -52,7 +59,7 @@ void check_debug_uart(void) {
 					else { fprintf_P(&debug, PSTR("Started test sequence %u!\r\n"), run_test); }
 					break;
 					
-					case ' ':
+					case ' ': // stop all motors
 					pid_on = 0;
 					stop();
 					set_speed_3(0);
@@ -67,7 +74,7 @@ void check_debug_uart(void) {
 					#define VBAT_FACTOR 0.0044336
 					fprintf_P(&debug, PSTR("4 x %1.2fV\r\n"), (float)read_adc(VSENS) * VBAT_FACTOR);
 					break;
-					
+                    
 					case 'm': // servo power
 					if(inputptr != 2 || (inputbuf[1] & ~1) != '0') { cmd_err(); break; }
 					inputbuf[1] == '0' ? clr_bit(SPWR) : set_bit(SPWR);
@@ -125,12 +132,10 @@ void check_debug_uart(void) {
 						//ENC3_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
-                        /*
 						case '7': // set noise gate (int16_t level)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
-						*/
 						
 						default:
 						cmd_err();
@@ -177,12 +182,10 @@ void check_debug_uart(void) {
 						//ACTU_D = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
 						
-                        /*
 						case '7': // set noise gate (int16_t level)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
-						ACTU_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						//ACTU_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
 						break;
-						*/
 						
 						default:
 						cmd_err();

@@ -36,12 +36,12 @@
 
 int16_t pid_ref[NUM_MOTORS], pid_speed[NUM_MOTORS], pid_target[NUM_MOTORS];
 int16_t pid_max_speed[] = {1064, 150};
-uint8_t pid_complete[NUM_MOTORS];
+uint8_t pid_complete[NUM_MOTORS], ref_complete[NUM_MOTORS];
 
 uint32_t enc3_last_time = 0, actu_last_time = 0;
 int16_t  enc3_last_val = 0, actu_last_val = 0, enc3_pro, actu_pro;
 int32_t  enc3_der, actu_der, enc3_int = 0, actu_int = 0;
-uint8_t  pid_on = 0;
+uint8_t  pid_on = 1;
 
 void reset_pid(void) {
 	uint8_t i;
@@ -49,7 +49,7 @@ void reset_pid(void) {
 	for(i = 0; i < NUM_MOTORS; i++) {
 		pid_ref[i] = pid_target[i] = 0;
 		pid_speed[i] = pid_max_speed[i];
-		pid_complete[i] = 1;
+		pid_complete[i] = ref_complete[i] = 1;
 	}
 	
 	pid_ref[MOTOR3] = pid_target[MOTOR3] = read_enc();
@@ -79,13 +79,15 @@ void update_pid_vals(void) {
 	for(i = 0; i < NUM_MOTORS; i++) {
 		     if(pid_target[i] > pid_ref[i]) {
 			pid_ref[i] += pid_speed[i];
-			if(pid_ref[i] > pid_target[i]) { pid_ref[i] = pid_target[i]; pid_complete[i] = 1; }
+			if(pid_ref[i] > pid_target[i]) { pid_ref[i] = pid_target[i]; ref_complete[i] = 1; }
+			// FIXME: try not to set pid_ref[i] = pid_target[i]
 		}
 		else if(pid_target[i] < pid_ref[i]) {
 			pid_ref[i] -= pid_speed[i];
-			if(pid_ref[i] < pid_target[i]) { pid_ref[i] = pid_target[i]; pid_complete[i] = 1; }
+			if(pid_ref[i] < pid_target[i]) { pid_ref[i] = pid_target[i]; ref_complete[i] = 1; }
+			// FIXME: try not to set pid_ref[i] = pid_target[i]
 		}
-		else { pid_complete[i] = 1; }
+		else { ref_complete[i] = 1; }
 	}
 	
 	// calculate speed of motor 3 (turn)
@@ -117,7 +119,7 @@ void update_pid_vals(void) {
 	// PID for motor 3 (turn)
 	int16_t enc3_pro = pid_ref[MOTOR3] - enc3_val;
 	//uint8_t enc3_der_active = 1;
-	if(abs(pid_target[MOTOR3] - enc3_val) < ENC3_NOISE_GATE) { enc3_pro = enc3_int = 0; }
+	if(abs(pid_target[MOTOR3] - enc3_val) < ENC3_NOISE_GATE) { enc3_pro = enc3_int = 0; pid_complete[MOTOR3] = 1; }
 	enc3_int += enc3_pro;
 	if(labs(enc3_int) > ENC3_INT_CAP) { enc3_int = (enc3_int < 0) ? -ENC3_INT_CAP : ENC3_INT_CAP; }
 	int32_t enc3_out = ((int32_t)enc3_pro * ENC3_P) >> ENC3_P_SH;
@@ -129,7 +131,7 @@ void update_pid_vals(void) {
 	// PID for motor 4 (lift)
 	int16_t actu_pro = pid_ref[MOTOR4] - actu_val;
 	//uint8_t actu_der_active = 1;
-	if(abs(pid_target[MOTOR4] - actu_val) < ACTU_NOISE_GATE) { actu_pro = actu_int = 0; }
+	if(abs(pid_target[MOTOR4] - actu_val) < ACTU_NOISE_GATE) { actu_pro = actu_int = 0; pid_complete[MOTOR4] = 1; }
 	actu_int += actu_pro;
 	if(labs(actu_int) > ACTU_INT_CAP) { actu_int = (actu_int < 0) ? -ACTU_INT_CAP : ACTU_INT_CAP; }
 	int32_t actu_out = ((int32_t)actu_pro * ACTU_P) >> ACTU_P_SH;

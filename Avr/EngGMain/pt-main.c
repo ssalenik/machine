@@ -3,12 +3,12 @@ static int pt_main(struct pt *pt) {
 	static uint32_t pt_target; // for delays
 	
 	fprintf_P(&drive, PSTR("1001\r")); // PID ON
-	sleep(3000); // startup delay
+	SLEEP(3000); // startup delay
 	
 	servo5(0);
 	
-	backwards_dist(25, 50); PT_WAIT_UNTIL(pt, drive_complete); // push the hook
-	stop(); sleep(200);
+	//backwards_dist(25, 50); PT_WAIT_UNTIL(pt, drive_complete); // push the hook
+	stop(); SLEEP(200);
 	
 	//stop EVERYTHING. END OF EXECUTION
 	run_main = 0;

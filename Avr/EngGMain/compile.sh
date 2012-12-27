@@ -15,4 +15,4 @@ avr-objcopy -O binary "$1".elf "$1".bin
 avr-objdump -d "$1".elf > "$1".lst
 
 # show program size and memory used
-avr-size -C "$1".elf
+avr-size -C "$1".elf --mcu=atmega1284p
