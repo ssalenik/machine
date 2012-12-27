@@ -135,6 +135,7 @@ class CentralWidget(QWidget):
         self.controls.claw.shootButton.clicked.connect(self.pingPongShoot)
         self.controls.claw.magnetSwitch.stateChanged.connect(self.MagnetToggle)
         self.controls.claw.goToButton.clicked.connect(self.goToPosition)
+        self.controls.claw.setButton.clicked.connect(self.setPosition)
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
@@ -166,6 +167,14 @@ class CentralWidget(QWidget):
         message += "%02X" % (int(self.controls.claw.speedInput.value())&0xFF)
         message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
         message += "%02X" % (int(self.controls.claw.offsetInput.value())&0xFF)
+        self.controller.sendCustomMessage(message)
+        
+    def setPosition(self):
+        message = ""
+        message += "p"
+        message += "%02X" % driver['set_position']
+        message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
+        message += "%04X" % (int(self.controls.claw.offsetInput.value())&0xFFFF)
         self.controller.sendCustomMessage(message)
 
     def stopLogging(self):
@@ -370,6 +379,7 @@ class CentralWidget(QWidget):
             self.controls.claw.TransitionInput.setEnabled(True)
             self.controls.claw.offsetInput.setEnabled(True)
             self.controls.claw.goToButton.setEnabled(True)
+            self.controls.claw.setButton.setEnabled(True)
         else:
             # set power instead of speed
             self.controller.sendMessage(code=driver['pid_toggle'], data = 0x00, encoding = 'u8')
@@ -382,6 +392,7 @@ class CentralWidget(QWidget):
             self.controls.claw.TransitionInput.setEnabled(False)
             self.controls.claw.offsetInput.setEnabled(False)
             self.controls.claw.goToButton.setEnabled(False)
+            self.controls.claw.setButton.setEnabled(False)
 
     def MagnetToggle(self, state):
         if state == Qt.CheckState.Checked:
@@ -1121,7 +1132,7 @@ class ServoFrame(QFrame):
         self.magnetSwitch = QCheckBox("Electro magnet on")
         
         # go to command labels
-        self.label5 = QLabel("Go to command")
+        self.label5 = QLabel("Set/Go to position")
         self.hLine5 = QFrame()
         self.hLine5.setFrameStyle(QFrame.HLine | QFrame.Sunken)
         self.label6 = QLabel("speed")
@@ -1142,9 +1153,11 @@ class ServoFrame(QFrame):
         self.offsetInput.setMaximum(255)
         self.offsetInput.setFixedWidth(45)
         
-        # go to button
-        self.goToButton = QPushButton("GOO!!!")
+        # set/go to buttons
+        self.goToButton = QPushButton("GO!!!")
         self.goToButton.setFixedWidth(45)
+        self.setButton = QPushButton("Set")
+        self.setButton.setFixedWidth(45)
         
         # layout
         layout = QGridLayout()
@@ -1181,6 +1194,7 @@ class ServoFrame(QFrame):
         layout.addWidget(self.TransitionInput, 18, 1, Qt.AlignHCenter)
         layout.addWidget(self.offsetInput, 18, 2, Qt.AlignHCenter)
         
+        layout.addWidget(self.setButton, 19, 1, Qt.AlignHCenter)
         layout.addWidget(self.goToButton, 19, 2, Qt.AlignHCenter)
 
         # make row at the end stretch

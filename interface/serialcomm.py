@@ -29,6 +29,7 @@ driver['pid_toggle']		= 0x10
 driver['set_speed_left']	= 0x11
 driver['set_speed_right']	= 0x12
 driver['set_speed_both']	= 0x15
+driver['set_position']		= 0x1b
 driver['go_to_position']	= 0x32
 driver['dir_power_both']	= 0x40
 driver['encoder_both']		= 0x41
