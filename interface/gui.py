@@ -174,7 +174,7 @@ class CentralWidget(QWidget):
         message += "p"
         message += "%02X" % driver['set_position']
         message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
-        message += "%04X" % (int(self.controls.claw.offsetInput.value())&0xFFFF)
+        message += "%02X" % (int(self.controls.claw.offsetInput.value())&0xFF)
         self.controller.sendCustomMessage(message)
 
     def stopLogging(self):
