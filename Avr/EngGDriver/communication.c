@@ -14,8 +14,6 @@ void readCommand() {
     static char buf[32];
     static char *pbuf;
     static uint8_t index = 0;
-    //static char tst[] = "0128\rxxx"; // ***debug***
-    //uint8_t tsti = 0; // ***debug***
     char c, cmd;
     uint8_t arg1, arg2, arg3, arg4;
     int16_t arg1i;
@@ -24,9 +22,6 @@ void readCommand() {
     
     while(uart_available()) {
         c = uart_get();
-    //while (1) { // ***debug***
-        //c = tst[tsti]; // ***debug***
-        //tsti++; // ***debug***
         // end of command: it is ready to be processed
         if (c == ENDCHAR) {
             buf[index] = 0; // marks end of string
@@ -351,7 +346,6 @@ void readCommand() {
                 // if command doesn't exist, do nothing
             }
             index = 0; // clear command buffer
-            //return; // ***debug***
         } else {
             // fill command buffer
             buf[index] = c;

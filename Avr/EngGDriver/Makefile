@@ -4,7 +4,7 @@
 
 ## General Flags
 PROJECT = EngGDriver
-MCU = atmega168
+MCU = atmega328
 TARGET = EngGDriver.elf
 CC = avr-gcc
 
