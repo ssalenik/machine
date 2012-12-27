@@ -442,8 +442,12 @@ class CentralWidget(QWidget):
                 chassy.rEncoderValue.setText("%i" % c.encoder_right)
                 chassy.lSensorValue.setText("%i" % c.sensor_left)
                 chassy.rSensorValue.setText("%i" % c.sensor_right)
-                chassy.lPositionValue.setText("%i" % c.position_left)
-                chassy.rPositionValue.setText("%i" % c.position_right)
+                chassy.lPositionValue.setText("%i" % c.abs_position_left)
+                chassy.rPositionValue.setText("%i" % c.abs_position_right)
+                chassy.lRelPositionTransition.setText("%i" % c.rel_position_left_transition)
+                chassy.rRelPositionTransition.setText("%i" % c.rel_position_right_transition)
+                chassy.lRelPositionOffset.setText("%i" % c.rel_position_left_offset)
+                chassy.rRelPositionOffset.setText("%i" % c.rel_position_right_offset)
                 
                 # arm
                 arm = self.controls.arm
@@ -735,6 +739,7 @@ class ChassyFrame(QFrame):
         self.rEncoderValue = QLineEdit()
         self.rEncoderValue.setReadOnly(True)
         self.rEncoderValue.setFixedWidth(60)
+        
         # sensor
         self.sensorLabel = QLabel("sensor:")
         #self.sensorLabel.setAlignment(Qt.AlignHCenter)
@@ -744,8 +749,9 @@ class ChassyFrame(QFrame):
         self.rSensorValue = QLineEdit()
         self.rSensorValue.setReadOnly(True)
         self.rSensorValue.setFixedWidth(60)
-        # position
-        self.positionLabel = QLabel("position:")
+        
+        # absolute position
+        self.positionLabel = QLabel("abs. pos.:")
         #self.positionLabel.setAlignment(Qt.AlignHCenter)
         self.lPositionValue = QLineEdit()
         self.lPositionValue.setReadOnly(True)
@@ -753,6 +759,25 @@ class ChassyFrame(QFrame):
         self.rPositionValue = QLineEdit()
         self.rPositionValue.setReadOnly(True)
         self.rPositionValue.setFixedWidth(60)
+        
+        # relative position transition
+        self.relPositionLabelTransition = QLabel("rel. pos. trans.:")
+        #self.positionLabel.setAlignment(Qt.AlignHCenter)
+        self.lRelPositionTransition = QLineEdit()
+        self.lRelPositionTransition.setReadOnly(True)
+        self.lRelPositionTransition.setFixedWidth(60)
+        self.rRelPositionTransition = QLineEdit()
+        self.rRelPositionTransition.setReadOnly(True)
+        self.rRelPositionTransition.setFixedWidth(60)
+        
+        # relative position offset
+        self.relPositionLabelOffset = QLabel("rel. pos. offset.:")
+        self.lRelPositionOffset = QLineEdit()
+        self.lRelPositionOffset.setReadOnly(True)
+        self.lRelPositionOffset.setFixedWidth(60)
+        self.rRelPositionOffset = QLineEdit()
+        self.rRelPositionOffset.setReadOnly(True)
+        self.rRelPositionOffset.setFixedWidth(60)
 
         # main layout
         layout = QGridLayout()
@@ -769,30 +794,44 @@ class ChassyFrame(QFrame):
         bottomLayout.setContentsMargins(0, 0, 0, 0)
         bottomLayout.setHorizontalSpacing(5)
         chassyValues = QWidget()
+        
         bottomLayout.addWidget(self.lMotorLabel, 0, 1)
         bottomLayout.addWidget(self.rMotorLabel, 0, 2)
+        
         bottomLayout.addWidget(self.inputLabel, 1, 0)
         bottomLayout.addWidget(self.lMotorInput, 1, 1)
         bottomLayout.addWidget(self.rMotorInput, 1, 2)
         bottomLayout.addWidget(self.PIDSwitchMotors, 2, 1, 1, 2, Qt.AlignHCenter)
-        bottomLayout.addWidget(self.speedLabel, 3, 0)
-        bottomLayout.addWidget(self.lSpeedValue, 3, 1)
-        bottomLayout.addWidget(self.rSpeedValue, 3, 2)
+        
+        bottomLayout.addWidget(self.encoderLabel, 3, 0)
+        bottomLayout.addWidget(self.lEncoderValue, 3, 1)
+        bottomLayout.addWidget(self.rEncoderValue, 3, 2)
+        
         bottomLayout.addWidget(self.positionLabel, 4, 0)
         bottomLayout.addWidget(self.lPositionValue, 4, 1)
         bottomLayout.addWidget(self.rPositionValue, 4, 2)
-        bottomLayout.addWidget(self.sensorLabel, 5, 0)
-        bottomLayout.addWidget(self.lSensorValue, 5, 1)
-        bottomLayout.addWidget(self.rSensorValue, 5, 2)
-        bottomLayout.addWidget(self.encoderLabel, 6, 0)
-        bottomLayout.addWidget(self.lEncoderValue, 6, 1)
-        bottomLayout.addWidget(self.rEncoderValue, 6, 2)
+        
+        bottomLayout.addWidget(self.relPositionLabelTransition, 5, 0)
+        bottomLayout.addWidget(self.lRelPositionTransition, 5, 1)
+        bottomLayout.addWidget(self.rRelPositionTransition, 5, 2)
+        
+        bottomLayout.addWidget(self.relPositionLabelOffset, 6, 0)
+        bottomLayout.addWidget(self.lRelPositionOffset, 6, 1)
+        bottomLayout.addWidget(self.rRelPositionOffset, 6, 2)
+        
+        bottomLayout.addWidget(self.sensorLabel, 7, 0)
+        bottomLayout.addWidget(self.lSensorValue, 7, 1)
+        bottomLayout.addWidget(self.rSensorValue, 7, 2)
+        
+        bottomLayout.addWidget(self.speedLabel, 8, 0)
+        bottomLayout.addWidget(self.lSpeedValue, 8, 1)
+        bottomLayout.addWidget(self.rSpeedValue, 8, 2)
 
         chassyValues.setLayout(bottomLayout)
-        layout.addWidget(chassyValues, 5, 0, 1, 2)
+        layout.addWidget(chassyValues, 9, 0, 1, 2)
 
         # make row at the end stretch
-        layout.setRowStretch(6, 1)
+        layout.setRowStretch(10, 1)
 
         self.setLayout(layout)
 

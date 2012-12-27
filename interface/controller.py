@@ -43,8 +43,12 @@ class Controller(QObject):
         self.encoder_right = 0
         self.speed_left = 0
         self.speed_right = 0
-        self.position_left = 0
-        self.position_right = 0
+        self.abs_position_left = 0
+        self.abs_position_right = 0
+        self.rel_position_left_transition = 0
+        self.rel_position_right_transition = 0
+        self.rel_position_left_offset = 0
+        self.rel_position_right_offset = 0
         self.sensor_left = 0
         self.sensor_right = 0
         self.pos_err_left = 0
@@ -110,8 +114,12 @@ class Controller(QObject):
                     'encoder_right',
                     'speed_act_left',
                     'speed_act_right',
-                    'position_left', 
-                    'position_right',
+                    'abs_position_left', 
+                    'abs_position_right',
+                    'rel_position_left_transition',
+                    'rel_position_right_transition',
+                    'rel_position_left_offset',
+                    'rel_position_right_offset',
                     'sensor_left',
                     'sensor_right'
                     ]
@@ -264,7 +272,7 @@ class Controller(QObject):
         return message    
 
     def parseMessage(self, line):
-        """returns True if a message was receive, False if it was empty"""
+        """returns True if a message was received, False if it was empty"""
 
         # copy for parsing
         message = copy.copy(line)
@@ -311,13 +319,15 @@ class Controller(QObject):
                     #TODO
                     None
 
-                elif hex_code == driver['pos_both'] :
-                    self.position_left = dataDecoded[0]
-                    self.position_right = dataDecoded[1]
+                elif hex_code == driver['abs_pos_both'] :
+                    self.abs_position_left = dataDecoded[0]
+                    self.abs_position_right = dataDecoded[1]
 
-                elif hex_code == driver['transition'] :
-                    #TODO
-                    None
+                elif hex_code == driver['rel_pos_both'] :
+                    self.rel_position_left_transition = dataDecoded[0]
+                    self.rel_position_left_offset = dataDecoded[1]
+                    self.rel_position_right_transition = dataDecoded[2]
+                    self.rel_position_right_offset = dataDecoded[3]
 
                 elif hex_code == driver['sensor_both'] :
                     self.sensor_left = dataDecoded[0]

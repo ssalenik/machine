@@ -41,8 +41,8 @@ driver['dir_power_both']	= 0x40
 driver['encoder_both']		= 0x41
 driver['speed_both']		= 0x42
 driver['acc_both']			= 0x43
-driver['pos_both']			= 0x44
-driver['transition']		= 0x45
+driver['abs_pos_both']		= 0x44
+driver['rel_pos_both']		= 0x45
 driver['sensor_both']		= 0x46
 driver['pos_err_both']		= 0x47
 
@@ -77,8 +77,8 @@ driver_decode = {
 	'encoder_both'		: '!ii',
 	'speed_both'		: '!hh',
 	'acc_both'			: '!hh',
-	'pos_both'			: '!hh',
-	'transition'		: '!BhBh',
+	'abs_pos_both'		: '!hh',
+	'rel_pos_both'		: '!BhBh',
 	'sensor_both'		: '!BB',
 	'pos_err_both'		: '!ii'
 }
@@ -139,7 +139,7 @@ def getDataDecode(prepend, code):
 
 def getData(prepend, code, data):
 	"""
-	input: thre prepend, code, and data strings
+	input: the prepend, code, and data strings
 	returns: list of data decoded to integers
 	empty list if decoding was not possible
 	"""
@@ -147,7 +147,7 @@ def getData(prepend, code, data):
 
 	decode = getDataDecode(prepend, code)
 
-	# make sure know the decoding, else return
+	# make sure we know the decoding, else return
 	if not decode :
 		return None
 
