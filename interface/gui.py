@@ -47,6 +47,8 @@ class CentralWidget(QWidget):
         # status
         self.connected = False
         self.refresh = True
+        self.baseRefInputSetPermission = True
+        self.armRefInputSetPermission = True
         
         # widgets which will be contained in the central widget
         self.settings = Settings()
@@ -173,6 +175,7 @@ class CentralWidget(QWidget):
 
     def stopAll(self):
         self.controller.sendCustomMessage(STOP_ALL)
+        self.controls.arm.PIDSwitchArm.setChecked(False)
 
     def clawOpen(self):
         self.controller.sendMessage(code=mainCPU['claw_servo_2'], data=0x00, sendToDriver=False, encoding='u8')
@@ -210,6 +213,12 @@ class CentralWidget(QWidget):
             self.controls.arm.downButton.setEnabled(False)
             self.controls.arm.linActPowerInput.setEnabled(False)
             self.controls.arm.basePowerInput.setEnabled(False)
+            self.controls.arm.baseSValue.setEnabled(True)
+            self.controls.arm.linActSValue.setEnabled(True)
+            self.controls.arm.baseRefInput.setEnabled(True)
+            self.controls.arm.linActRefInput.setEnabled(True)
+            self.controls.arm.setBaseRef.setEnabled(True)
+            self.controls.arm.setLinActRef.setEnabled(True)
             
         else:
             self.controller.sendMessage(code=mainCPU['arm_pid_off'], sendToDriver=False)
@@ -221,6 +230,12 @@ class CentralWidget(QWidget):
             self.controls.arm.basePowerInput.setEnabled(True)
             self.controls.arm.basePowerInput.setValue(40)
             self.controls.arm.linActPowerInput.setValue(40)
+            self.controls.arm.baseSValue.setEnabled(False)
+            self.controls.arm.linActSValue.setEnabled(False)
+            self.controls.arm.baseRefInput.setEnabled(False)
+            self.controls.arm.linActRefInput.setEnabled(False)
+            self.controls.arm.setBaseRef.setEnabled(False)
+            self.controls.arm.setLinActRef.setEnabled(False)
             
     def setArmRef(self):
         # used before to tweak PID manually for the actuator
@@ -341,6 +356,10 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(0xFF) # max u8
             self.controls.chassy.lMotorInput.setValue(160)
             self.controls.chassy.rMotorInput.setValue(160)
+            self.controls.claw.speedInput.setEnabled(True)
+            self.controls.claw.TransitionInput.setEnabled(True)
+            self.controls.claw.offsetInput.setEnabled(True)
+            self.controls.claw.goToButton.setEnabled(True)
         else:
             # set power instead of speed
             self.controller.sendMessage(code=driver['pid_toggle'], data = 0x00, encoding = 'u8')
@@ -349,6 +368,10 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.lMotorInput.setValue(50)
             self.controls.chassy.rMotorInput.setValue(50)
+            self.controls.claw.speedInput.setEnabled(False)
+            self.controls.claw.TransitionInput.setEnabled(False)
+            self.controls.claw.offsetInput.setEnabled(False)
+            self.controls.claw.goToButton.setEnabled(False)
 
     def MagnetToggle(self, state):
         if state == Qt.CheckState.Checked:
@@ -469,6 +492,15 @@ class CentralWidget(QWidget):
                 arm.linActIValue.setText("%i" % c.i_arm)
                 arm.linActDValue.setText("%i" % c.d_arm)
                 
+                # init ref values only once
+                if self.armRefInputSetPermission and c.encoderArmRead:
+                    arm.linActRefInput.setValue(int(c.encoder_arm))
+                    self.armRefInputSetPermission = False
+                
+                if self.baseRefInputSetPermission and c.encoderBaseRead:
+                    arm.baseRefInput.setValue(int(c.encoder_base))
+                    self.baseRefInputSetPermission = False
+                
             # output
             self.output.refresh()
 
@@ -517,7 +549,7 @@ class Output(QTextEdit):
         QTextEdit.__init__(self, "<b>output should go here</b>")
         
         self.setReadOnly(True)
-        self.setMinimumWidth(350)
+        self.setMinimumWidth(250)
 
         # output lock to make outputting thread safe
         self.outputLock = Lock()
@@ -744,6 +776,7 @@ class ChassyFrame(QFrame):
         self.rSpeedValue = QLineEdit()
         self.rSpeedValue.setReadOnly(True)
         self.rSpeedValue.setFixedWidth(60)
+        
         # encoder
         self.encoderLabel = QLabel("encoder:")
         #self.encoderLabel.setAlignment(Qt.AlignHCenter)
@@ -1076,7 +1109,33 @@ class ServoFrame(QFrame):
         
         # magnet
         self.magnetSwitch = QCheckBox("Electro magnet on")
-
+        
+        # go to command labels
+        self.label5 = QLabel("Go to command")
+        self.hLine5 = QFrame()
+        self.hLine5.setFrameStyle(QFrame.HLine | QFrame.Sunken)
+        self.label6 = QLabel("speed")
+        self.label7 = QLabel("transition")
+        self.label8 = QLabel("offset")
+        
+        # go to command boxes
+        self.speedInput = QSpinBox()
+        self.speedInput.setMinimum(0)
+        self.speedInput.setMaximum(0xFF)
+        self.speedInput.setFixedWidth(45)
+        self.TransitionInput = QSpinBox()
+        self.TransitionInput.setMinimum(0)
+        self.TransitionInput.setMaximum(47)
+        self.speedInput.setFixedWidth(45)
+        self.offsetInput = QSpinBox()
+        self.offsetInput.setMinimum(0)
+        self.offsetInput.setMaximum(255)
+        self.offsetInput.setFixedWidth(45)
+        
+        # go to button
+        self.goToButton = QPushButton("GOO!!!")
+        self.goToButton.setFixedWidth(45)
+        
         # layout
         layout = QGridLayout()
         
@@ -1101,9 +1160,21 @@ class ServoFrame(QFrame):
         layout.addWidget(self.label4, 12, 0, 1, 4, Qt.AlignHCenter)
         layout.addWidget(self.hLine4, 13, 0, 1, 4)
         layout.addWidget(self.magnetSwitch, 14, 1, 1, 2)
+        
+        layout.addWidget(self.label5, 15, 0, 1, 4, Qt.AlignHCenter)
+        layout.addWidget(self.hLine5, 16, 0, 1, 4)
+        layout.addWidget(self.label6, 17, 0, Qt.AlignHCenter)
+        layout.addWidget(self.label7, 17, 1, Qt.AlignHCenter)
+        layout.addWidget(self.label8, 17, 2, Qt.AlignHCenter)
+        
+        layout.addWidget(self.speedInput, 18, 0, Qt.AlignHCenter)
+        layout.addWidget(self.TransitionInput, 18, 1, Qt.AlignHCenter)
+        layout.addWidget(self.offsetInput, 18, 2, Qt.AlignHCenter)
+        
+        layout.addWidget(self.goToButton, 19, 2, Qt.AlignHCenter)
 
         # make row at the end stretch
-        layout.setRowStretch(15, 1)
+        layout.setRowStretch(20, 1)
 
         self.setLayout(layout)
 

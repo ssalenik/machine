@@ -37,6 +37,8 @@ class Controller(QObject):
         # default states
         self.connectedToMainCPU = True
         self.printAll = False
+        self.encoderArmRead = False
+        self.encoderBaseRead = False
 
         # init feedback values
         self.encoder_left = 0
@@ -341,6 +343,8 @@ class Controller(QObject):
 
                 if hex_code == mainCPU['base_encoder']:
                     self.encoder_base = dataDecoded[0]
+                    if not self.encoderBaseRead:
+                        self.encoderBaseRead = True
 
                 #elif hex_code == mainCPU['base_pid_p']:
                 #    self.p_base = dataDecoded[0]
@@ -353,6 +357,8 @@ class Controller(QObject):
 
                 elif hex_code == mainCPU['arm_encoder']:
                     self.encoder_arm = dataDecoded[0]
+                    if not self.encoderArmRead:
+                        self.encoderArmRead = True
 
                 #elif hex_code == mainCPU['arm_pid_p']:
                 #    self.p_arm = dataDecoded[0]
