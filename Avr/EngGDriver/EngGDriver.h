@@ -178,8 +178,8 @@ int16_t relativeToAbsolutePos_R(int16_t relPosR, uint8_t transition);
 void navigator();
 int16_t calculateTargetSpeed(int16_t dist_Left, int16_t curTargetSpeed);
 int16_t getDistLeft(uint8_t dir, int16_t target, int16_t current);
-void navDest(int16_t speed, int16_t posL, int16_t posR);
-void navDestRel(int16_t speed, uint8_t transL, int16_t offsetL, 
+void navDest(int16_t speedL, int16_t speedR, int16_t posL, int16_t posR);
+void navDestRel(int16_t speedL, int16_t speedR, uint8_t transL, int16_t offsetL, 
     uint8_t transR, int16_t offsetR);
 void setTargetSpeed(uint8_t motor, int16_t speed);
 

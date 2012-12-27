@@ -11,7 +11,7 @@
 /** 
  * function that decides where the robot goes by setting target speed of motors
  * Possible commands:
- *  - travel to a given absolute position - NAV_DIST
+ *  - travel to a given absolute position - NAV_DEST
  *  - free mode on each motor (includes free rotation) - NAV_FREE
  */
 void navigator() {
@@ -19,7 +19,7 @@ void navigator() {
     
     switch(navCom) {
     case NAV_NONE: break; // idle state
-    case NAV_DIST:
+    case NAV_DEST:
         if (!n_Ldone) {
             distLeft = getDistLeft(ldir, n_targetLpos, p_L);
             // TODO: do not assume motor0 is motorL
@@ -45,16 +45,16 @@ void navigator() {
     }
 }
 
-void navDestRel(int16_t speed, uint8_t transL, int16_t offsetL, 
+void navDestRel(int16_t speedL, int16_t speedR, uint8_t transL, int16_t offsetL, 
     uint8_t transR, int16_t offsetR) 
 {
     if (transL >= TRANSITIONS || transR >= TRANSITIONS) return;
-    navDest(speed, p_transLlist[transL] + offsetL, p_transRlist[transR] + offsetR);
+    navDest(speedL, speedR, p_transLlist[transL] + offsetL, p_transRlist[transR] + offsetR);
 }
 
-void navDest(int16_t speed, int16_t posL, int16_t posR) {
-    targetSpeed0 = speed;
-    targetSpeed1 = speed;
+void navDest(int16_t speedL, int16_t speedR, int16_t posL, int16_t posR) {
+    targetSpeed0 = speedL;
+    targetSpeed1 = speedR;
     n_targetLpos = posL;
     n_targetRpos = posR;
     n_Ldone = 0;
@@ -63,9 +63,9 @@ void navDest(int16_t speed, int16_t posL, int16_t posR) {
     rdir = (p_R < posR) ? FORWARD : BACKWARD;
     setDirection(LMOTOR, ldir);
     setDirection(RMOTOR, rdir);
-    printf_P(PSTR("Left: goto %d at speed %d, dir = %d\r\n"), posL, speed, ldir);
-    printf_P(PSTR("Right: goto %d at speed %d, dir = %d\r\n"), posR, speed, rdir);
-    navCom = NAV_DIST;
+    printf_P(PSTR("Left: goto %d at speed %d, dir = %d\r\n"), posL, speedL, ldir);
+    printf_P(PSTR("Right: goto %d at speed %d, dir = %d\r\n"), posR, speedR, rdir);
+    navCom = NAV_DEST;
 }
 
 void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR) {

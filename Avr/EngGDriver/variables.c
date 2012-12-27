@@ -80,11 +80,11 @@ int16_t adjustX = 0;                    // current cross adjustment
 /* --- Navigation variables --- */
 typedef enum {
     NAV_NONE = 0,
-    NAV_DIST,
+    NAV_DEST,
     NAV_FREE,
 } NavCom;                               // enum for possible navigation states
 NavCom navCom = NAV_NONE;               // navigator state
-    // NAV_DIST mode variables:
+    // NAV_DEST mode variables:
 int16_t n_targetLpos = 0;               // target L destination
 int16_t n_targetRpos = 0;               // target R destination
 uint8_t n_Ldone, n_Rdone;               // set to 1 when L/R side reached destination

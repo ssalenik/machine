@@ -183,18 +183,18 @@ void readCommand() {
                 case 0x30: // set navigator to idle mode (i.e. turn off navigation)
                     navFree(0, 0, FORWARD, FORWARD);
                     break;
-                case 0x31: // navigator in NAV_DIST mode, goto absolute position
-                    // byte1: speed | byte2-3: distance in mm
+                case 0x31: // navigator in NAV_DEST mode, goto absolute position
+                    // byte1: speed | byte2-3: position in mm
                     arg1 = readByte(&pbuf[2], &valid);
                     arg1i = readInt(&pbuf[4], &valid);
-                    if (valid) navDest(arg1 * SPEEDMULT, arg1i, arg1i);
+                    if (valid) navDest(arg1 * SPEEDMULT, arg1 * SPEEDMULT, arg1i, arg1i);
                     break;
-                case 0x32: // navigator in NAV_DIST mode, goto relative position
+                case 0x32: // navigator in NAV_DEST mode, goto relative position
                     // byte1: speed | byte2: transition num | byte3: offset in mm
                     arg1 = readByte(&pbuf[2], &valid);
                     arg2 = readByte(&pbuf[4], &valid);
                     arg3 = readByte(&pbuf[6], &valid);
-                    if (valid) navDestRel(arg1 * SPEEDMULT, arg2, arg3, arg2, arg3);
+                    if (valid) navDestRel(arg1 * SPEEDMULT, arg1 * SPEEDMULT, arg2, arg3, arg2, arg3);
                     break;
                 case 0x33: // navigator in NAV_FREE mode, just set speeds and go
 					// byte1: speedL | byte2: speedR | byte3H: dirL | byte3L: dirR
@@ -203,6 +203,11 @@ void readCommand() {
 					arg3 = readByte(&pbuf[6], &valid);
 					if (valid) navFree(arg1 * SPEEDMULT, arg2 * SPEEDMULT, arg3 >> 4, arg3 & 0x0f);
 					break;
+                case 0x34: // navigator in NAV_DEST mode, move a certain distance
+                    // byte1: speed | byte2-3: distance in mm
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg1i = readInt(&pbuf[4], &valid);
+                    navDest(arg1 * SPEEDMULT, arg1 * SPEEDMULT, p_L + arg1i, p_R + arg1i);
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
                     arg1 = readByte(&pbuf[2], &valid);
