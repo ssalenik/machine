@@ -12,9 +12,11 @@
 
 /* ==========  Defines  ========== */
 
+/* --- Communication constants --- */
 #define ENDCHAR '\r'
 #define CPUCHAR '>'
 #define MAINCHAR '@'
+#define SPEEDMULT 16
 
 /* --- Motor driver constants --- */
     // This is the max value to be placed in the OC1x register

@@ -12,6 +12,7 @@
   */
 void readCommand() {
     static char buf[32];
+    static char *pbuf;
     static uint8_t index = 0;
     //static char tst[] = "0128\rxxx"; // ***debug***
     //uint8_t tsti = 0; // ***debug***
@@ -19,6 +20,7 @@ void readCommand() {
     uint8_t arg1, arg2, arg3, arg4;
     int16_t arg1i;
     uint8_t valid;
+    char escape;
     
     while(uart_available()) {
         c = uart_get();
@@ -29,9 +31,25 @@ void readCommand() {
         if (c == ENDCHAR) {
             buf[index] = 0; // marks end of string
             valid = 1;
-            // checks for command validity
+            // checks for command validity and read command
             if (index < 1) valid = 0;
             cmd = readByte(buf, &valid);
+            
+            // check for escape characters
+            if (valid) {
+                escape = '\0';
+                pbuf = buf; // set the buffer pointer to 1st character of buffer
+            } else {
+                switch(buf[0]) {
+                case CPUCHAR:
+                case MAINCHAR:
+                    escape = buf[0];
+                    pbuf = &buf[1]; // set the buffer pointer to 2nd character of buffer
+                    valid = 1;
+                    cmd = readByte(pbuf, &valid); // search 2nd char for command
+                }
+            }
+            
             // if command is a hex number, tries to execute it
             if (valid) {
                 switch (cmd) {
@@ -43,75 +61,75 @@ void readCommand() {
 					setPower100(RMOTOR, 0);
                     navCom = NAV_NONE;
                 case 0x01: // set power of left motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) setPower100(LMOTOR, arg1);
                     break;
                 case 0x02: // set power of right motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) setPower100(RMOTOR, arg1);
                     break;
                 case 0x03: // set direction of left motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) setDirection(LMOTOR, arg1);
                     break;
                 case 0x04: // set direction of left motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) setDirection(RMOTOR, arg1);
                     break;
                 case 0x05: // set power for both motors
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         setPower100(LMOTOR, arg1);
                         setPower100(RMOTOR, arg1);
                     }
                     break;
                 case 0x06: // forward arrow on/off
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) arg1 ? sbi(PORTARR, ARRF) : cbi(PORTARR, ARRF);
                     break;
                 case 0x07: // reverse arrow on/off
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) arg1 ? sbi(PORTARR, ARRB) : cbi(PORTARR, ARRB);
                     break;
                 case 0x08: // toggle arrows between auto (1) and manual (0) (i.e on/off)
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) arrowsAuto = arg1;
                     break;
                 // PID COMMANDS
                 case 0x10: // toggle PID on/off
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         pidOn = arg1;
                       resetPID();
                     }
                     break;
                 case 0x11: // set desired speed of left motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         if (LMOTOR) {
-                            targetSpeed1 = arg1 * 16;
+                            targetSpeed1 = arg1 * SPEEDMULT;
                         } else {
-                            targetSpeed0 = arg1 * 16;
+                            targetSpeed0 = arg1 * SPEEDMULT;
                         }
                         resetPID();
                     }
                     break;
                 case 0x12: // set desired speed of right motor
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         if (RMOTOR) {
-                            targetSpeed1 = arg1 * 16;
+                            targetSpeed1 = arg1 * SPEEDMULT;
                         } else {
-                            targetSpeed0 = arg1 * 16;
+                            targetSpeed0 = arg1 * SPEEDMULT;
                         }
                         resetPID();
                     }
                     break;
                 case 0x15: // set speed for both motors
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
-                        targetSpeed0 = arg1 * 16;
-                        targetSpeed1 = arg1 * 16;
+                        targetSpeed0 = arg1 * SPEEDMULT;
+                        targetSpeed1 = arg1 * SPEEDMULT;
                         resetPID();
                     }
                     break;
@@ -122,30 +140,49 @@ void readCommand() {
                     setDirection(RMOTOR, rdir);
                     break;
                 case 0x19: // toggle cross-adjustment on/off
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         adjXOn = arg1;
                         resetPID();
                     }
                     break;
 				case 0x1a: // set position
-					arg1i = readInt(&buf[2], &valid);
+					arg1i = readInt(&pbuf[2], &valid);
                     if (valid) {
                         setOdometerTo(arg1i, arg1i);
                     }
                     break;
 				case 0x1b: // set relative position
-                    arg1 = readByte(&buf[2], &valid);
-                    arg2 = readByte(&buf[4], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg2 = readByte(&pbuf[4], &valid);
                     if (valid) {
                         setOdometerTo(p_transLlist[arg1] + arg2, p_transRlist[arg1] + arg2);
                     }
                     break;
 				case 0x1f: // toggle pos correction on/off
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         posCorrectionOn = arg1;
                     }
+                    break;
+                // STATUS REQUEST COMMANDS
+                case 0x21:
+                    printTicks(escape);
+                    break;
+                case 0x22:
+                    printSpeed(escape);
+                    break;
+                case 0x23:
+                    printAccel(escape);
+                    break;
+                case 0x24:
+                    printAbsDist(escape);
+                    break;
+                case 0x25:
+                    printRelDist(escape);
+                    break;
+                case 0x26:
+                    printSensors(escape);
                     break;
                 // NAVIGATOR COMMANDS
                 case 0x30: // set navigator to idle mode (i.e. turn off navigation)
@@ -153,79 +190,79 @@ void readCommand() {
                     break;
                 case 0x31: // navigator in NAV_DIST mode, goto absolute position
                     // byte1: speed | byte2-3: distance in mm
-                    arg1 = readByte(&buf[2], &valid);
-                    arg1i = readInt(&buf[4], &valid);
-                    if (valid) navDest(arg1 * 16, arg1i, arg1i);
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg1i = readInt(&pbuf[4], &valid);
+                    if (valid) navDest(arg1 * SPEEDMULT, arg1i, arg1i);
                     break;
                 case 0x32: // navigator in NAV_DIST mode, goto relative position
                     // byte1: speed | byte2: transition num | byte3: offset in mm
-                    arg1 = readByte(&buf[2], &valid);
-                    arg2 = readByte(&buf[4], &valid);
-                    arg3 = readByte(&buf[6], &valid);
-                    if (valid) navDestRel(arg1 * 16, arg2, arg3, arg2, arg3);
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg2 = readByte(&pbuf[4], &valid);
+                    arg3 = readByte(&pbuf[6], &valid);
+                    if (valid) navDestRel(arg1 * SPEEDMULT, arg2, arg3, arg2, arg3);
                     break;
                 case 0x33: // navigator in NAV_FREE mode, just set speeds and go
 					// byte1: speedL | byte2: speedR | byte3H: dirL | byte3L: dirR
-					arg1 = readByte(&buf[2], &valid);
-					arg2 = readByte(&buf[4], &valid);
-					arg3 = readByte(&buf[6], &valid);
-					if (valid) navFree(arg1 * 2, arg2 * 2, arg3 >> 4, arg3 & 0x0f);
+					arg1 = readByte(&pbuf[2], &valid);
+					arg2 = readByte(&pbuf[4], &valid);
+					arg3 = readByte(&pbuf[6], &valid);
+					if (valid) navFree(arg1 * SPEEDMULT, arg2 * SPEEDMULT, arg3 >> 4, arg3 & 0x0f);
 					break;
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
-                    arg1 = readByte(&buf[2], &valid);
-                    arg2 = readByte(&buf[4], &valid);
-                    arg3 = readByte(&buf[6], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg2 = readByte(&pbuf[4], &valid);
+                    arg3 = readByte(&pbuf[6], &valid);
                     if (valid) {
                         kP = arg1;
                         kI = arg2;
                         kD = arg3;
                     }
-                    arg4 = readByte(&buf[8], &valid);
+                    arg4 = readByte(&pbuf[8], &valid);
                     if (valid) {
                         kX = arg4;
                     }
                     break;
                 case 0x61: // set kP
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         kP = arg1;
                     }
                     break;
                 case 0x62: // set kI
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         kI = arg1;
                     }
                     break;
                 case 0x63: // set kD
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         kD = arg1;
                     }
                     break;
                 case 0x64: // set errIMax/Min
-                    arg1i = readInt(&buf[2], &valid);
+                    arg1i = readInt(&pbuf[2], &valid);
                     if (valid) {
                         errIMax = arg1i;
                         errIMin = -arg1i;
                     }
                     break;
                 case 0x65: // set adjustMax/Min
-                    arg1i = readInt(&buf[2], &valid);
+                    arg1i = readInt(&pbuf[2], &valid);
                     if (valid) {
                         adjustMax = arg1i;
                         adjustMin = -arg1i;
                     }
                     break;
                 case 0x66: // set kX
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         kX = arg1;
                     }
                     break;
                 case 0x67: // set xCalibration
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         xCalibration = arg1;
                     }
@@ -241,7 +278,7 @@ void readCommand() {
                     debug7 = 0;
                     break;
                 case 0x71:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug1 = arg1;
                     } else {
@@ -249,7 +286,7 @@ void readCommand() {
                     }
                     break;
                 case 0x72:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug2 = arg1;
                     } else {
@@ -257,7 +294,7 @@ void readCommand() {
                     }
                     break;
                 case 0x73:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug3 = arg1;
                     } else {
@@ -265,7 +302,7 @@ void readCommand() {
                     }
                     break;
                 case 0x74:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug4 = arg1;
                     } else {
@@ -273,7 +310,7 @@ void readCommand() {
                     }
                     break;
                 case 0x75:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug5 = arg1;
                     } else {
@@ -281,7 +318,7 @@ void readCommand() {
                     }
                     break;
                 case 0x76:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug6 = arg1;
                     } else {
@@ -289,7 +326,7 @@ void readCommand() {
                     }
                     break;
                 case 0x77:
-                    arg1 = readByte(&buf[2], &valid);
+                    arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         debug7 = arg1;
                     } else {
@@ -304,7 +341,7 @@ void readCommand() {
                     break;
                 case 0x7f:
                     // set debug period
-                    arg1i = readInt(&buf[2], &valid);
+                    arg1i = readInt(&pbuf[2], &valid);
                     if (valid) {
                         if (arg1i && (uint16_t)arg1i < 100) arg1i = 100;
                         debugPeriod = (uint16_t)arg1i;
