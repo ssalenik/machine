@@ -48,7 +48,7 @@ uint8_t posCorrRready = 0;              // determines if right sensor will trigg
 /* --------------*/
 
 /* --- PID parameters --- */
-uint8_t kP = 32;                        // P Constant
+uint8_t kP = 128;                        // P Constant
 uint8_t kI = 32;                        // I Constant
 uint8_t kD = 32;                        // D Constant
 uint8_t kX = 0;                         // Cross dependency between both motor displacements
