@@ -29,7 +29,6 @@ class Controller(QObject):
         self.out = output
         self.serial = serial.Serial()
         self.connected = False
-
         self.sendLock = Lock()
 
         self.logger = logger
@@ -67,6 +66,7 @@ class Controller(QObject):
         self.i_arm = 150
         self.d_arm = 350
         self.s_arm = 0
+        self.battery_status = 0
 
     def connectToPort(self, port, rate=POLL_RATE):
         if not self.serial.isOpen() :
@@ -368,6 +368,9 @@ class Controller(QObject):
 
                 #elif hex_code == mainCPU['arm_pid_d']:
                 #    self.d_arm = dataDecoded[0]
+                
+                if hex_code == mainCPU['battery_status']:
+                    self.battery_status = dataDecoded[0]
 
             else :
                 # should not happed, but just in case

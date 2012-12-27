@@ -73,6 +73,7 @@ mainCPU['claw_servo_1']		= 0x70  # upward/downward
 mainCPU['claw_servo_2']		= 0x80  # open/close
 mainCPU['magnets_off']		= 0x90
 mainCPU['magnets_on']		= 0x91
+mainCPU['battery_status']	= 0xba
 
 driver_decode = {
 	'dir_power_both'	: '!BBB',
@@ -95,7 +96,8 @@ mainCPU_decode = {
 	'arm_pid_p'			: '!h',
 	'arm_pid_i'			: '!i',
 	'arm_pid_d'			: '!h',
-	'arm_pid_s'			: '!h'
+	'arm_pid_s'			: '!h',
+	'battery_status'	: '!H'
 }
 
 # old way:

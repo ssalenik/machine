@@ -50,6 +50,9 @@ class CentralWidget(QWidget):
         self.baseRefInputSetPermission = True
         self.armRefInputSetPermission = True
         
+        # variables
+        self.batteryValue = 0
+        
         # widgets which will be contained in the central widget
         self.settings = Settings()
         self.controls = ControlsFrame()
@@ -124,18 +127,18 @@ class CentralWidget(QWidget):
         self.controls.arm.setLinActRef.clicked.connect(self.setArmRef)
 
         # servo signals
-        self.controls.claw.openButton.clicked.connect(self.clawOpen)
-        self.controls.claw.closeButton.clicked.connect(self.clawClose)
-        self.controls.claw.raiseButton.clicked.connect(self.clawRaise)
-        self.controls.claw.lowerButton.clicked.connect(self.clawLower)
-        self.controls.claw.initLaserButton.clicked.connect(self.laserInit)
-        self.controls.claw.midWayButton.clicked.connect(self.laserMid)
-        self.controls.claw.fullButton.clicked.connect(self.laserFull)
-        self.controls.claw.initPingPongButton.clicked.connect(self.pingPongInit)
-        self.controls.claw.shootButton.clicked.connect(self.pingPongShoot)
-        self.controls.claw.magnetSwitch.stateChanged.connect(self.MagnetToggle)
-        self.controls.claw.goToButton.clicked.connect(self.goToPosition)
-        self.controls.claw.setButton.clicked.connect(self.setPosition)
+        self.controls.servo.openButton.clicked.connect(self.clawOpen)
+        self.controls.servo.closeButton.clicked.connect(self.clawClose)
+        self.controls.servo.raiseButton.clicked.connect(self.clawRaise)
+        self.controls.servo.lowerButton.clicked.connect(self.clawLower)
+        self.controls.servo.initLaserButton.clicked.connect(self.laserInit)
+        self.controls.servo.midWayButton.clicked.connect(self.laserMid)
+        self.controls.servo.fullButton.clicked.connect(self.laserFull)
+        self.controls.servo.initPingPongButton.clicked.connect(self.pingPongInit)
+        self.controls.servo.shootButton.clicked.connect(self.pingPongShoot)
+        self.controls.servo.magnetSwitch.stateChanged.connect(self.MagnetToggle)
+        self.controls.servo.goToButton.clicked.connect(self.goToPosition)
+        self.controls.servo.setButton.clicked.connect(self.setPosition)
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
@@ -149,6 +152,16 @@ class CentralWidget(QWidget):
         # start gui update thread
         self.refreshThread = Thread(target=self.refreshGUI)
         self.refreshThread.start()
+
+    def updateBatteryIndicator(self):
+        command = self.command
+        batteryValue = self.batteryValue
+        if batteryValue < 3.4 :
+            command.batStatusLabel.setPixmap(command.redFill)
+        elif batteryValue >= 3.4 and batteryValue <= 3.5 :
+            command.batStatusLabel.setPixmap(command.yellowFill)                
+        elif batteryValue > 3.5 :
+            command.batStatusLabel.setPixmap(command.greenFill)
 
     def addLoggers(self):
         codes = self.logSelect.logInput.text().split()
@@ -164,17 +177,17 @@ class CentralWidget(QWidget):
         message = ""
         message += "p"
         message += "%02X" % driver['go_to_position']
-        message += "%02X" % (int(self.controls.claw.speedInput.value())&0xFF)
-        message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
-        message += "%02X" % (int(self.controls.claw.offsetInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.servo.speedInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.servo.TransitionInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.servo.offsetInput.value())&0xFF)
         self.controller.sendCustomMessage(message)
         
     def setPosition(self):
         message = ""
         message += "p"
         message += "%02X" % driver['set_position']
-        message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
-        message += "%02X" % (int(self.controls.claw.offsetInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.servo.TransitionInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.servo.offsetInput.value())&0xFF)
         self.controller.sendCustomMessage(message)
 
     def stopLogging(self):
@@ -375,11 +388,11 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(0xFF) # max u8
             self.controls.chassy.lMotorInput.setValue(160)
             self.controls.chassy.rMotorInput.setValue(160)
-            self.controls.claw.speedInput.setEnabled(True)
-            self.controls.claw.TransitionInput.setEnabled(True)
-            self.controls.claw.offsetInput.setEnabled(True)
-            self.controls.claw.goToButton.setEnabled(True)
-            self.controls.claw.setButton.setEnabled(True)
+            self.controls.servo.speedInput.setEnabled(True)
+            self.controls.servo.TransitionInput.setEnabled(True)
+            self.controls.servo.offsetInput.setEnabled(True)
+            self.controls.servo.goToButton.setEnabled(True)
+            self.controls.servo.setButton.setEnabled(True)
         else:
             # set power instead of speed
             self.controller.sendMessage(code=driver['pid_toggle'], data = 0x00, encoding = 'u8')
@@ -388,11 +401,11 @@ class CentralWidget(QWidget):
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.lMotorInput.setValue(50)
             self.controls.chassy.rMotorInput.setValue(50)
-            self.controls.claw.speedInput.setEnabled(False)
-            self.controls.claw.TransitionInput.setEnabled(False)
-            self.controls.claw.offsetInput.setEnabled(False)
-            self.controls.claw.goToButton.setEnabled(False)
-            self.controls.claw.setButton.setEnabled(False)
+            self.controls.servo.speedInput.setEnabled(False)
+            self.controls.servo.TransitionInput.setEnabled(False)
+            self.controls.servo.offsetInput.setEnabled(False)
+            self.controls.servo.goToButton.setEnabled(False)
+            self.controls.servo.setButton.setEnabled(False)
 
     def MagnetToggle(self, state):
         if state == Qt.CheckState.Checked:
@@ -521,6 +534,11 @@ class CentralWidget(QWidget):
                 if self.baseRefInputSetPermission and c.encoderBaseRead:
                     arm.baseRefInput.setValue(int(c.encoder_base))
                     self.baseRefInputSetPermission = False
+                
+                # battery
+                command = self.command
+                self.batteryValue = (int(c.battery_status) * 0.0044336)
+                command.batteryStatus.setText("%1.2f" % self.batteryValue)
                 
             # output
             self.output.refresh()
@@ -714,7 +732,7 @@ class ControlsFrame(QFrame):
         self.vLine2.setLineWidth(2)
         self.chassy = ChassyFrame()
         self.arm = ArmFrame()
-        self.claw = ServoFrame()
+        self.servo = ServoFrame()
         self.stopAllButton = QPushButton("STOP ALL MOTORS")
         font = self.stopAllButton.font()
         font.setPointSize(15)
@@ -737,7 +755,7 @@ class ControlsFrame(QFrame):
         layout.addWidget(self.vLine1, 1, 1)
         layout.addWidget(self.arm, 1, 2)
         layout.addWidget(self.vLine2, 1, 3)
-        layout.addWidget(self.claw, 1, 4)
+        layout.addWidget(self.servo, 1, 4)
 
         self.setLayout(layout)
 
@@ -1222,15 +1240,32 @@ class Commands(QFrame):
         self.commandInput = QLineEdit()
         self.commandInput.setMinimumWidth(200)
         self.sendButton = QPushButton("send")
+        
+        # battery status
+        self.batteryLabel = QLabel("Battery (V):")
+        self.batteryStatus = QLineEdit()
+        self.batteryStatus.setReadOnly(True)
+        self.batteryStatus.setFixedWidth(60)
+        self.batStatusLabel = QLabel(self)
+        self.redFill = QPixmap(20,20)
+        self.redFill.fill(Qt.red)
+        self.greenFill = QPixmap(20,20)
+        self.greenFill.fill(Qt.green)
+        self.yellowFill = QPixmap(20,20)
+        self.yellowFill.fill(Qt.yellow)
+        self.batStatusLabel.setPixmap(self.greenFill)
 
         # layout
         layout = QGridLayout()
         layout.addWidget(self.label, 0, 0)
         layout.addWidget(self.commandInput, 0, 1)
         layout.addWidget(self.sendButton, 0, 2)
-
+        layout.addWidget(self.batteryLabel, 0, 3)
+        layout.addWidget(self.batteryStatus, 0, 4)
+        layout.addWidget(self.batStatusLabel, 0, 5)
+        
         # make middle column stretch
-        layout.setColumnStretch(3, 1)
+        layout.setColumnStretch(4, 1)
 
         # make last row stretch
         # layout.setRowStretch(1, 1)
