@@ -207,13 +207,20 @@ class CentralWidget(QWidget):
             self.controls.arm.ccwButton.setEnabled(False) 
             self.controls.arm.cwButton.setEnabled(False) 
             self.controls.arm.upButton.setEnabled(False) 
-            self.controls.arm.downButton.setEnabled(False) 
+            self.controls.arm.downButton.setEnabled(False)
+            self.controls.arm.linActPowerInput.setEnabled(False)
+            self.controls.arm.basePowerInput.setEnabled(False)
+            
         else:
             self.controller.sendMessage(code=mainCPU['arm_pid_off'], sendToDriver=False)
             self.controls.arm.ccwButton.setEnabled(True) 
             self.controls.arm.cwButton.setEnabled(True) 
             self.controls.arm.upButton.setEnabled(True) 
-            self.controls.arm.downButton.setEnabled(True) 
+            self.controls.arm.downButton.setEnabled(True)
+            self.controls.arm.linActPowerInput.setEnabled(True)
+            self.controls.arm.basePowerInput.setEnabled(True)
+            self.controls.arm.basePowerInput.setValue(40)
+            self.controls.arm.linActPowerInput.setValue(40)
             
     def setArmRef(self):
         # used before to tweak PID manually for the actuator
@@ -328,18 +335,20 @@ class CentralWidget(QWidget):
     def PIDToggleMotors(self, state):
         if state == Qt.CheckState.Checked:
             # set speed instead of power
+            self.controller.sendMessage(code=driver['pid_toggle'], data = 0x01, encoding = 'u8')
             self.controls.chassy.inputLabel.setText("speed:")
             self.controls.chassy.lMotorInput.setMaximum(0xFF) # max u8
             self.controls.chassy.rMotorInput.setMaximum(0xFF) # max u8
-            self.controls.chassy.lMotorInput.setValue(0)
-            self.controls.chassy.rMotorInput.setValue(0)
+            self.controls.chassy.lMotorInput.setValue(160)
+            self.controls.chassy.rMotorInput.setValue(160)
         else:
             # set power instead of speed
+            self.controller.sendMessage(code=driver['pid_toggle'], data = 0x00, encoding = 'u8')
             self.controls.chassy.inputLabel.setText("power:")
             self.controls.chassy.lMotorInput.setMaximum(100) # power is 100
             self.controls.chassy.rMotorInput.setMaximum(100) # power is 100
-            self.controls.chassy.lMotorInput.setValue(0)
-            self.controls.chassy.rMotorInput.setValue(0)
+            self.controls.chassy.lMotorInput.setValue(50)
+            self.controls.chassy.rMotorInput.setValue(50)
 
     def MagnetToggle(self, state):
         if state == Qt.CheckState.Checked:
@@ -705,22 +714,27 @@ class ChassyFrame(QFrame):
         self.cwButton = QPushButton("CW")
         self.cwButton.setFixedWidth(75)
         self.PIDSwitchMotors = QCheckBox("PID motors on")
+        self.PIDSwitchMotors.setChecked(True)
 
         # left/right
         self.lMotorLabel = QLabel("left:")
         self.lMotorLabel.setAlignment(Qt.AlignHCenter)
         self.rMotorLabel = QLabel("right:")
         self.rMotorLabel.setAlignment(Qt.AlignHCenter)
+        
         # input power/speed
-        self.inputLabel = QLabel("power:")
+        self.inputLabel = QLabel("speed:")
         self.lMotorInput = QSpinBox()
         self.lMotorInput.setMinimum(0)
-        self.lMotorInput.setMaximum(100) #100 for power
+        self.lMotorInput.setMaximum(0xFF) # max u8
         self.lMotorInput.setFixedWidth(60)
+        self.lMotorInput.setValue(160)
         self.rMotorInput = QSpinBox()
         self.rMotorInput.setMinimum(0)
-        self.rMotorInput.setMaximum(100) #100 for power
+        self.rMotorInput.setMaximum(0xFF) # max u8
         self.rMotorInput.setFixedWidth(60)
+        self.rMotorInput.setValue(160)
+        
         # actual speed
         self.speedLabel = QLabel("speed:")
         #self.speedLabel.setAlignment(Qt.AlignHCenter)
@@ -858,17 +872,22 @@ class ArmFrame(QFrame):
         # ccw, cw
         self.ccwButton = QPushButton("CCW")
         self.ccwButton.setFixedWidth(60)
+        self.ccwButton.setEnabled(False)
         self.cwButton = QPushButton("CW")
         self.cwButton.setFixedWidth(60)
-        
+        self.cwButton.setEnabled(False)
+                
         # up, down
         self.upButton = QPushButton("up")
         self.upButton.setFixedWidth(60)
+        self.upButton.setEnabled(False)
         self.downButton = QPushButton("down")
         self.downButton.setFixedWidth(60)
+        self.downButton.setEnabled(False)
         
         # pid switch
         self.PIDSwitchArm = QCheckBox("PID arm on")
+        self.PIDSwitchArm.setChecked(True)
         
         # power
         self.powerLabel = QLabel("power:")
@@ -876,10 +895,14 @@ class ArmFrame(QFrame):
         self.basePowerInput.setMinimum(0)
         self.basePowerInput.setMaximum(100) #100 for power
         self.basePowerInput.setFixedWidth(60)
+        self.basePowerInput.setValue(40)
+        self.basePowerInput.setEnabled(False)
         self.linActPowerInput = QSpinBox()
         self.linActPowerInput.setMinimum(0)
         self.linActPowerInput.setMaximum(100) #100 for power
         self.linActPowerInput.setFixedWidth(60)
+        self.linActPowerInput.setValue(40)
+        self.linActPowerInput.setEnabled(False)
         
         # encoder
         self.encoderLabel = QLabel("encoder:")
