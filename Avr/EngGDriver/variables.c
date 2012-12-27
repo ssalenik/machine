@@ -52,8 +52,8 @@ uint8_t kP = 128;                        // P Constant
 uint8_t kI = 32;                        // I Constant
 uint8_t kD = 32;                        // D Constant
 uint8_t kX = 0;                         // Cross dependency between both motor displacements
-int16_t errIMax = 800;                  // Max Integer value
-int16_t errIMin = -800;         
+int16_t errIMax = 1600;                  // Max Integer value
+int16_t errIMin = -1600;         
 int16_t adjustMax = 30;                 // Max power adjustment factor
 int16_t adjustMin = -20;
     // legacy code, used for cross-adjustment:
@@ -98,6 +98,7 @@ uint8_t debug4 = 0;
 uint8_t debug5 = 0;
 uint8_t debug6 = 0;
 uint8_t debug7 = 0;
+uint8_t debugPID = 0;
 uint16_t debugPeriod = 500;
 /* --------------*/
 

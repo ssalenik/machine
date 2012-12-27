@@ -17,6 +17,19 @@
 void navigator() {
     int16_t distLeft;
     
+    if (debug5) {
+        if (navCom == NAV_DEST) {
+            debugPID = 1;
+        } else {
+            if (speed0 == 0) {
+                debugPID = 0;
+            }
+        }
+        if (debugPID) {
+            printf_P(PSTR("%d\t%d\r\n"), targetSpeed0, speed0);
+        }
+    }
+    
     switch(navCom) {
     case NAV_NONE: break; // idle state
     case NAV_DEST:
@@ -25,8 +38,6 @@ void navigator() {
             // TODO: do not assume motor0 is motorL
             targetSpeed0 = calculateTargetSpeed(distLeft, targetSpeed0);
             if (targetSpeed0 == 0) n_Ldone = 1;
-            if (debug6) printf_P(PSTR("%d\r\n"), targetSpeed0);
-            if (debug5) printf_P(PSTR("%d\t%d\r\n"), targetSpeed0, speed0);
         }
         if (!n_Rdone) {
             distLeft = getDistLeft(rdir, n_targetRpos, p_R);

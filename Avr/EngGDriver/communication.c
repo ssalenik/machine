@@ -339,6 +339,11 @@ void readCommand() {
                 case 0x79:
                     printParams2();
                     break;
+                case 0x7a: // temp
+                    pidOn = 0;
+                    setPower100(LMOTOR, 0);
+                    setPower100(RMOTOR, 0);
+                    break;
                 case 0x7f:
                     // set debug period
                     arg1i = readInt(&pbuf[2], &valid);

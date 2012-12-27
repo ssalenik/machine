@@ -85,11 +85,11 @@
         
 /* --- Navigation --- */        
 #define RAMPDOWN_MIN_SPEED 320      // minimum speed set for ramp-down
-#define RAMPDOWN_REF_DIST 15        // distance at which the speed is capped at RAMPDOWN_MIN_SPEED
-#define RAMPDOWN_STOP_DIST 3        // distance at which to stop the robot completely
-#define RAMPDOWN_RATE 20            // target speed = RAMPDOWN_RATE * (dist left - RAMPDOWN_REF_DIST)
+#define RAMPDOWN_REF_DIST -10       // distance at which the speed is capped at RAMPDOWN_MIN_SPEED
+#define RAMPDOWN_STOP_DIST 2        // distance at which to stop the robot completely
+#define RAMPDOWN_RATE 15            // target speed = RAMPDOWN_RATE * (dist left - RAMPDOWN_REF_DIST)
                                     // slows down until RAMPDOWN_MIN_SPEED
-#define RAMPDOWN_CHECK_DIST 200     // distance at which to check for rampdown
+#define RAMPDOWN_CHECK_DIST 300     // distance at which to check for rampdown
                                     
 
 /* OBOSLETE> */
