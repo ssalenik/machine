@@ -20,11 +20,8 @@ static int pt_test(struct pt *pt) {
 		nav_stop();
 		nav_rel_pos(80, 41, 115); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_stop();
-		servo7(160);
-		servo8(160);
-		SLEEP(800);
-		servo7(96);
-		SLEEP(400);
+		claw_down(); claw_close(); SLEEP(800);
+		claw_up(); SLEEP(SERVO_DELAY);
 		nav_reverse(80, 80);
 		PT_WAIT_UNTIL(pt, (abspL < rel2absL(40, -70)) || (abspR < rel2absR(40, -70)));
 		pos_corr_off();
@@ -38,20 +35,21 @@ static int pt_test(struct pt *pt) {
 		nav_stop();
 		nav_rel_pos(80, 36,  70); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_stop();
-		servo6(58); SLEEP(400);
+		laser_mid(); SLEEP(SERVO_DELAY);
 		nav_rel_pos(80, 36,  33); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_stop();
-		servo6(96); SLEEP(3000);
-		servo6(58); SLEEP(400);
+		laser_full(); SLEEP(3000);
+		laser_mid(); SLEEP(SERVO_DELAY);
 		nav_rel_pos(80, 36,  70); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_stop();
-		servo6(4); SLEEP(400);
+		laser_init(); SLEEP(SERVO_DELAY);
 		nav_rel_pos(200, 1,   0); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_stop(); SLEEP(2000);
 	}
 	
 	// test thread 2
 	else if(run_test == 2) {
+		;
 	}
 	
 	run_test = 0; // stop test thread after execution
