@@ -2,9 +2,11 @@
 #define ENGGDRIVER_H
 
 #include <avr/io.h>
+// include the defines that are common to EngGDriver and EngGMain
+#include "../common/common.h"
 
 /* VERSION */
-#define VERSION "2.4"
+#define VERSION "2.5"
 
 /* ==========  Macros  ========== */
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))
@@ -76,24 +78,6 @@
 #define TICKSTODIST_L 105   // TICKS -> DIST in 1/1024th of a mm (Left Motor)
 #define DISTTOTICKS_R 2497  // DIST in mm -> TICKS / 256 (Right Motor)
 #define TICKSTODIST_R 105   // TICKS -> DIST in 1/1024th of a mm (Right Motor)
-#define TRANSITIONS (24 * 2)// Number Track Sensor Transition points
-                            // 2 transition points per transversal plank
-
-#define TRANS_L_LIST \
-    {64, 165, 292, 394, 521, 622, 749, 851, \
-    978, 1080, 1207, 1308, 1435, 1537, 1664, 1765, \
-    1892, 1994, 2121, 2223, 2350, 2451, 2578, 2680, \
-    2807, 2908, 3035, 3137, 3264, 3366, 3493, 3594, \
-    3721, 3823, 3950, 4051, 4178, 4280, 4407, 4509, \
-    4595, 4697, 4824, 4925, 5052, 5154, 5281, 5382}
-
-#define TRANS_R_LIST \
-    {64, 165, 292, 394, 521, 622, 749, 851, \
-    978, 1080, 1207, 1308, 1435, 1537, 1664, 1765, \
-    1892, 1994, 2121, 2223, 2350, 2451, 2578, 2680, \
-    2807, 2908, 3035, 3137, 3264, 3366, 3493, 3594, \
-    3721, 3823, 3950, 4051, 4178, 4280, 4407, 4509, \
-    4787, 4889, 5016, 5117, 5244, 5346, 5473, 5575}
 
 /* --- Track Sensor and pos correction --- */
 #define MAX_CORR_ERROR 50           // maximum allowable pos correction (in mm)
