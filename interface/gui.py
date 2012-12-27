@@ -134,6 +134,7 @@ class CentralWidget(QWidget):
         self.controls.claw.initPingPongButton.clicked.connect(self.pingPongInit)
         self.controls.claw.shootButton.clicked.connect(self.pingPongShoot)
         self.controls.claw.magnetSwitch.stateChanged.connect(self.MagnetToggle)
+        self.controls.claw.goToButton.clicked.connect(self.goToPosition)
 
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
@@ -157,6 +158,15 @@ class CentralWidget(QWidget):
             self.logger.openLogFile(code)
 
         self.logSelect.logInput.clear()
+
+    def goToPosition(self):
+        message = ""
+        message += "p"
+        message += "%02X" % driver['go_to_position']
+        message += "%02X" % (int(self.controls.claw.speedInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.claw.TransitionInput.value())&0xFF)
+        message += "%02X" % (int(self.controls.claw.offsetInput.value())&0xFF)
+        self.controller.sendCustomMessage(message)
 
     def stopLogging(self):
         self.logger.closeFiles()
@@ -1148,9 +1158,9 @@ class ServoFrame(QFrame):
         
         layout.addWidget(self.label2, 6, 0, 1, 4, Qt.AlignHCenter)
         layout.addWidget(self.hLine2, 7, 0, 1, 4)
-        layout.addWidget(self.initLaserButton, 8, 0, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.midWayButton, 8, 1, 1, 2, Qt.AlignHCenter)
-        layout.addWidget(self.fullButton, 8, 2, 1, 2, Qt.AlignHCenter)
+        layout.addWidget(self.initLaserButton, 8, 0, Qt.AlignHCenter)
+        layout.addWidget(self.midWayButton, 8, 1, Qt.AlignHCenter)
+        layout.addWidget(self.fullButton, 8, 2, Qt.AlignHCenter)
         
         layout.addWidget(self.label3, 9, 0, 1, 4, Qt.AlignHCenter)
         layout.addWidget(self.hLine3, 10, 0, 1, 4)
