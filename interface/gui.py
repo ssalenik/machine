@@ -159,7 +159,7 @@ class CentralWidget(QWidget):
         batteryValue = self.batteryValue
         if batteryValue < 3.4 :
             command.batStatusLabel.setPixmap(command.redFill)                
-        elif batteryValue > 3.55 :
+        elif batteryValue > 3.7 :
             command.batStatusLabel.setPixmap(command.greenFill)
         else:
             command.batStatusLabel.setPixmap(command.yellowFill)
