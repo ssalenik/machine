@@ -114,12 +114,20 @@ int16_t getDistLeft(uint8_t dir, int16_t target, int16_t current) {
  */
 int16_t calculateTargetSpeed(int16_t distLeft, int16_t curTargetSpeed) {
     int16_t rampSpeed;
-    if (distLeft <= RAMPDOWN_STOP_DIST) return 0;
-    if (distLeft <= RAMPDOWN_CHECK_DIST) {
-        rampSpeed = RAMPDOWN_RATE * (distLeft - RAMPDOWN_REF_DIST);
-        rampSpeed = (rampSpeed < curTargetSpeed) ? rampSpeed : curTargetSpeed;
-        if (rampSpeed < RAMPDOWN_MIN_SPEED) rampSpeed = RAMPDOWN_MIN_SPEED;
-        return rampSpeed;
+    if (n_rampDownOn) {
+        if (distLeft <= RAMPDOWN_STOP_DIST) return 0;
+        if (distLeft <= RAMPDOWN_CHECK_DIST) {
+            rampSpeed = RAMPDOWN_RATE * (distLeft - RAMPDOWN_REF_DIST);
+            rampSpeed = (rampSpeed < curTargetSpeed) ? rampSpeed : curTargetSpeed;
+            if (rampSpeed < RAMPDOWN_MIN_SPEED) rampSpeed = RAMPDOWN_MIN_SPEED;
+            return rampSpeed;
+        }
+        return curTargetSpeed;
+    } else {
+        if (distLeft <= 0) {
+            return 0;
+        } else {
+            return curTargetSpeed;
+        }
     }
-    return curTargetSpeed;
 }

@@ -6,7 +6,7 @@
 #include "../common/common.h"
 
 /* VERSION */
-#define VERSION "2.5"
+#define VERSION "2.6"
 
 /* ==========  Macros  ========== */
 #define sbi(var, mask)   ((var) |= (uint8_t)(1 << mask))

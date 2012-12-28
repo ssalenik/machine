@@ -88,6 +88,7 @@ NavCom navCom = NAV_NONE;               // navigator state
 int16_t n_targetLpos = 0;               // target L destination
 int16_t n_targetRpos = 0;               // target R destination
 uint8_t n_Ldone, n_Rdone;               // set to 1 when L/R side reached destination
+uint8_t n_rampDownOn = 1;               // 0 | 1 to turn rampDown on or off
 /* --------------*/
 
 /* --- Debug --- */

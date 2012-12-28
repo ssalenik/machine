@@ -16,7 +16,7 @@ void readCommand() {
     static uint8_t index = 0;
     char c, cmd;
     uint8_t arg1, arg2, arg3, arg4;
-    int16_t arg1i;
+    int16_t arg1i, arg2i;
     uint8_t valid;
     char escape;
     
@@ -55,6 +55,7 @@ void readCommand() {
 					setPower100(LMOTOR, 0);
 					setPower100(RMOTOR, 0);
                     navCom = NAV_NONE;
+                    break;
                 case 0x01: // set power of left motor
                     arg1 = readByte(&pbuf[2], &valid);
                     if (valid) setPower100(LMOTOR, arg1);
@@ -154,6 +155,13 @@ void readCommand() {
                         setOdometerTo(p_transLlist[arg1] + arg2, p_transRlist[arg1] + arg2);
                     }
                     break;
+				case 0x1c: // set relative position, signed 16 bit
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg1i = readInt(&pbuf[4], &valid);
+                    if (valid) {
+                        setOdometerTo(p_transLlist[arg1] + arg1i, p_transRlist[arg1] + arg1i);
+                    }
+                    break;
 				case 0x1f: // toggle pos correction on/off
                     arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
@@ -208,6 +216,24 @@ void readCommand() {
                     arg1 = readByte(&pbuf[2], &valid);
                     arg1i = readInt(&pbuf[4], &valid);
                     navDest(arg1 * SPEEDMULT, arg1 * SPEEDMULT, p_L + arg1i, p_R + arg1i);
+                    break;
+                case 0x35: // universal func for navigator in NAV_DEST mode
+                    // byte1: speedL | byte2: speedR | byte3: L transition num | byte4: R transition num
+                    // byte5-6: signed L distance in mm | byte7-8: signed R distance in mm
+                    arg1 = readByte(&pbuf[2], &valid);
+                    arg2 = readByte(&pbuf[4], &valid);
+                    arg3 = readByte(&pbuf[6], &valid);
+                    arg4 = readByte(&pbuf[2], &valid);
+                    arg1i = readInt(&pbuf[4], &valid);
+                    arg2i = readInt(&pbuf[6], &valid);
+                    if (valid) navDestRel(arg1 * SPEEDMULT, arg2 * SPEEDMULT, arg3, arg4, arg1i, arg2i);
+                    break;
+                case 0x3f: // toggle rampDown on navigation
+                    arg1 = readByte(&pbuf[2], &valid);
+                    if (valid) {
+                        n_rampDownOn = arg1;
+                    }
+                    break;
                 //PID PARAMETERS
                 case 0x60: // set kP, kI, kD, kX
                     arg1 = readByte(&pbuf[2], &valid);

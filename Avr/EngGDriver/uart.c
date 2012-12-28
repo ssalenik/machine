@@ -8,7 +8,7 @@ typedef struct _fifo {
     uint8_t idx_w;   
     uint8_t idx_r;   
     uint8_t count;   
-    uint8_t buff[64];   
+    uint8_t buff[128];   
 } FIFO;   
    
    
