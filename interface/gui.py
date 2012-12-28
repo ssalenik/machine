@@ -143,6 +143,7 @@ class CentralWidget(QWidget):
         # command signals
         self.command.sendButton.clicked.connect(self.sendCustom)
         self.command.commandInput.returnPressed.connect(self.sendCustom)
+        self.command.batteryStatus.textChanged.connect(self.updateBatteryIndicator)
 
         # logger signals
         self.logSelect.logButton.clicked.connect(self.addLoggers)
@@ -157,11 +158,11 @@ class CentralWidget(QWidget):
         command = self.command
         batteryValue = self.batteryValue
         if batteryValue < 3.4 :
-            command.batStatusLabel.setPixmap(command.redFill)
-        elif batteryValue >= 3.4 and batteryValue <= 3.5 :
-            command.batStatusLabel.setPixmap(command.yellowFill)                
-        elif batteryValue > 3.5 :
+            command.batStatusLabel.setPixmap(command.redFill)                
+        elif batteryValue > 3.55 :
             command.batStatusLabel.setPixmap(command.greenFill)
+        else:
+            command.batStatusLabel.setPixmap(command.yellowFill)
 
     def addLoggers(self):
         codes = self.logSelect.logInput.text().split()
@@ -1253,7 +1254,7 @@ class Commands(QFrame):
         self.greenFill.fill(Qt.green)
         self.yellowFill = QPixmap(20,20)
         self.yellowFill.fill(Qt.yellow)
-        self.batStatusLabel.setPixmap(self.greenFill)
+        self.batStatusLabel.setPixmap(self.redFill)
 
         # layout
         layout = QGridLayout()
