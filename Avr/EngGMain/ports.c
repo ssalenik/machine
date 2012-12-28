@@ -3,7 +3,7 @@
  *  -----------------------------------------------------------------
  *   #	NAME	ALT FUNCTIONS	I/O	P/U	DEFS	DEVICE
  *  -----------------------------------------------------------------
- *  40	PA0	ADC0		I	N	SENS1	SENS1/RESERVED
+ *  40	PA0	ADC0		I	Y	Q3_Z	TURN_ZERO
  *  39	PA1	ADC1		I	N	SENS2	SENS2/RESERVED
  *  38	PA2	ADC2		I	N	SENS3	SENS3/RESERVED
  *  37	PA3	ADC3		I	N	SENS4	SENS4/RESERVED
@@ -41,7 +41,7 @@
  *  -----------------------------------------------------------------
  */
 
-#define SENS1	   0
+#define Q3_Z	A, 0
 #define SENS2	   1
 #define SENS3	   2
 #define SENS4	   3
@@ -72,9 +72,10 @@
 #define __b_clr(port, bit) (~_SFR_BYTE(PIN##port) & _BV(bit))
 
 void init_ports(void) {
-	DIDR0 = 0b00111111; // disable digital input buffers for analog inputs
-	DDRA  = 0b11000000; // for all DDR see I/O column in the table above
-	PORTB = 0b00000001; // for all PORTs see P/U column in the table above
+	DIDR0 = 0b00111110; // disable digital input buffers for analog inputs
+	PORTA = 0b00000001; // for all PORTs see P/U column in the table above
+	DDRA  = 0b11000000; // for all DDRs see I/O column in the table above
+	PORTB = 0b00000001;
 	DDRB  = 0b00011000;
 	DDRC  = 0b11111100;
 	PORTD = 0b00000101;

@@ -2,7 +2,7 @@
 
 volatile uint32_t V_uptime = 0, V_uptime32 = 0;
 volatile uint32_t V_encoder_time = 0, V_actuator_time = 0, V_enc3_sync_time = 0, V_actu_sync_time = 0;
-volatile  int16_t V_enc3_sync_val = 0, V_actu_sync_val = 0, V_encoder = 0;
+volatile  int16_t V_enc3_sync_val = 0, V_actu_sync_val = 0, V_encoder = 2128;
 volatile uint16_t V_actuator = 0;
 volatile uint8_t  run_pid = 0;
 
@@ -31,7 +31,7 @@ void servo5(uint8_t degrees) { OCR0A = (((uint16_t)degrees * SERVO_FACTOR) >> 8)
 void servo6(uint8_t degrees) { OCR0B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; } // laser
 void servo7(uint8_t degrees) { OCR2A = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; } // claw v.
 void servo8(uint8_t degrees) { OCR2B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; } // claw h.
-// functions with tuned values
+// servo preset values
 void cannon_reload(void) { servo5(0);   }
 void cannon_shoot(void)  { servo5(50);  }
 void laser_init(void)    { servo6(4);   }

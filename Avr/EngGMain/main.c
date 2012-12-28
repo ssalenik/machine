@@ -37,6 +37,7 @@
 
 
 #define RX_LINE_SIZE FIFO_LENGTH
+#define DRIVE_SPEED  200
 
 uint8_t run_main = 0;
 uint8_t run_test = 0; // test
@@ -46,35 +47,42 @@ uint8_t local_dump = 1;
 uint8_t sectL, sectR, trksL, trksR;
 int16_t relpL, relpR, abspL, abspR;
 
-void stop(void)                                { fprintf_P(&drive, PSTR("00\r")); }
-void nav_stop(void)                            { fprintf_P(&drive, PSTR("30\r")); }
-void fwd_both(uint8_t speed)                   { fprintf_P(&drive, PSTR("0300\r0400\r15%02x\r"), speed); }
-void rev_both(uint8_t speed)                   { fprintf_P(&drive, PSTR("0301\r0401\r15%02x\r"), speed); }
-void forward (uint8_t Lspeed, uint8_t Rspeed)  { fprintf_P(&drive, PSTR("0300\r0400\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
-void reverse (uint8_t Lspeed, uint8_t Rspeed)  { fprintf_P(&drive, PSTR("0301\r0401\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
-void turnCCW (uint8_t Lspeed, uint8_t Rspeed)  { fprintf_P(&drive, PSTR("0301\r0400\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
-void turnCW  (uint8_t Lspeed, uint8_t Rspeed)  { fprintf_P(&drive, PSTR("0300\r0401\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
-void set_abs_pos (int16_t pos)                 { fprintf_P(&drive, PSTR("1a%04x\r"), pos); }
-void set_rel_pos (uint8_t sect, uint8_t pos)   { fprintf_P(&drive, PSTR("1b%02x%02x\r"), sect, pos); }
-void drv_pid_on  (void)                        { fprintf_P(&drive, PSTR("1001\r")); }
-void drv_pid_off (void)                        { fprintf_P(&drive, PSTR("1000\r")); }
-void pos_corr_on (void)                        { fprintf_P(&drive, PSTR("1f01\r")); }
-void pos_corr_off(void)                        { fprintf_P(&drive, PSTR("1f00\r")); }
-//void freedrive(uint8_t speedL, uint8_t speedR, uint8_t dir) { fprintf_P(&drive, PSTR("34%02x%02x%02x\r"), speedL, speedR, dir); }
-void nav_forward (uint8_t Lspeed, uint8_t Rspeed)            { fprintf_P(&drive, PSTR("33%02x%02x00\r"), Lspeed, Rspeed); }
-void nav_reverse (uint8_t Lspeed, uint8_t Rspeed)            { fprintf_P(&drive, PSTR("33%02x%02x11\r"), Lspeed, Rspeed); }
-void nav_turnCCW (uint8_t Lspeed, uint8_t Rspeed)            { fprintf_P(&drive, PSTR("33%02x%02x10\r"), Lspeed, Rspeed); }
-void nav_turnCW  (uint8_t Lspeed, uint8_t Rspeed)            { fprintf_P(&drive, PSTR("33%02x%02x01\r"), Lspeed, Rspeed); }
+// DRIVE MCU CONTROL FUNCTIONS
+void stop(void)                                   { fprintf_P(&drive, PSTR("00\r")); }
+void nav_stop(void)                               { fprintf_P(&drive, PSTR("30\r")); }
+void fwd_both(uint8_t speed)                      { fprintf_P(&drive, PSTR("0300\r0400\r15%02x\r"), speed); }
+void rev_both(uint8_t speed)                      { fprintf_P(&drive, PSTR("0301\r0401\r15%02x\r"), speed); }
+void forward (uint8_t Lspeed, uint8_t Rspeed)     { fprintf_P(&drive, PSTR("0300\r0400\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
+void reverse (uint8_t Lspeed, uint8_t Rspeed)     { fprintf_P(&drive, PSTR("0301\r0401\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
+void turnCCW (uint8_t Lspeed, uint8_t Rspeed)     { fprintf_P(&drive, PSTR("0301\r0400\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
+void turnCW  (uint8_t Lspeed, uint8_t Rspeed)     { fprintf_P(&drive, PSTR("0300\r0401\r11%02x\r12%02x\r"), Lspeed, Rspeed); }
+void set_abs_pos (int16_t pos)                    { fprintf_P(&drive, PSTR("1a%04x\r"), pos); }
+void set_rel_pos (uint8_t sect, int16_t pos)      { fprintf_P(&drive, PSTR("1c%02x%04x\r"), sect, pos); }
+void drv_pid_on  (void)                           { fprintf_P(&drive, PSTR("1001\r")); }
+void drv_pid_off (void)                           { fprintf_P(&drive, PSTR("1000\r")); }
+void pos_corr_on (void)                           { fprintf_P(&drive, PSTR("1f01\r")); }
+void pos_corr_off(void)                           { fprintf_P(&drive, PSTR("1f00\r")); }
+void rampdown_on (void)                           { fprintf_P(&drive, PSTR("3f01\r")); } // WARNING: power ramps up at fixed rate
+void rampdown_off(void)                           { fprintf_P(&drive, PSTR("3f00\r")); } // WARNING: power drops to 0 immediately
+void nav_forward (uint8_t Lspeed, uint8_t Rspeed) { fprintf_P(&drive, PSTR("33%02x%02x00\r"), Lspeed, Rspeed); }
+void nav_reverse (uint8_t Lspeed, uint8_t Rspeed) { fprintf_P(&drive, PSTR("33%02x%02x11\r"), Lspeed, Rspeed); }
+void nav_turnCCW (uint8_t Lspeed, uint8_t Rspeed) { fprintf_P(&drive, PSTR("33%02x%02x10\r"), Lspeed, Rspeed); }
+void nav_turnCW  (uint8_t Lspeed, uint8_t Rspeed) { fprintf_P(&drive, PSTR("33%02x%02x01\r"), Lspeed, Rspeed); }
 // commands below return acknowledgement: "@<cmd>\r"
-void nav_abs_pos (uint8_t speed, int16_t pos)                { drive_complete = 0; fprintf_P(&drive, PSTR("31%02x%04x\r"), speed, pos); }
-void nav_rel_pos (uint8_t speed, uint8_t sect, uint8_t pos)  { drive_complete = 0; fprintf_P(&drive, PSTR("32%02x%02x%02x\r"), speed, sect, pos); }
-void nav_dist    (uint8_t speed, int16_t dist)               { drive_complete = 0; fprintf_P(&drive, PSTR("34%02x%04x\r"), speed, dist); }
-//void forward_dist(uint8_t speed, uint16_t dist)  { drive_complete = 0; fprintf_P(&drive, PSTR("32%02x%04x\r"), speed, dist); }
-//void reverse_dist(uint8_t speed, uint16_t dist)  { drive_complete = 0; fprintf_P(&drive, PSTR("33%02x%04x\r"), speed, dist); }
+void nav_abs_pos   (uint8_t speed, int16_t pos)               { drive_complete = 0; fprintf_P(&drive, PSTR("31%02x%04x\r"), speed, pos); }
+void nav_rel_pos   (uint8_t speed, uint8_t sect, uint8_t pos) { drive_complete = 0; fprintf_P(&drive, PSTR("32%02x%02x%02x\r"), speed, sect, pos); }
+void nav_dist      (uint8_t speed, int16_t dist)              { drive_complete = 0; fprintf_P(&drive, PSTR("34%02x%04x\r"), speed, dist); }
+void nav_universal (uint8_t Lspeed, uint8_t Rspeed, uint8_t Lsect, uint8_t Rsect, int16_t Lpos, int16_t Rpos) {
+	drive_complete = 0;
+	fprintf_P(&drive, PSTR("35%02x%02x%02x%02x%04x%04x\r"), Lspeed, Rspeed, Lsect, Rsect, Lpos, Rpos);
+}
 // commands below return a reply, and therefore are preceded with '@'
-void request_abs_pos(void)                     { fprintf_P(&drive, PSTR("@24\r")); }
-void request_rel_pos(void)                     { fprintf_P(&drive, PSTR("@25\r")); }
-void request_trks(void)                        { fprintf_P(&drive, PSTR("@26\r")); }
+void request_abs_pos(void)                        { fprintf_P(&drive, PSTR("@24\r")); }
+void request_rel_pos(void)                        { fprintf_P(&drive, PSTR("@25\r")); }
+void request_trks(void)                           { fprintf_P(&drive, PSTR("@26\r")); }
+
+//  ARM  CONTROL FUNCTIONS: see file "pid.c"
+// SERVO CONTROL FUNCTIONS: see file "timer.c"
 
 #include "pt-main.c"
 #include "pt-test.c"

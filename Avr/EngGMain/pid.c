@@ -35,7 +35,7 @@
 #define NUM_MOTORS 2
 
 int16_t pid_ref[NUM_MOTORS], pid_speed[NUM_MOTORS], pid_target[NUM_MOTORS];
-int16_t pid_max_speed[] = {1064, 150};
+//int16_t pid_max_speed[] = {1064, 150};
 uint8_t pid_complete[NUM_MOTORS], ref_complete[NUM_MOTORS];
 
 uint32_t enc3_last_time = 0, actu_last_time = 0;
@@ -43,12 +43,39 @@ int16_t  enc3_last_val = 0, actu_last_val = 0, enc3_pro, actu_pro;
 int32_t  enc3_der, actu_der, enc3_int = 0, actu_int = 0;
 uint8_t  pid_on = 1;
 
+#define ARM_TURN_FACTOR 189
+
+void nav_base(int16_t speed, int16_t target_deg) {
+	uint16_t target;
+	pid_complete[MOTOR3] = ref_complete[MOTOR3] = 0;
+	pid_speed[MOTOR3] = speed;
+	
+	if(target_deg < 0) {
+		target = -target_deg;
+		target *= ARM_TURN_FACTOR;
+		target >>= 3;
+		pid_target[MOTOR3] = -target;
+	}
+	else {
+		target = target_deg;
+		target *= ARM_TURN_FACTOR;
+		target >>= 3;
+		pid_target[MOTOR3] = target;
+	}
+}
+
+void nav_actu(int16_t speed, int16_t target) {
+	pid_complete[MOTOR4] = ref_complete[MOTOR4] = 0;
+	pid_speed[MOTOR4] = speed;
+	pid_target[MOTOR4] = target;
+}
+
 void reset_pid(void) {
 	uint8_t i;
 	
 	for(i = 0; i < NUM_MOTORS; i++) {
-		pid_ref[i] = pid_target[i] = 0;
-		pid_speed[i] = pid_max_speed[i];
+		//pid_ref[i] = pid_target[i] = 0;
+		//pid_speed[i] = pid_max_speed[i];
 		pid_complete[i] = ref_complete[i] = 1;
 	}
 	

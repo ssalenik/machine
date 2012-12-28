@@ -60,6 +60,8 @@ void check_debug_uart(void) {
 					break;
 					
 					case ' ': // stop all motors
+					run_main = 0;
+					run_test = 0;
 					pid_on = 0;
 					stop();
 					set_speed_3(0);
