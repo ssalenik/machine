@@ -74,10 +74,10 @@ static int pt_main(struct pt *pt) {
 	set_bit(FET1); set_bit(FET2);
 	// make 3 attempts at different positions
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 120); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 120); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_actu(2, 150); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
@@ -94,13 +94,13 @@ static int pt_main(struct pt *pt) {
 	nav_forward(120, 120); SLEEP(300);
 	nav_forward(160, 160); SLEEP(300);
 	nav_rel_pos(200, 27, 100); // TARGET POSITION
-	PT_WAIT_UNTIL(pt, (abspL > rel2absL(22, 0)) || (abspR > rel2absR(22, 0)));
+	PT_WAIT_UNTIL(pt, (abspL > rel2absL(21, 0)) || (abspR > rel2absR(21, 0)));
 	// aim for target
 	nav_base(10, -82);
 	PT_WAIT_UNTIL(pt, drive_complete && pid_complete[MOTOR3] && pid_complete[MOTOR4]);
 	SLEEP(400); // shoot once stabilized
-	// shoot (try 5 times fast)
-	for(i = 0; i < 5; i++) {
+	// shoot (try 3 times fast)
+	for(i = 0; i < 3; i++) {
 		cannon_shoot(); SLEEP(250);
 		cannon_reload(); SLEEP(250);
 	}
@@ -114,26 +114,27 @@ static int pt_main(struct pt *pt) {
 	nav_forward( 80,  80); SLEEP(300);
 	nav_forward(120, 120); SLEEP(300);
 	nav_forward(160, 160); SLEEP(300);
-	nav_rel_pos(200, 35,  0);
-	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_rel_pos(200, 35,  0); SLEEP(300);
 	// complete rotation and descend the actuator
-	nav_base(10, 75);
-	nav_actu(3, 200);
+	nav_base(20, 0); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_actu(3, 250);
+	nav_base(20, 45); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base(10, 65);
 	PT_WAIT_UNTIL(pt, drive_complete);
 	// stable short-circuit begins here
-	sc_start = uptime();
-	nav_actu(2, 100); PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
-	PT_WAIT_UNTIL(pt, uptime() > sc_start + 1500); // make sure short-circuit is at least 1.5 s
+	//sc_start = uptime();
+	//PT_WAIT_UNTIL(pt, uptime() > sc_start + 1500); // make sure short-circuit is at least 1.5 s
+	SLEEP(1500);
 	nav_forward(40, 40);
-	PT_WAIT_UNTIL(pt, (abspL > rel2absL(35, 40)) || (abspR > rel2absR(35, 40)));
+	PT_WAIT_UNTIL(pt, (abspL > rel2absL(35, 50)) || (abspR > rel2absR(35, 50)));
 	// drop the battery
 	clr_bit(FET1); clr_bit(FET2);
 	
 	/* --- TURN --- */
-	// pos = 35.40, speed = 40, base = 75L, actu = 100 after battery drop-off / short.
+	// pos = 35.50, speed = 40, base = 75L, actu = 100 after battery drop-off / short.
 	// start moving forward and position arm behind for traction
 	nav_forward(80, 80);
-	nav_actu(3, 250); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	//nav_actu(3, 250); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// actu is at a safe height to proceed moving now
 	nav_actu(3, 400); // lift actu to cruise height
 	nav_base(20, 180);
