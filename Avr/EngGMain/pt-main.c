@@ -23,7 +23,7 @@ static int pt_main(struct pt *pt) {
 	// tower gets hit here
 	
 	/* --- RESET BASE ENCODER --- */
-	// pos = ?, probably 17.70. base = 90L
+	// pos = ?, probably 17.60. base = 90L
 	// turn the base CW until the abs reference point is crossed (stops at 45 deg Right on failure)
 	nav_base(20, -45);
 	PT_WAIT_UNTIL(pt, bit_clr(Q3_Z)); // detect base ref point
@@ -64,10 +64,10 @@ static int pt_main(struct pt *pt) {
 	
 	/* --- PICK UP BATTERY --- */
 	// pos = 18.100, base = ~150R, actu = 600 after barrier lifting.
-	nav_rel_pos(DRIVE_SPEED, 11,  40);
+	nav_rel_pos(DRIVE_SPEED, 11,  20);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]); // wait until base stabilised from barrier lifting
 	// position arm for battery pickup
-	nav_base(10, -85);
+	nav_base(10, -82);
 	nav_actu(3, 200);
 	PT_WAIT_UNTIL(pt, drive_complete && pid_complete[MOTOR3] && pid_complete[MOTOR4]);
 	// actuator ready to pick up the battery, magnets on
@@ -80,7 +80,7 @@ static int pt_main(struct pt *pt) {
 	nav_actu(2, 120); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 120); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	nav_actu(2, 150); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// finished 3 attempts to pick up the battery
 	
 	/* --- SHOOT TARGET --- */
@@ -88,11 +88,11 @@ static int pt_main(struct pt *pt) {
 	nav_base(10, -30); // required to bypass the barrier safely
 	nav_actu(2, 200); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// start moving smoothly once actuator high enough
-	nav_actu(3, 600); // TARGET HEIGHT
-	nav_forward( 40, 80); SLEEP(300); // smooth acceletation
-	nav_forward( 80, 80); SLEEP(300);
-	nav_forward(120, 80); SLEEP(300);
-	nav_forward(160, 80); SLEEP(300);
+	nav_actu(3, 600); SLEEP(300); // TARGET HEIGHT
+	nav_forward( 40,  40); SLEEP(300); // smooth acceletation
+	nav_forward( 80,  80); SLEEP(300);
+	nav_forward(120, 120); SLEEP(300);
+	nav_forward(160, 160); SLEEP(300);
 	nav_rel_pos(200, 27, 100); // TARGET POSITION
 	PT_WAIT_UNTIL(pt, (abspL > rel2absL(22, 0)) || (abspR > rel2absR(22, 0)));
 	// aim for target
@@ -108,14 +108,13 @@ static int pt_main(struct pt *pt) {
 	/* --- BATTERY DROP-OFF & GEN SHORT CIRCUIT --- */
 	// pos = 27.100, base = 82R, actu = 575 after target shot.
 	// rotate the base to center without descent
-	nav_base(10, 0);
-	SLEEP(300);
-	// go smoothly to batery drop-off place
-	nav_forward( 40, 80); SLEEP(300); // smooth acceletation
-	nav_forward( 80, 80); SLEEP(300);
-	nav_forward(120, 80); SLEEP(300);
-	nav_forward(160, 80); SLEEP(300);
-	nav_rel_pos(200, 35,  0); // go short-circuit metal plates
+	nav_base(10, 0); SLEEP(300);
+	// go smoothly to short-circuit metal plates
+	nav_forward( 40,  40); SLEEP(300); // smooth acceletation
+	nav_forward( 80,  80); SLEEP(300);
+	nav_forward(120, 120); SLEEP(300);
+	nav_forward(160, 160); SLEEP(300);
+	nav_rel_pos(200, 35,  0);
 	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 	// complete rotation and descend the actuator
 	nav_base(10, 75);
@@ -124,17 +123,19 @@ static int pt_main(struct pt *pt) {
 	// stable short-circuit begins here
 	sc_start = uptime();
 	nav_actu(2, 100); PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
+	PT_WAIT_UNTIL(pt, uptime() > sc_start + 1500); // make sure short-circuit is at least 1.5 s
+	nav_forward(40, 40);
+	PT_WAIT_UNTIL(pt, (abspL > rel2absL(35, 40)) || (abspR > rel2absR(35, 40)));
 	// drop the battery
-	clr_bit(FET1); clr_bit(FET2); SLEEP(200); 
+	clr_bit(FET1); clr_bit(FET2);
+	
+	/* --- TURN --- */
+	// pos = 35.40, speed = 40, base = 75L, actu = 100 after battery drop-off / short.
+	// start moving forward and position arm behind for traction
+	nav_forward(80, 80);
 	nav_actu(3, 250); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// actu is at a safe height to proceed moving now
 	nav_actu(3, 400); // lift actu to cruise height
-	PT_WAIT_UNTIL(pt, uptime() > sc_start + 1500); // make sure short-circuit is at least 1.5 s
-	
-	/* --- TURN --- */
-	// pos = 35.0, base = 75L, actu = 400 after battery drop-off / short.
-	// start moving forward and position arm behind for traction
-	nav_forward(80, 80); SLEEP(600);
 	nav_base(20, 180);
 	PT_WAIT_UNTIL(pt, (abspL > rel2absL(37, 130)) || (abspR > rel2absR(37, 130)));
 	// turn off pos correction and initiate turn.
@@ -184,9 +185,9 @@ static int pt_main(struct pt *pt) {
 	
 	/* --- BACK HOME BABY --- */
 	// pos = 36.70, base = 180L, actu = 400 after laser.
-	nav_rel_pos(DRIVE_SPEED, 1,   0);
+	nav_rel_pos(DRIVE_SPEED, 2,   0);
 	PT_WAIT_UNTIL(pt, (abspL < rel2absL(18, 0)) || (abspR < rel2absR(18, 0)));
-	nav_actu(3, 250); // actuator down to a safe height after the slope
+	nav_actu(3, 300); // actuator down to a safe height after the slope
 	PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 50); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	
@@ -194,6 +195,7 @@ static int pt_main(struct pt *pt) {
 	SLEEP(5000);
 	nav_actu(3, 400); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_base(10, 90); PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]);
+	nav_rel_pos(DRIVE_SPEED, 0,  30); PT_WAIT_UNTIL(pt, drive_complete);
 	
 	//stop EVERYTHING. END OF EXECUTION
 	run_main = 0;
