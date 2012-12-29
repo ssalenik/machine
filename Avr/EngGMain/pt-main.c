@@ -63,7 +63,7 @@ static int pt_main(struct pt *pt) {
 	
 	/* --- PICK UP BATTERY --- */
 	// pos = 18.100, base = ~150R, actu = 600 after barrier lifting.
-	nav_rel_pos(DRIVE_SPEED, 11,  40);
+	nav_rel_pos(DRIVE_SPEED, 11,  20); 
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]); // wait until base stabilised from barrier lifting
 	// position arm for battery pickup
 	nav_base(10, -85);
@@ -184,6 +184,10 @@ static int pt_main(struct pt *pt) {
 	/* --- BACK HOME BABY --- */
 	// pos = 36.70, base = 180L, actu = 400 after laser.
 	nav_rel_pos(DRIVE_SPEED, 1,   0); PT_WAIT_UNTIL(pt, drive_complete);
+	
+	/* --- TEST: RESET THE ARM POSITION --- */
+	SLEEP(5000);
+	nav_base(10, 90); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	
 	//stop EVERYTHING. END OF EXECUTION
 	run_main = 0;
