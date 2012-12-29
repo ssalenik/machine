@@ -96,7 +96,7 @@ void readCommand() {
                     arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
                         pidOn = arg1;
-                      resetPID();
+                      //resetPID();
                     }
                     break;
                 case 0x11: // set desired speed of left motor
@@ -107,7 +107,7 @@ void readCommand() {
                         } else {
                             targetSpeed0 = arg1 * SPEEDMULT;
                         }
-                        resetPID();
+                        //resetPID();
                     }
                     break;
                 case 0x12: // set desired speed of right motor
@@ -118,7 +118,7 @@ void readCommand() {
                         } else {
                             targetSpeed0 = arg1 * SPEEDMULT;
                         }
-                        resetPID();
+                        //resetPID();
                     }
                     break;
                 case 0x15: // set speed for both motors
@@ -126,7 +126,7 @@ void readCommand() {
                     if (valid) {
                         targetSpeed0 = arg1 * SPEEDMULT;
                         targetSpeed1 = arg1 * SPEEDMULT;
-                        resetPID();
+                        //resetPID();
                     }
                     break;
                 case 0x16: // reverse direction for both motors
@@ -165,6 +165,7 @@ void readCommand() {
 				case 0x1f: // toggle pos correction on/off
                     arg1 = readByte(&pbuf[2], &valid);
                     if (valid) {
+                        resetPosCorrection();
                         posCorrectionOn = arg1;
                     }
                     break;

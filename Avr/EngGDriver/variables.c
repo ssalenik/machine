@@ -39,7 +39,9 @@ int16_t p_transRlist[TRANSITIONS] = TRANS_R_LIST;
     // position correction
 uint8_t p_LsensVal = 0, p_RsensVal = 0; // last track sensor value (0 | 1)
 //int16_t p_LsensPos = 0, p_RsensPos = 0; // ticks at last sensor poll
-int16_t p_Lerr = 0, p_Rerr = 0;          // last track sensor position correction error
+int16_t p_Lerr = 0, p_Rerr = 0;         // last track sensor position correction error
+int8_t p_LlastCorrTrans = 0;            // transition at last pos correction 
+int8_t p_RlastCorrTrans = 0;
 int8_t posCorrectionOn = 0;             // toggle position correction
 uint16_t posCorrLeftFailed = 0;         // failed position correction left counter
 uint16_t posCorrRightFailed = 0;        // failed position correction right counter

@@ -80,7 +80,6 @@ void navDest(int16_t speedL, int16_t speedR, int16_t posL, int16_t posR) {
 }
 
 void navFree(int16_t speedL, int16_t speedR, uint8_t dirL, uint8_t dirR) {
-    resetPID();
     if (dirL != ldir) setDirection(LMOTOR, dirL);
     if (dirR != rdir) setDirection(RMOTOR, dirR);
     setTargetSpeed(LMOTOR, speedL);

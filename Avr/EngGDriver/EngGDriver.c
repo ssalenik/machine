@@ -27,6 +27,7 @@
 int main(void) {
     int32_t lastSpeedCalc = 0;
     int32_t lastDebug = 0;
+    int32_t lastDebug2 = 0;
     
     // initalize all modules
     initAll();
@@ -53,6 +54,12 @@ int main(void) {
         
         // read sensors and apply position correction
         positionCorrection();   // odometer.c
+        
+        // print debug loop 2
+        if (uptime() >= (lastDebug2 + 20)) {
+            lastDebug2 = uptime();
+            if (debug6) printf("%d, %d\r\n", p_LsensVal, p_RsensVal);
+        }
         
         // print debug
         if ((debugPeriod) && uptime() >= (lastDebug + debugPeriod)) {

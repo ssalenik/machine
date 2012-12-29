@@ -97,7 +97,7 @@ void updateRelativePos() {
      */
     
     // make left sensor ready when necessary, depending on left motor direction
-    if (p_Ltrans & 1) {
+    /*if (p_Ltrans & 1) {
         if (ldir == FORWARD) {
             if (p_Lrel > p_transLlist[p_Ltrans+1] - p_transLlist[p_Ltrans] - MAX_CORR_ERROR) {
                 posCorrLready = 1;
@@ -146,7 +146,7 @@ void updateRelativePos() {
                 posCorrRready = 0;
             }
         }
-    }
+    }*/
 }
 
 /**
@@ -184,7 +184,8 @@ void resetPosCorrection() {
     readTrackSensors();
     // clear correction errors
     p_Lerr = p_Rerr = 0;
-    posCorrLready = posCorrRready = 0;
+    // TODO: might cause false triggering if reset above a rail
+    p_LlastCorrTrans = p_RlastCorrTrans = 255; 
 }
 
 /**
@@ -197,6 +198,7 @@ void positionCorrection() {
     uint8_t lastLval, lastRval;
     int16_t transL, transR;
     int16_t absErr;
+    uint8_t falseTrigger;
     
     // remember previous track sensor values
     lastLval = p_LsensVal;
@@ -207,12 +209,11 @@ void positionCorrection() {
     
     // exit if correction is turned off
     if (!posCorrectionOn) {
-        posCorrLready = posCorrRready = 0;
         return;
     }
     
     // check for transitions from hole to plank
-    if ((posCorrLready && lastLval && !p_LsensVal) || (posCorrRready && lastRval && !p_RsensVal)) {
+    if ((lastLval && !p_LsensVal) || (lastRval && !p_RsensVal)) {
         /* make sure we have the updated position values if we need to
          * run the correction algorithm. Note that since the digital
          * sensor has a very fast smapling rate of about 2.5 ms, the 
@@ -223,10 +224,9 @@ void positionCorrection() {
     }
     
     // check left side
-    if (posCorrLready && lastLval && !p_LsensVal) {
+    if (lastLval && !p_LsensVal) {
         // check if we are closer to the next transition than to the 
         // one in whose zone we are
-		posCorrLready = 0;
         transL = p_Ltrans;
         if (p_Ltrans < TRANSITIONS - 1) {
             p_Lerr = (p_transLlist[p_Ltrans] + p_Lrel) - p_transLlist[p_Ltrans + 1];
@@ -239,26 +239,41 @@ void positionCorrection() {
             p_Lerr = p_Lrel;
         }
         
-        // check that correction is whitin acceptable range
-        absErr = p_Lerr < 0 ? -p_Lerr : p_Lerr;
-        if (absErr <= MAX_CORR_ERROR) {
-            // apply the correction
-            p_Ltrans = transL;
-            p_Lrel = 0;
-            p_L = p_transLlist[transL];
-            p_Lfull = ((int32_t)p_L) << 10;
-			printf("L corr sect %u by %d\r", transL, p_Lerr);
+        falseTrigger = 0;
+        // TODO: add extra case for direction switching
+        // check for false early triggering
+        if ( (ldir == FORWARD) && (transL & 1) ) {
+            falseTrigger = 1;
+        } else if ( ( (transL & ~1) == (p_LlastCorrTrans & ~1) ) ) {
+            falseTrigger = 1;
+        // check for false double triggering
+        } else if ((transL == p_LlastCorrTrans)) {
+            falseTrigger = 1;
+        }
+        
+        if (falseTrigger) {
+            printf(" L false trigger\r\n"); // *** debug ***
         } else {
-            // mucho problemo
-            // TODO: send a notification
-            posCorrLeftFailed++;
-            printf("L corr failed!\r");
+            // check that correction is whitin acceptable range
+            absErr = p_Lerr < 0 ? -p_Lerr : p_Lerr;
+            if (absErr <= MAX_CORR_ERROR) {
+                // apply the correction
+                p_Ltrans = p_LlastCorrTrans = transL;
+                p_Lrel = 0;
+                p_L = p_transLlist[transL];
+                p_Lfull = ((int32_t)p_L) << 10;
+                printf("L corr sect %u by %d at %ld\r\n", transL, p_Lerr, uptime());
+            } else {
+                // mucho problemo
+                // TODO: send a notification
+                posCorrLeftFailed++;
+                printf("L corr failed!\r\n");
+            }
         }
     }
 
     // check right side
-    if (posCorrRready && lastRval && !p_RsensVal) {
-        posCorrRready = 0;
+    if (lastRval && !p_RsensVal) {
         transR = p_Rtrans;
         if (p_Rtrans < TRANSITIONS - 1) {
             p_Rerr = (p_transRlist[p_Rtrans] + p_Rrel) - p_transRlist[p_Rtrans + 1];
@@ -271,18 +286,34 @@ void positionCorrection() {
             p_Rerr = p_Rrel;
         }
 
-        absErr = p_Rerr < 0 ? -p_Rerr : p_Rerr;
-        if (absErr <= MAX_CORR_ERROR) {
-            p_Rtrans = transR;
-            p_Rrel = 0;
-            p_R = p_transRlist[transR];
-            p_Rfull = ((int32_t)p_R) << 10;
-			printf("R corr sect %u by %d\r", transR, p_Rerr);
+        falseTrigger = 0;
+        // TODO: add extra case for direction switching
+        // check for false early triggering
+        if ( (rdir == FORWARD) && (transR & 1) ) {
+            falseTrigger = 1;
+        } else if ( (rdir == BACKWARD) && !(transR & 1) ) {
+            falseTrigger = 1;
+        // check for false double triggering
+        } else if ( (transR & ~1) == (p_RlastCorrTrans & ~1) ) {
+            falseTrigger = 1;
+        }
+        
+        if (falseTrigger) {
+            //printf(" R false trigger\r\n"); // *** debug ***
         } else {
-            // mucho problemo
-            // TODO: send a notification
-            posCorrRightFailed++;
-            printf("R corr failed!\r");
+            absErr = p_Rerr < 0 ? -p_Rerr : p_Rerr;
+            if (absErr <= MAX_CORR_ERROR) {
+                p_Rtrans = p_RlastCorrTrans = transR;
+                p_Rrel = 0;
+                p_R = p_transRlist[transR];
+                p_Rfull = ((int32_t)p_R) << 10;
+                printf("R corr sect %u by %d at %ld\r\n", transR, p_Rerr, uptime());
+            } else {
+                // mucho problemo
+                // TODO: send a notification
+                posCorrRightFailed++;
+                printf("R corr failed!\r\n");
+            }
         }
     }    
 }
