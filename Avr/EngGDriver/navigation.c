@@ -74,8 +74,10 @@ void navDest(int16_t speedL, int16_t speedR, int16_t posL, int16_t posR) {
     rdir = (p_R < posR) ? FORWARD : BACKWARD;
     setDirection(LMOTOR, ldir);
     setDirection(RMOTOR, rdir);
-    printf_P(PSTR("Left: goto %d at speed %d, dir = %d\r\n"), posL, speedL, ldir);
-    printf_P(PSTR("Right: goto %d at speed %d, dir = %d\r\n"), posR, speedR, rdir);
+    if (debug1) {
+        printf_P(PSTR("Left: goto %d at speed %d, dir = %d\r\n"), posL, speedL, ldir);
+        printf_P(PSTR("Right: goto %d at speed %d, dir = %d\r\n"), posR, speedR, rdir);
+    }
     navCom = NAV_DEST;
 }
 

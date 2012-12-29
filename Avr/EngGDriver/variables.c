@@ -94,7 +94,7 @@ uint8_t n_rampDownOn = 1;               // 0 | 1 to turn rampDown on or off
 /* --------------*/
 
 /* --- Debug --- */
-uint8_t debug1 = 0;
+uint8_t debug1 = 1;
 uint8_t debug2 = 0;
 uint8_t debug3 = 0;
 uint8_t debug4 = 0;
