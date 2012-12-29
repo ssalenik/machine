@@ -157,8 +157,11 @@ class CentralWidget(QWidget):
     def updateBatteryIndicator(self):
         command = self.command
         batteryValue = self.batteryValue
-        if batteryValue < 3.4 :
-            command.batStatusLabel.setPixmap(command.redFill)                
+        if batteryValue <= 0 :
+            return
+        elif batteryValue < 3.4 :
+            command.batStatusLabel.setPixmap(command.redFill)
+            self.melanie.showMelanie()                
         elif batteryValue > 3.7 :
             command.batStatusLabel.setPixmap(command.greenFill)
         else:
