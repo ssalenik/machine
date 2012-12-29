@@ -39,7 +39,7 @@
 #define RX_LINE_SIZE FIFO_LENGTH
 #define DRIVE_SPEED  200
 
-uint8_t run_main = 0;
+uint8_t run_main = 1; // AUTOSTART
 uint8_t run_test = 0; // test
 uint8_t drive_complete = 1;
 uint8_t rev_passthru = 1;

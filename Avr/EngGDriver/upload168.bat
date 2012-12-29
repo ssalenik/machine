@@ -1,1 +1,1 @@
-avrdude -c usbasp -p m168 -U flash:w:"EngGDriver.hex":i
+avrdude -c usbasp -p m168 -V -U flash:w:"EngGDriver.hex":i

@@ -302,8 +302,8 @@ void readTrackSensors() {
     uint16_t tmpL = p_LsensADC;
     uint16_t tmpR = p_RsensADC;
     sei();
-    p_LsensVal = tmpL > POS_SENSOR_THR ? 1 : 0;
-    p_RsensVal = tmpR > POS_SENSOR_THR ? 1 : 0;
+    p_LsensVal = tmpL > POS_SENSOR_THR ? 0 : 1;
+    p_RsensVal = tmpR > POS_SENSOR_THR ? 0 : 1;
 }
 */
 

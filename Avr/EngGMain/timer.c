@@ -85,8 +85,8 @@ SIGNAL(TIMER3_COMPA_vect) {
 	// servo outputs
 	TCCR0B = 0; // stop TIMER0
 	TCCR2B = 0; // stop TIMER2
-	TCNT0 = 0;  // reset TIMER0
-	TCNT2 = 0;  // reset TIMER2
+	TCNT0  = 0; // reset TIMER0
+	TCNT2  = 0; // reset TIMER2
 	TCCR0A = 3 << COM0A0 | 3 << COM0B0; // set on compare match on all channels
 	TCCR2A = 3 << COM2A0 | 3 << COM2B0;
 	TCCR0B = 1 << FOC0A  | 1 << FOC0B;  // force compare match
