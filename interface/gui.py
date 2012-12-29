@@ -284,7 +284,7 @@ class CentralWidget(QWidget):
         # self.controller.sendMessage(code=mainCPU['base_pid_i'], sendToDriver=False, data=self.controls.arm.baseIValue.value(), encoding='s16')
         # self.controller.sendMessage(code=mainCPU['base_pid_d'], sendToDriver=False, data=self.controls.arm.baseDValue.value(), encoding='s16')
         self.controller.sendMessage(code=mainCPU['base_pid_s'], sendToDriver=False, data=self.controls.arm.baseSValue.value(), encoding='s16')
-        self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=self.controls.arm.baseRefInput.value(), encoding='s16')
+        self.controller.sendMessage(code=mainCPU['base_encoder'], sendToDriver=False, data=(self.controls.arm.baseRefInput.value()*23.64444), encoding='s16')
 
     def baseCCW(self):
         if not self.controls.arm.PIDSwitchArm.isChecked() :
@@ -533,7 +533,7 @@ class CentralWidget(QWidget):
                     self.armRefInputSetPermission = False
                 
                 if self.baseRefInputSetPermission and c.encoderBaseRead:
-                    arm.baseRefInput.setValue(int(c.encoder_base))
+                    arm.baseRefInput.setValue(int(c.encoder_base)/23.64444)
                     self.baseRefInputSetPermission = False
                 
                 # battery
@@ -1021,10 +1021,10 @@ class ArmFrame(QFrame):
         self.linActSValue.setMaximum(100)
         self.linActSValue.setFixedWidth(60)
 		
-        self.refLabel = QLabel("ref value:")
+        self.refLabel = QLabel("ref. value:")
         self.baseRefInput = QSpinBox()
-        self.baseRefInput.setMinimum(-4256)
-        self.baseRefInput.setMaximum(4256)
+        self.baseRefInput.setMinimum(-100)
+        self.baseRefInput.setMaximum(180)
         self.baseRefInput.setFixedWidth(60)
         self.linActRefInput = QSpinBox()
         self.linActRefInput.setMinimum(20)
