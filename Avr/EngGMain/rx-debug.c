@@ -8,6 +8,7 @@ void cmd_err(void) { fprintf_P(&debug, PSTR("Command error\r\n")); }
 void check_debug_uart(void) {
 	static uint8_t inputbuf[RX_LINE_SIZE], inputptr = 0;
 	uint8_t i, recv;
+	int16_t ticks;
 	
 	while(uart_available(DEBUG)) {
 		recv = uart_get(DEBUG);
@@ -137,6 +138,15 @@ void check_debug_uart(void) {
 						case '7': // set noise gate (int16_t level)
 						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
 						//ENC3_NOISE_GATE = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+						break;
+						
+						case 'f': // set reference angle
+						if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+						ticks = deg2ticks(htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]));
+						cli();
+						V_encoder = ticks;
+						sei();
+						reset_pid();
 						break;
 						
 						default:

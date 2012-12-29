@@ -45,23 +45,27 @@ uint8_t  pid_on = 1;
 
 #define ARM_TURN_FACTOR 189
 
-void nav_base(int16_t speed, int16_t target_deg) {
-	uint16_t target;
-	pid_complete[MOTOR3] = ref_complete[MOTOR3] = 0;
-	pid_speed[MOTOR3] = speed;
+int16_t deg2ticks(int16_t deg) {
+	uint16_t ticks;
 	
-	if(target_deg < 0) {
-		target = -target_deg;
-		target *= ARM_TURN_FACTOR;
-		target >>= 3;
-		pid_target[MOTOR3] = -target;
+	if(deg < 0) {
+		ticks = -deg;
+		ticks *= ARM_TURN_FACTOR;
+		ticks >>= 3;
+		return -ticks;
 	}
 	else {
-		target = target_deg;
-		target *= ARM_TURN_FACTOR;
-		target >>= 3;
-		pid_target[MOTOR3] = target;
+		ticks = deg;
+		ticks *= ARM_TURN_FACTOR;
+		ticks >>= 3;
+		return ticks;
 	}
+}
+
+void nav_base(int16_t speed, int16_t target_deg) {
+	pid_complete[MOTOR3] = ref_complete[MOTOR3] = 0;
+	pid_speed[MOTOR3] = speed;
+	pid_target[MOTOR3] = deg2ticks(target_deg);
 }
 
 void nav_actu(int16_t speed, int16_t target) {

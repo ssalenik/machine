@@ -28,7 +28,7 @@ static int pt_main(struct pt *pt) {
 	PT_WAIT_UNTIL(pt, bit_clr(Q3_Z)); // detect base ref point
 	cli();
 	// reset base tacho. reference point is at 5 deg Left
-	V_encoder = (5 * ARM_TURN_FACTOR) >> 3; 
+	V_encoder = deg2ticks(5);
 	sei();
 	// clear all pid variables and sleep to let the pid settle
 	set_speed_3(0);
