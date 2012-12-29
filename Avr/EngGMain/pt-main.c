@@ -8,12 +8,13 @@ static int pt_main(struct pt *pt) {
 	// robot must be placed 30 mm from transition 0, i.e. 20 mm forward from start of tracks
 	// with the actuator pointing left 90 degrees, raised to position 400 ideally
 	// pos = 0.30
-	SLEEP(3000); // this delay allows GTF away from the robot, or to stop the main thread before run
+	fprintf(&debug, "RUNNING!\r\n"); // so u know when to disable the thread for tests
+	SLEEP(5000); // this delay allows GTF away from the robot, or to stop the main thread before run
 	nav_actu(3, 400); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_base(20, 180); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	set_rel_pos(0, 30);
 	pos_corr_on();
-	nav_rel_pos(DRIVE_SPEED, 17,  70); // start moving under the bridge, until barrier
+	nav_rel_pos(DRIVE_SPEED, 17,  60); // start moving under the bridge, until barrier
 	PT_WAIT_UNTIL(pt, (abspL > rel2absL(9, 60)) || (abspR > rel2absR(9, 60)));
 	// passed the bridge
 	nav_base(20, 90);
@@ -41,7 +42,7 @@ static int pt_main(struct pt *pt) {
 	PT_WAIT_UNTIL(pt, drive_complete); // barrier reached
 	
 	/* --- LIFT BARRIER --- */
-	// pos = 17.70. positioned in front of the barrier here. 
+	// pos = 17.60. positioned in front of the barrier here. 
 	nav_base(10, -5);
 	nav_actu(2, 40);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
@@ -52,13 +53,13 @@ static int pt_main(struct pt *pt) {
 	nav_actu(4, 600); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	// multi-step speed profile (acceleration)
 	nav_base( 25,  -5); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base( 50, -10); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base( 50, -15); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 	nav_base( 75, -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(100, -75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base(100, -60); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 	// multi-step speed profile (deceleration)
-	nav_base(75, -105); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(50, -135); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(25, -150); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base(75,  -75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base(50,  -90); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_base(25, -100); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 	// end of fast turn. barrier is lifted
 	
 	/* --- PICK UP BATTERY --- */
@@ -87,7 +88,7 @@ static int pt_main(struct pt *pt) {
 	nav_base(10, -30); // required to bypass the barrier safely
 	nav_actu(2, 200); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// start moving smoothly once actuator high enough
-	nav_actu(3, 575); // TARGET HEIGHT
+	nav_actu(3, 600); // TARGET HEIGHT
 	nav_forward( 40, 80); SLEEP(300); // smooth acceletation
 	nav_forward( 80, 80); SLEEP(300);
 	nav_forward(120, 80); SLEEP(300);
@@ -183,11 +184,16 @@ static int pt_main(struct pt *pt) {
 	
 	/* --- BACK HOME BABY --- */
 	// pos = 36.70, base = 180L, actu = 400 after laser.
-	nav_rel_pos(DRIVE_SPEED, 1,   0); PT_WAIT_UNTIL(pt, drive_complete);
+	nav_rel_pos(DRIVE_SPEED, 1,   0);
+	PT_WAIT_UNTIL(pt, (abspL < rel2absL(18, 0)) || (abspR < rel2absR(18, 0)));
+	nav_actu(3, 250); // actuator down to a safe height after the slope
+	PT_WAIT_UNTIL(pt, drive_complete);
+	nav_actu(2, 50); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	
 	/* --- TEST: RESET THE ARM POSITION --- */
 	SLEEP(5000);
-	nav_base(10, 90); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(3, 400); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_base(10, 90); PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]);
 	
 	//stop EVERYTHING. END OF EXECUTION
 	run_main = 0;

@@ -247,12 +247,12 @@ void positionCorrection() {
             p_Lrel = 0;
             p_L = p_transLlist[transL];
             p_Lfull = ((int32_t)p_L) << 10;
-			printf("posL corr OK! sect %u\r", transL);
+			printf("L corr sect %u by %d\r", transL, p_Lerr);
         } else {
             // mucho problemo
             // TODO: send a notification
             posCorrLeftFailed++;
-            //if (debug1) printf("posL correction failed!\r");
+            printf("L corr failed!\r");
         }
     }
 
@@ -277,12 +277,12 @@ void positionCorrection() {
             p_Rrel = 0;
             p_R = p_transRlist[transR];
             p_Rfull = ((int32_t)p_R) << 10;
-			printf("posR corr OK! sect %u\r", transR);
+			printf("R corr sect %u by %d\r", transR, p_Rerr);
         } else {
             // mucho problemo
             // TODO: send a notification
             posCorrRightFailed++;
-            //if (debug1) printf("posR correction failed!\r");
+            printf("R corr failed!\r");
         }
     }    
 }
