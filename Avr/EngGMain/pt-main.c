@@ -63,7 +63,7 @@ static int pt_main(struct pt *pt) {
 	
 	/* --- PICK UP BATTERY --- */
 	// pos = 18.100, base = ~150R, actu = 600 after barrier lifting.
-	nav_rel_pos(DRIVE_SPEED, 11,  20); 
+	nav_rel_pos(DRIVE_SPEED, 11,  40);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]); // wait until base stabilised from barrier lifting
 	// position arm for battery pickup
 	nav_base(10, -85);
