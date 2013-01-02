@@ -4,16 +4,16 @@ static int pt_main(struct pt *pt) {
 	//static uint32_t sc_start; // for short-circuit delay
 	static uint8_t i; // for loops
 	
-    /* --- COUNTDOWN --- */
-    fprintf(&debug, "RUNNING!\r\n"); // so u know when to disable the thread for tests
+	/* --- COUNTDOWN --- */
+	fprintf(&debug, "RUNNING!\r\n"); // so u know when to disable the thread for tests
 	//SLEEP(5000); // this delay allows GTF away from the robot, or to stop the main thread before run
-    fprintf(&debug, "5\r\n"); SLEEP(1000);
-    fprintf(&debug, "4\r\n"); SLEEP(1000);
-    fprintf(&debug, "3\r\n"); SLEEP(1000);
-    fprintf(&debug, "2\r\n"); SLEEP(1000);
-    fprintf(&debug, "1\r\n"); SLEEP(1000);
-    
-    /* --- PASS THE BRIDGE --- */
+	fprintf(&debug, "5\r\n"); SLEEP(1000);
+	fprintf(&debug, "4\r\n"); SLEEP(1000);
+	fprintf(&debug, "3\r\n"); SLEEP(1000);
+	fprintf(&debug, "2\r\n"); SLEEP(1000);
+	fprintf(&debug, "1\r\n"); SLEEP(1000);
+	
+	/* --- PASS THE BRIDGE --- */
 	// robot must be placed 30 mm from transition 0, i.e. 20 mm forward from start of tracks
 	// with the actuator pointing left 90 degrees, raised to position 400 ideally
 	// pos = 0.30
