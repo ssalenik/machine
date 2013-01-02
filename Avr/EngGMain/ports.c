@@ -5,8 +5,8 @@
  *  -----------------------------------------------------------------
  *  40	PA0	ADC0		I	Y	Q3_Z	TURN_ZERO
  *  39	PA1	ADC1		I	N	SENS2	SENS2/RESERVED
- *  38	PA2	ADC2		I	N	SENS3	SENS3/RESERVED
- *  37	PA3	ADC3		I	N	SENS4	SENS4/RESERVED
+ *  38	PA2	ADC2		O/C	N	SNDPLY	SND_PLAY
+ *  37	PA3	ADC3		O/C	N	SNDRST	SND_RST
  *  36	PA4	ADC4		I	N	LIFT_FB	LIFT_FEEDBACK
  *  35	PA5	ADC5		I	N	VSENS	BATT_LEVEL
  *  34	PA6	ADC6		O	N	FET1	MOSFET1
@@ -17,9 +17,9 @@
  *   3	PB2	AIN0	INT2	I	N	Q3_INT	TURN_QINT
  *   4	PB3	AIN1	OC0A	O	N	PWM5	SERVO5
  *   5	PB4	SS	OC0B	O	N	PWM6	SERVO6
- *   6	PB5	MOSI	ICP3	I	N		PROG
- *   7	PB6	MISO	OC3A	I	N		PROG
- *   8	PB7	SCK	OC3B	I	N		PROG
+ *   6	PB5	MOSI	ICP3	O	N	SNDDAT	PROG/SND_DATA
+ *   7	PB6	MISO	OC3A	I	Y	SNDBSY	PROG/SND_BUSY
+ *   8	PB7	SCK	OC3B	O	N	SNDCLK	PROG/SND_CLK
  *  -----------------------------------------------------------------
  *  22	PC0	SCL		I	N		RESERVED
  *  23	PC1	SDA		I	N		RESERVED
@@ -43,8 +43,8 @@
 
 #define Q3_Z	A, 0
 #define SENS2	   1
-#define SENS3	   2
-#define SENS4	   3
+#define SNDPLY	A, 2
+#define SNDRST	A, 3
 #define LIFT_FB	   4
 #define VSENS	   5
 #define FET1	A, 6
@@ -54,6 +54,9 @@
 #define Q3_PIN	PINB
 #define Q3_IO	   1
 #define Q3_INT	   2
+#define SNDDAT	B, 5
+#define SNDBSY	B, 6
+#define SNDCLK	B, 7
 
 #define LED1	C, 2
 #define SPWR	C, 3
@@ -64,19 +67,23 @@
 
 #define set_bit(x) __set_b(x)
 #define clr_bit(x) __clr_b(x)
+#define set_ddr(x) __set_d(x)
+#define clr_ddr(x) __clr_d(x)
 #define bit_set(x) __b_set(x)
 #define bit_clr(x) __b_clr(x)
 #define __set_b(port, bit) ( _SFR_BYTE(PORT##port) |=  _BV(bit))
 #define __clr_b(port, bit) ( _SFR_BYTE(PORT##port) &= ~_BV(bit))
-#define __b_set(port, bit) ( _SFR_BYTE(PIN##port) & _BV(bit))
-#define __b_clr(port, bit) (~_SFR_BYTE(PIN##port) & _BV(bit))
+#define __set_d(port, bit) ( _SFR_BYTE(DDR##port)  |=  _BV(bit))
+#define __clr_d(port, bit) ( _SFR_BYTE(DDR##port)  &= ~_BV(bit))
+#define __b_set(port, bit) ( _SFR_BYTE(PIN##port)  & _BV(bit))
+#define __b_clr(port, bit) (~_SFR_BYTE(PIN##port)  & _BV(bit))
 
 void init_ports(void) {
-	DIDR0 = 0b00111110; // disable digital input buffers for analog inputs
+	DIDR0 = 0b00110010; // disable digital input buffers for analog inputs
 	PORTA = 0b00000001; // for all PORTs see P/U column in the table above
 	DDRA  = 0b11000000; // for all DDRs see I/O column in the table above
-	PORTB = 0b00000001;
-	DDRB  = 0b00011000;
+	PORTB = 0b11100001;
+	DDRB  = 0b10111000;
 	DDRC  = 0b11111100;
 	PORTD = 0b00000101;
 	DDRD  = 0b11111010;

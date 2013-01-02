@@ -289,6 +289,21 @@ static int pt_test(struct pt *pt) {
 		}
 	}
 	
+	// test thread 12 (c)
+	else if(run_test == 12) {
+		/* --- PLAYING SOUND --- */
+		ddr_set(SNDRST); SLEEP(5);
+		ddr_clr(SNDRST); SLEEP(300);
+		sound_cmd(0x00); SLEEP(1);
+		sound_cmd(0x02); SLEEP(100);
+		ddr_set(SNDPLY); SLEEP(100);
+		ddr_clr(SNDPLY); SLEEP(11000);
+		sound_cmd(0x00); SLEEP(1);
+		sound_cmd(0x00); SLEEP(100);
+		ddr_set(SNDPLY); SLEEP(100);
+		ddr_clr(SNDPLY); SLEEP(40000);
+	}
+	
 	run_test = 0; // stop test thread after execution
 	//PT_WAIT_WHILE(pt, 1); // halt the thread to prevent restart
 	PT_END(pt); // required to denote the beginning of a thread

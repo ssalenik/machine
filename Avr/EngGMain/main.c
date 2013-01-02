@@ -17,6 +17,7 @@
 #include "hex.c"
 #include "ports.c"
 #include "uart.c"
+#include "sound.c"
 #include "timer.c"
 #include "adc.c"
 #include "enc.c"
@@ -97,6 +98,7 @@ void init(void) {
 	init_adc();
 	init_enc();
 	init_timer();
+	init_sound();
 	
 	sei(); // enable interrupts
 	
