@@ -1,15 +1,22 @@
 static int pt_main(struct pt *pt) {
 	PT_BEGIN(pt); // required to denote the beginning of a thread
 	static uint32_t pt_target; // for delays
-	
-	static uint32_t sc_start; // for short-circuit delay
+	//static uint32_t sc_start; // for short-circuit delay
 	static uint8_t i; // for loops
 	
+    /* --- COUNTDOWN --- */
+    fprintf(&debug, "RUNNING!\r\n"); // so u know when to disable the thread for tests
+	//SLEEP(5000); // this delay allows GTF away from the robot, or to stop the main thread before run
+    fprintf(&debug, "5\r\n"); SLEEP(1000);
+    fprintf(&debug, "4\r\n"); SLEEP(1000);
+    fprintf(&debug, "3\r\n"); SLEEP(1000);
+    fprintf(&debug, "2\r\n"); SLEEP(1000);
+    fprintf(&debug, "1\r\n"); SLEEP(1000);
+    
+    /* --- PASS THE BRIDGE --- */
 	// robot must be placed 30 mm from transition 0, i.e. 20 mm forward from start of tracks
 	// with the actuator pointing left 90 degrees, raised to position 400 ideally
 	// pos = 0.30
-	fprintf(&debug, "RUNNING!\r\n"); // so u know when to disable the thread for tests
-	SLEEP(5000); // this delay allows GTF away from the robot, or to stop the main thread before run
 	nav_actu(3, 400); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_base(20, 180); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	set_rel_pos(0, 30);
@@ -63,7 +70,7 @@ static int pt_main(struct pt *pt) {
 	// end of fast turn. barrier is lifted
 	
 	/* --- PICK UP BATTERY --- */
-	// pos = 18.100, base = ~150R, actu = 600 after barrier lifting.
+	// pos = 18.100, base = ~100R, actu = 600 after barrier lifting.
 	nav_rel_pos(DRIVE_SPEED, 11,  20);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]); // wait until base stabilised from barrier lifting
 	// position arm for battery pickup
@@ -203,4 +210,5 @@ static int pt_main(struct pt *pt) {
 	//PT_WAIT_WHILE(pt, 1); // halt the thread to prevent restart
 	PT_END(pt); // required as a denote the end of a thread
 }
+
 
