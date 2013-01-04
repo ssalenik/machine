@@ -53,21 +53,23 @@ static int pt_main(struct pt *pt) {
 	nav_base(10, -5);
 	nav_actu(2, 40);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
-	nav_rel_pos(DRIVE_SPEED, 18,  50); PT_WAIT_UNTIL(pt, drive_complete);
+	nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
 	// positioned with arm under the barrier
+	
 	nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
-	nav_rel_pos(DRIVE_SPEED, 18,  100);
-	nav_actu(4, 600); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	// multi-step speed profile (acceleration)
-	nav_base( 25,  -5); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base( 50, -15); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base( 75, -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(100, -60); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	// multi-step speed profile (deceleration)
-	nav_base(75,  -75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(50,  -90); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	nav_base(25, -100); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
-	// end of fast turn. barrier is lifted
+	nav_rel_pos(DRIVE_SPEED, 18,  130); PT_WAIT_UNTIL(pt, drive_complete);
+	nav_actu(4, 600); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	nav_rel_pos(DRIVE_SPEED, 18,  150); ; PT_WAIT_UNTIL(pt, drive_complete);
+	// ok till here
+	nav_actu(4, 750); 
+	nav_rel_pos(50, 18,  180);
+	PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+	nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	
+	nav_base( 10,  -90); 
+	nav_rel_pos(50, 21,  120); 
+	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
+	nav_actu(4, 200); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	
 	/* --- PICK UP BATTERY --- */
 	// pos = 18.100, base = ~100R, actu = 600 after barrier lifting.
@@ -81,13 +83,13 @@ static int pt_main(struct pt *pt) {
 	set_bit(FET1); set_bit(FET2);
 	// make 3 attempts at different positions
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 150); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	nav_actu(2, 75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// finished 3 attempts to pick up the battery
 	
 	/* --- SHOOT TARGET --- */

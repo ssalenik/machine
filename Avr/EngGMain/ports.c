@@ -6,7 +6,7 @@
  *  40	PA0	ADC0		I	Y	Q3_Z	TURN_ZERO
  *  39	PA1	ADC1		I	N	SENS2	SENS2/RESERVED
  *  38	PA2	ADC2		O/C	N	SNDPLY	SND_PLAY
- *  37	PA3	ADC3		O/C	N	SNDRST	SND_RST
+ *  37	PA3	ADC3		O	N	SNDRST	SND_RST
  *  36	PA4	ADC4		I	N	LIFT_FB	LIFT_FEEDBACK
  *  35	PA5	ADC5		I	N	VSENS	BATT_LEVEL
  *  34	PA6	ADC6		O	N	FET1	MOSFET1
@@ -81,7 +81,7 @@
 void init_ports(void) {
 	DIDR0 = 0b00110010; // disable digital input buffers for analog inputs
 	PORTA = 0b00000001; // for all PORTs see P/U column in the table above
-	DDRA  = 0b11000000; // for all DDRs see I/O column in the table above
+	DDRA  = 0b11001000; // for all DDRs see I/O column in the table above
 	PORTB = 0b11100001;
 	DDRB  = 0b10111000;
 	DDRC  = 0b11111100;

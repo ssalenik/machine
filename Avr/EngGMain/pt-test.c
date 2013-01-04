@@ -50,12 +50,17 @@ static int pt_test(struct pt *pt) {
 		nav_base(10, -5);
 		nav_actu(2, 40);
 		PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
-		nav_rel_pos(DRIVE_SPEED, 18,  50); PT_WAIT_UNTIL(pt, drive_complete);
+		nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
 		// positioned with arm under the barrier
+		
+		clr_bit(SNDCLK); SLEEP(2); // sound
+		sound_cmd(SOUND_LIFT1);
 		nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
-		nav_rel_pos(DRIVE_SPEED, 18,  100);
+		nav_rel_pos(DRIVE_SPEED, 18,  130);
 		nav_actu(4, 600); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 		// multi-step speed profile (acceleration)
+		clr_bit(SNDCLK); SLEEP(2); // sound
+		sound_cmd(SOUND_LIFT2);
 		nav_base( 25,  -5); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 		nav_base( 50, -15); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 		nav_base( 75, -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
@@ -85,13 +90,13 @@ static int pt_test(struct pt *pt) {
 		set_bit(FET1); set_bit(FET2);
 		// make 3 attempts at different positions
 		nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-		nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+		nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 		nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-		nav_actu(2, 150); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+		nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 		nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
 		nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-		nav_actu(2, 150); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_actu(2, 75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 		// finished 3 attempts to pick up the battery
 	}
 	
@@ -119,6 +124,8 @@ static int pt_test(struct pt *pt) {
 		PT_WAIT_UNTIL(pt, drive_complete && pid_complete[MOTOR3] && pid_complete[MOTOR4]);
 		SLEEP(400); // shoot once stabilized
 		// shoot (try 3 times fast)
+		clr_bit(SNDCLK); SLEEP(2); // sound
+		sound_cmd(SOUND_SHOOT);
 		for(i = 0; i < 3; i++) {
 			cannon_shoot(); SLEEP(250);
 			cannon_reload(); SLEEP(250);
@@ -292,16 +299,78 @@ static int pt_test(struct pt *pt) {
 	// test thread 12 (c)
 	else if(run_test == 12) {
 		/* --- PLAYING SOUND --- */
-		set_ddr(SNDRST); SLEEP(5);
-		clr_ddr(SNDRST); SLEEP(300);
-		sound_cmd(0x00); SLEEP(1);
-		sound_cmd(0x02); SLEEP(100);
-		set_ddr(SNDPLY); SLEEP(100);
-		clr_ddr(SNDPLY); SLEEP(11000);
-		sound_cmd(0x00); SLEEP(1);
-		sound_cmd(0x00); SLEEP(100);
-		set_ddr(SNDPLY); SLEEP(100);
-		clr_ddr(SNDPLY); SLEEP(40000);
+		clr_bit(SNDRST); SLEEP(10);
+		set_bit(SNDRST); SLEEP(300);
+		
+		fprintf(&debug, "PULA\r\n");
+		clr_bit(SNDCLK); SLEEP(2);
+		sound_cmd(0x0002); SLEEP(2000);
+		fprintf(&debug, "TVOYA\r\n");
+		clr_bit(SNDCLK); SLEEP(2);
+		sound_cmd(0xfffe); SLEEP(2000);
+		fprintf(&debug, "MAT'\r\n");
+		clr_bit(SNDCLK); SLEEP(2);
+		sound_cmd(0xfffe);
+		//set_ddr(SNDPLY); SLEEP(100);
+		//clr_ddr(SNDPLY); SLEEP(11000);
+		//sound_cmd(0x00); SLEEP(1);
+		//sound_cmd(0x00); SLEEP(100);
+		//set_ddr(SNDPLY); SLEEP(100);
+		//clr_ddr(SNDPLY); SLEEP(40000);
+	}
+	
+		// test thread 13
+	else if(run_test == 13) {
+		/* --- LIFT BARRIER --- */
+		nav_rel_pos(DRIVE_SPEED, 17,  60); PT_WAIT_UNTIL(pt, drive_complete);
+		// pos = 17.60. positioned in front of the barrier here. 
+		nav_base(10, -5);
+		nav_actu(2, 40);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
+		// positioned with arm under the barrier
+		
+		nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  130); PT_WAIT_UNTIL(pt, drive_complete);
+		nav_actu(4, 600); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  150); ; PT_WAIT_UNTIL(pt, drive_complete);
+		// ok till here
+		nav_actu(4, 750); 
+		nav_rel_pos(50, 18,  180);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+		nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+		
+		nav_base( 10,  -90); 
+		nav_rel_pos(50, 21,  140); 
+		PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
+		nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_base( 30,  -60);
+	}
+	
+		// test thread 14
+	else if(run_test == 14) {
+		/* --- LIFT BARRIER --- */
+		nav_rel_pos(DRIVE_SPEED, 17,  60); PT_WAIT_UNTIL(pt, drive_complete);
+		// pos = 17.60. positioned in front of the barrier here. 
+		nav_base(10, -5);
+		nav_actu(2, 40);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
+		// positioned with arm under the barrier
+		
+		nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  130); PT_WAIT_UNTIL(pt, drive_complete);
+		nav_actu(4, 600); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  150); ; PT_WAIT_UNTIL(pt, drive_complete);
+		// ok till here
+		nav_actu(4, 750); 
+		nav_rel_pos(50, 18,  param1); // 180
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+		nav_base( 25,  -param2); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]); // 30
+		
+		nav_base( 10,  -90); 
+		nav_rel_pos(50, 21,  param3); // 120
+		PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
 	}
 	
 	run_test = 0; // stop test thread after execution

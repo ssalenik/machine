@@ -228,6 +228,32 @@ void check_debug_uart(void) {
 					//OCR2B = htoa(inputbuf[1], inputbuf[2]);
 					break;
 					
+					case 'x':
+					if(!isHex(inputbuf[2]) || !isHex(inputbuf[3])) { cmd_err(); break; }
+					switch(inputbuf[1]) {					
+						case '1': // set reference angle
+							if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+							param1 = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+							break;
+						case '2': // set reference angle
+							if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+							param2 = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+							break;
+						case '3': // set reference angle
+							if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+							param3 = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+							break;
+						case '4': // set reference angle
+							if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+							param4 = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+							break;
+						case '5': // set reference angle
+							if(inputptr != 6 || !isHex(inputbuf[4]) || !isHex(inputbuf[5])) { cmd_err(); break; }
+							param5 = htoa(inputbuf[2], inputbuf[3]) << 8 | htoa(inputbuf[4], inputbuf[5]);
+							break;
+					}
+					break;
+					
 					default:
 					cmd_err();
 				}

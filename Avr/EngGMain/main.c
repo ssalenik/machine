@@ -85,6 +85,12 @@ void request_trks(void)                           { fprintf_P(&drive, PSTR("@26\
 //  ARM  CONTROL FUNCTIONS: see file "pid.c"
 // SERVO CONTROL FUNCTIONS: see file "timer.c"
 
+int16_t param1 = 180;
+int16_t param2 = 30;
+int16_t param3 = 120;
+int16_t param4;
+int16_t param5;
+
 #include "pt-main.c"
 #include "pt-test.c"
 #include "rx-drive.c"
