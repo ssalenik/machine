@@ -238,7 +238,7 @@ class CentralWidget(QWidget):
         self.controller.sendMessage(code=mainCPU['ping_pong_servo'], data=0x00, sendToDriver=False, encoding='u8')
 
     def pingPongShoot(self):
-        self.controller.sendMessage(code=mainCPU['ping_pong_servo'], data=0x32, sendToDriver=False, encoding='u8')
+        self.controller.sendMessage(code=mainCPU['ping_pong_servo'], data=0x60, sendToDriver=False, encoding='u8')
 
     def setArmPID(self, state):
         if state == Qt.CheckState.Checked:
