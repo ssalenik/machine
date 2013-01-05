@@ -33,7 +33,7 @@ void servo7(uint8_t degrees) { OCR2A = (((uint16_t)degrees * SERVO_FACTOR) >> 8)
 void servo8(uint8_t degrees) { OCR2B = (((uint16_t)degrees * SERVO_FACTOR) >> 8) + SERVO_OFFSET; } // claw h.
 // servo preset values
 void cannon_reload(void) { servo5(0);   }
-void cannon_shoot(void)  { servo5(50);  }
+void cannon_shoot(void)  { servo5(100);  }
 void laser_init(void)    { servo6(4);   }
 void laser_mid(void)     { servo6(58);  }
 void laser_full(void)    { servo6(96);  }

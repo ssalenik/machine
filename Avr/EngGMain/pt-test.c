@@ -326,7 +326,7 @@ static int pt_test(struct pt *pt) {
 	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
 	
 	// lower arm
-	nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	nav_actu(4, 350); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	
 	// move out of the way of the barrier
 	nav_actu(4, 400);

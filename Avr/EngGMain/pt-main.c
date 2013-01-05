@@ -75,8 +75,8 @@ static int pt_main(struct pt *pt) {
 	nav_rel_pos(100, 21,  140);	
 	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
 	
-	// lower arm
-	nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	// lower arm to lift barrier to the end
+	nav_actu(4, 350); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	
 	// move out of the way of the barrier
 	nav_actu(4, 400);
@@ -210,13 +210,13 @@ static int pt_main(struct pt *pt) {
 	PT_WAIT_UNTIL(pt, (abspL < rel2absL(18, 0)) || (abspR < rel2absR(18, 0)));
 	nav_actu(3, 300); // actuator down to a safe height after the slope
 	PT_WAIT_UNTIL(pt, drive_complete);
-	nav_actu(2, 50); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 25); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	
 	/* --- TEST: RESET THE ARM POSITION --- */
-	SLEEP(5000);
+	/*SLEEP(5000);
 	nav_actu(3, 400); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_base(10, 90); PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]);
-	nav_rel_pos(DRIVE_SPEED, 0,  30); PT_WAIT_UNTIL(pt, drive_complete);
+	nav_rel_pos(DRIVE_SPEED, 0,  30); PT_WAIT_UNTIL(pt, drive_complete);*/
 	
 	//stop EVERYTHING. END OF EXECUTION
 	run_main = 0;
