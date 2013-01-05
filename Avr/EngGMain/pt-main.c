@@ -56,29 +56,37 @@ static int pt_main(struct pt *pt) {
 	nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
 	// positioned with arm under the barrier
 	
+	// Lift arm fully
 	nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
-	nav_rel_pos(DRIVE_SPEED, 18,  130); PT_WAIT_UNTIL(pt, drive_complete);
-	nav_actu(4, 600); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
-	nav_rel_pos(DRIVE_SPEED, 18,  150); ; PT_WAIT_UNTIL(pt, drive_complete);
-	// ok till here
+	nav_rel_pos(DRIVE_SPEED, 18,  130);
+	PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+	nav_actu(4, 600);
+	nav_rel_pos(DRIVE_SPEED, 18,  150);
+	PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
 	nav_actu(4, 750); 
 	nav_rel_pos(50, 18,  180);
 	PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
-	nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
 	
+	// rotate arm
+	nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);		
 	nav_base( 10,  -90); 
-	nav_rel_pos(50, 21,  120); 
+	nav_rel_pos(50, 21,  140); 
 	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
-	nav_actu(4, 200); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	
+	// lower arm
+	nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	
+	// move out of the way of the barrier
+	nav_base( 30,  -60); // rotate a bit not to crash into barrier
+	nav_rel_pos(DRIVE_SPEED, 11,  20); // drive to battery
+	PT_WAIT_UNTIL(pt, (abspL > rel2absL(18, 0)) );
+	nav_base(10, -82); // rotate base to battery pick-up pos
+	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+	nav_actu(3, 200);
+	PT_WAIT_UNTIL(pt, ref_complete[MOTOR4] && drive_complete); // wait until destination reached
 	
 	/* --- PICK UP BATTERY --- */
-	// pos = 18.100, base = ~100R, actu = 600 after barrier lifting.
-	nav_rel_pos(DRIVE_SPEED, 11,  20);
-	PT_WAIT_UNTIL(pt, pid_complete[MOTOR3]); // wait until base stabilised from barrier lifting
-	// position arm for battery pickup
-	nav_base(10, -82);
-	nav_actu(3, 200);
-	PT_WAIT_UNTIL(pt, drive_complete && pid_complete[MOTOR3] && pid_complete[MOTOR4]);
+	// pos = 11.20, base = 82R, actu = 200 after barrier lifting.
 	// actuator ready to pick up the battery, magnets on
 	set_bit(FET1); set_bit(FET2);
 	// make 3 attempts at different positions

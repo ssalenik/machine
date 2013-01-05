@@ -298,25 +298,43 @@ static int pt_test(struct pt *pt) {
 	
 	// test thread 12 (c)
 	else if(run_test == 12) {
-		/* --- PLAYING SOUND --- */
-		clr_bit(SNDRST); SLEEP(10);
-		set_bit(SNDRST); SLEEP(300);
+		/* --- LIFT BARRIER --- */
+		nav_rel_pos(DRIVE_SPEED, 17,  60); PT_WAIT_UNTIL(pt, drive_complete);
+		// pos = 17.60. positioned in front of the barrier here. 
+		nav_base(10, -5);
+		nav_actu(2, 40);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR3] && pid_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  80); PT_WAIT_UNTIL(pt, drive_complete);
+		// positioned with arm under the barrier
 		
-		fprintf(&debug, "PULA\r\n");
-		clr_bit(SNDCLK); SLEEP(2);
-		sound_cmd(0x0002); SLEEP(2000);
-		fprintf(&debug, "TVOYA\r\n");
-		clr_bit(SNDCLK); SLEEP(2);
-		sound_cmd(0xfffe); SLEEP(2000);
-		fprintf(&debug, "MAT'\r\n");
-		clr_bit(SNDCLK); SLEEP(2);
-		sound_cmd(0xfffe);
-		//set_ddr(SNDPLY); SLEEP(100);
-		//clr_ddr(SNDPLY); SLEEP(11000);
-		//sound_cmd(0x00); SLEEP(1);
-		//sound_cmd(0x00); SLEEP(100);
-		//set_ddr(SNDPLY); SLEEP(100);
-		//clr_ddr(SNDPLY); SLEEP(40000);
+		// Lift arm fully
+		nav_actu(4, 400); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		nav_rel_pos(DRIVE_SPEED, 18,  130);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+		nav_actu(4, 600);
+		nav_rel_pos(DRIVE_SPEED, 18,  150);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+		nav_actu(4, 750); 
+		nav_rel_pos(50, 18,  180);
+		PT_WAIT_UNTIL(pt, pid_complete[MOTOR4] && drive_complete);
+		
+		// rotate arm
+		nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);		
+		nav_base( 10,  -90); 
+		nav_rel_pos(50, 21,  140); 
+		PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
+		
+		// lower arm
+		nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+		
+		// move out of the way of the barrier
+		nav_base( 30,  -60); // rotate a bit not to crash into barrier
+		nav_rel_pos(DRIVE_SPEED, 11,  20); // drive to battery
+		PT_WAIT_UNTIL(pt, (abspL > rel2absL(18, 0)) );
+		nav_base(10, -82); // rotate base to battery pick-up pos
+		PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);
+		nav_actu(3, 200);
+		PT_WAIT_UNTIL(pt, ref_complete[MOTOR4] && drive_complete); // wait until destination reached
 	}
 	
 		// test thread 13
@@ -345,6 +363,7 @@ static int pt_test(struct pt *pt) {
 		PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
 		nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 		nav_base( 30,  -60);
+		
 	}
 	
 		// test thread 14
