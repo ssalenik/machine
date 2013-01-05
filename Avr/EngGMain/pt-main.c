@@ -70,14 +70,17 @@ static int pt_main(struct pt *pt) {
 	// rotate arm
 	nav_base( 25,  -30); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]);		
 	nav_base( 10,  -90); 
-	nav_rel_pos(50, 21,  140); 
+	nav_rel_pos(50, 21,  140);
+	PT_WAIT_UNTIL(pt, (abspL > rel2absL(18, 250)) );
+	nav_rel_pos(100, 21,  140);	
 	PT_WAIT_UNTIL(pt, ref_complete[MOTOR3] && drive_complete);
 	
 	// lower arm
 	nav_actu(4, 300); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	
 	// move out of the way of the barrier
-	nav_base( 30,  -60); // rotate a bit not to crash into barrier
+	nav_actu(4, 400);
+	nav_base( 40,  -50); PT_WAIT_UNTIL(pt, ref_complete[MOTOR3]); // rotate a bit not to crash into barrier
 	nav_rel_pos(DRIVE_SPEED, 11,  20); // drive to battery
 	PT_WAIT_UNTIL(pt, (abspL > rel2absL(18, 0)) );
 	nav_base(10, -82); // rotate base to battery pick-up pos
@@ -90,14 +93,14 @@ static int pt_main(struct pt *pt) {
 	// actuator ready to pick up the battery, magnets on
 	set_bit(FET1); set_bit(FET2);
 	// make 3 attempts at different positions
-	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2,  75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 120); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
-	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2,  75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 120); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
 	nav_dist(30, -20); PT_WAIT_UNTIL(pt, drive_complete);
-	nav_actu(2, 85); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
-	nav_actu(2, 75); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
+	nav_actu(2,  75); PT_WAIT_UNTIL(pt, pid_complete[MOTOR4]);
+	nav_actu(2, 120); PT_WAIT_UNTIL(pt, ref_complete[MOTOR4]);
 	// finished 3 attempts to pick up the battery
 	
 	/* --- SHOOT TARGET --- */

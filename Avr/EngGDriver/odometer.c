@@ -125,7 +125,7 @@ void resetPosCorrection() {
     // clear correction errors
     p_Lerr = p_Rerr = 0;
     // TODO: might cause false triggering if reset above a rail
-    p_LlastCorrTrans = p_RlastCorrTrans = 255; 
+    p_LlastCorrTrans = p_RlastCorrTrans = 0; 
 }
 
 /**
